@@ -60,11 +60,21 @@ uv sync --group sim --group train
 
 ## View the bike or the K1 and bike
 
+The viewer defaults to the green, USDZ-derived bike scaled to **56.5 cm between
+wheel centres**, with its stem extended to **45 cm grip-centre height**.
+It loads `assets/bike/sketchfab_mujoco/bike.xml`, which contains
+the separated meshes and provisional physics; it does not load the USDZ directly.
+Use `--model primitive` to compare with the original blue prototype.
+
 ### Linux host
 
 ```bash
 uv run python scripts/view_model.py bike
+uv run python scripts/view_model.py bike --paused
+uv run python scripts/view_model.py bike --model primitive
 uv run python scripts/view_model.py bike --push 3
+uv run python scripts/view_model.py bike --lean 5 --drop 0.03
+uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
 ```
 
@@ -72,12 +82,41 @@ uv run python scripts/view_model.py k1_bike
 
 ```bash
 uv run mjpython scripts/view_model.py bike
+uv run mjpython scripts/view_model.py bike --paused
+uv run mjpython scripts/view_model.py bike --model primitive
 uv run mjpython scripts/view_model.py bike --push 3
+uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
+uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
 ```
 
-Run one viewer command at a time. `--push 3` sets an initial forward speed of
-3 m/s. `k1_bike` places the K1 next to the bike; it does not seat or attach it.
+Run one viewer command at a time. `--push 3` sets an initial rolling speed of
+3 m/s, including wheel rotation. `--lean` sets the initial roll angle in degrees;
+`--drop` raises the bike by the specified metres before release. A 5° lean
+demonstrates toppling, and a 0.3 m drop demonstrates gravity. These options only
+change the bike's initial state, including in the combined scene.
+Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulation.
+
+`k1_bike` places the K1 next to the bike; it does not seat or attach it. See the
+[bike model notes](../assets/bike/README.md) for physics limitations and the
+[physical measurements](bike-dimensions.md) before changing its parameters.
+
+### Linux and macOS: regenerate the converted bike
+
+This is headless preprocessing; ordinary Python is used on both platforms. It
+preserves the original USDZ and writes the derivative under `assets/bike/sketchfab_mujoco/`:
+
+```bash
+uv run --with usd-core python scripts/convert_bike_usdz.py
+```
+
+The owner's **56.5 cm wheelbase** and **45 cm grip-centre height** are the defaults;
+no dimension arguments are required. The default **1.5 kg** mass is a provisional
+value within the owner's estimate, not a weighing. The height adjustment extends
+the stem along the steering axis. Optional flags override these defaults.
+Regeneration also prints the derived dimensions; check them against
+[docs/bike-dimensions.md](bike-dimensions.md). The extra `usd-core` package is
+not needed for normal viewing or tests.
 
 ## Run Booster's pretrained policy
 

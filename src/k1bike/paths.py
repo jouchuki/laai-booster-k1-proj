@@ -5,6 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ASSETS_DIR = REPO_ROOT / "assets"
 BIKE_XML = ASSETS_DIR / "bike" / "balance_bike.xml"
+SKETCHFAB_BIKE_XML = ASSETS_DIR / "bike" / "sketchfab_mujoco" / "bike.xml"
 CONFIGS_DIR = REPO_ROOT / "configs"
 
 

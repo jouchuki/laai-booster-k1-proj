@@ -11,6 +11,8 @@
 -->
 <mujoco model="balance_bike">
   <compiler angle="degree" autolimits="true"/>
+  <!-- State the gravity explicitly; the free root allows the whole bike to fall. -->
+  <option gravity="0 0 -9.81"/>
 
   <default>
     <default class="bike">
