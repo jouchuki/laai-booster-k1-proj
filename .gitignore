@@ -1,5 +1,37 @@
+# Python environments and caches
 .venv
 venv
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store
+
+# Training outputs: checkpoints, logs, W&B local files
+runs/
+wandb/
+
+# Booster's own repos (booster_assets, booster_deploy), cloned by scripts/setup_booster.sh
+booster/
+# Same repos when cloned at the repo root (connect-booster-k1.sh)
 booster_*/
-*ros*
+
+# ROS workspaces and local Docker setup (from PR #5; was `*ros*`, which also matched
+# unrelated names, so narrowed to folders starting with "ros")
+ros*/
 Dockerfile
+
+# graphify knowledge graph output (rebuild locally with `graphify update .`)
+graphify-out/
+# Personal Claude Code settings (graphify hooks point to each person's own install)
+.claude/settings.local.json
+
+# Local secrets (robot passwords etc.), see handover docs/credentials.example.md
+handover docs/credentials.md
+# Handover PDF contains the robot password; share it directly, not via git
+handover docs/*.pdf
+
+# mjlab training runs (checkpoints, exported ONNX, TensorBoard) and MuJoCo warnings
+logs/
+MUJOCO_LOG.TXT
