@@ -1,5 +1,20 @@
 LAAI Humanoid Cycling project
 
+### Dependencies
+
+to install all dependencies, first install `uv` package manager
+
+heres how (for Mac)
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+then run this in the repo folder
+
+```
+uv sync
+```
 
 ### Initial plan
 
