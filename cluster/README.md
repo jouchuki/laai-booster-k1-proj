@@ -1,7 +1,9 @@
 # GPU cluster
 
-Training runs here, not on a Mac. Fill in the table once we have access, then adapt
-`train.slurm`.
+This page's commands run on the **Linux GPU cluster**, from the repository root.
+macOS can be the SSH client, but these commands execute on the remote Linux system.
+Fill in the table once we have access, then adapt `train.slurm`.
+For local Linux/macOS viewing and CPU smoke runs, use [docs/commands.md](../docs/commands.md).
 
 ## Cluster details (TODO)
 
@@ -18,18 +20,31 @@ Training runs here, not on a Mac. Fill in the table once we have access, then ad
 
 ## First-time setup on the cluster
 
-```
-git clone https://github.com/jouchuki/laai-booster-k1-proj.git
-cd laai-booster-k1-proj
-scripts/setup_booster.sh assets     # only the robot model is needed for training
+Install uv on the Linux cluster first if it is not available:
+
+```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv sync --group train
-uv run wandb login
-uv run pytest                        # checks the models load and the walk task builds
 ```
 
-Then submit a job: `sbatch cluster/train.slurm K1Bike-Walk-Flat --agent.run-name walk-baseline-ep`.
+Then, on the Linux cluster:
+
+```bash
+git clone https://github.com/jouchuki/laai-booster-k1-proj.git
+cd laai-booster-k1-proj
+bash scripts/setup_booster.sh assets # only the robot model is needed for training
+uv sync --group train
+uv run --group train wandb login
+uv run --group train pytest          # checks the models load and the walk task builds
+```
+
+Submit from the Linux cluster login node after replacing the SLURM placeholders:
+
+```bash
+mkdir -p logs
+sbatch cluster/train.slurm K1Bike-Walk-Flat --agent.run-name walk-baseline-ep
+```
 
 Checkpoints and the exported ONNX policy land in `logs/rsl_rl/k1_walk/<date>_<run-name>/`.
 
 Headless rendering (for rollout videos) needs `MUJOCO_GL=egl`, which `train.slurm` sets.
+The headless job uses ordinary Python, not the macOS `mjpython` viewer launcher.
