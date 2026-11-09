@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="sketchfab_balance_bike">
+  <compiler angle="radian" autolimits="true" meshdir="meshes" />
+  <option gravity="0 0 -9.81" />
+  <default>
+    <geom friction="0.8 0.005 0.0001" />
+  </default>
+  <asset>
+    <mesh name="fork_visual_00" file="fork_visual_00.obj" />
+    <mesh name="fork_visual_01" file="fork_visual_01.obj" />
+    <mesh name="fork_visual_02" file="fork_visual_02.obj" />
+    <mesh name="fork_visual_03" file="fork_visual_03.obj" />
+    <mesh name="fork_visual_04" file="fork_visual_04.obj" />
+    <mesh name="fork_visual_05" file="fork_visual_05.obj" />
+    <mesh name="frame_visual_06" file="frame_visual_06.obj" />
+    <mesh name="frame_visual_07" file="frame_visual_07.obj" />
+    <mesh name="frame_visual_08" file="frame_visual_08.obj" />
+    <mesh name="frame_visual_09" file="frame_visual_09.obj" />
+    <mesh name="frame_visual_10" file="frame_visual_10.obj" />
+    <mesh name="frame_visual_11" file="frame_visual_11.obj" />
+    <mesh name="frame_visual_12" file="frame_visual_12.obj" />
+    <mesh name="frame_visual_13" file="frame_visual_13.obj" />
+    <mesh name="frame_visual_14" file="frame_visual_14.obj" />
+    <mesh name="frame_visual_15" file="frame_visual_15.obj" />
+    <mesh name="frame_visual_16" file="frame_visual_16.obj" />
+    <mesh name="front_wheel_visual_17" file="front_wheel_visual_17.obj" />
+    <mesh name="front_wheel_visual_18" file="front_wheel_visual_18.obj" />
+    <mesh name="front_wheel_visual_19" file="front_wheel_visual_19.obj" />
+    <mesh name="rear_wheel_visual_20" file="rear_wheel_visual_20.obj" />
+    <mesh name="rear_wheel_visual_21" file="rear_wheel_visual_21.obj" />
+    <mesh name="rear_wheel_visual_22" file="rear_wheel_visual_22.obj" />
+    <mesh name="tyre_collision" file="tyre_collision.obj" />
+  </asset>
+  <worldbody>
+    <body name="frame">
+      <freejoint name="root" />
+      <body name="fork" pos="0.48495127 -3.42683439e-08 0.296750452">
+        <joint name="steer" type="hinge" axis="-0.369917562 -1.88147201e-07 0.929064582" range="-0.785398163 0.785398163" damping="0.05" armature="0.001" />
+        <body name="front_wheel" pos="0.0800487296 3.20903638e-08 -0.168112278">
+          <joint name="front_wheel" type="hinge" axis="0 1 0" damping="0.002" />
+          <geom name="front_wheel_visual_17" type="mesh" mesh="front_wheel_visual_17" rgba="0.0478819051 0.0478819051 0.0478819051 1" mass="0" contype="0" conaffinity="0" group="2" />
+          <geom name="front_wheel_visual_18" type="mesh" mesh="front_wheel_visual_18" rgba="0.0405244336 0.0792831961 0.0399963139 1" mass="0" contype="0" conaffinity="0" group="2" />
+          <geom name="front_wheel_visual_19" type="mesh" mesh="front_wheel_visual_19" rgba="0 0 0 1" mass="0" contype="0" conaffinity="0" group="2" />
+          <inertial pos="0 0 0" mass="0.243243243" diaginertia="0.00147200164 0.0028892895 0.00147200164" />
+          <geom name="front_wheel" type="mesh" mesh="tyre_collision" mass="0" group="3" rgba="0.8 0.2 0.1 0.4" friction="1 0.005 0.0001" />
+        </body>
+        <geom name="fork_visual_00" type="mesh" mesh="fork_visual_00" rgba="0.0478819051 0.0478819051 0.0478819051 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_visual_01" type="mesh" mesh="fork_visual_01" rgba="0.192529176 0.196392588 0.198105972 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_visual_02" type="mesh" mesh="fork_visual_02" rgba="0.141174829 0.388120087 0.135049201 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_visual_03" type="mesh" mesh="fork_visual_03" rgba="0.00581973648 0.000547464351 0.0131638009 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_visual_04" type="mesh" mesh="fork_visual_04" rgba="0.0339945867 0.0339945867 0.0339945867 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_visual_05" type="mesh" mesh="fork_visual_05" rgba="0 0 0 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="fork_leg_-1" type="capsule" size="0.009" fromto="0 -0.0332101113 0 0.0800487296 -0.0332100792 -0.168112278" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="fork_leg_1" type="capsule" size="0.009" fromto="0 0.0332101113 0 0.0800487296 0.0332101434 -0.168112278" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="stem" type="capsule" size="0.012" fromto="0 0 0 -0.0266387803 -3.04312483e-08 0.153249548" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="handlebar" type="capsule" size="0.012" fromto="-0.0266387807 -0.134835244 0.153249529 -0.02663878 0.134835183 0.153249567" mass="0.113513514" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <site name="left_grip" pos="-0.02663878 0.134835183 0.153249567" size="0.005" rgba="1 0.5 0 1" group="4" />
+        <site name="right_grip" pos="-0.0266387807 -0.134835244 0.153249529" size="0.005" rgba="1 0.5 0 1" group="4" />
+      </body>
+      <body name="rear_wheel" pos="0 0 0.128638173">
+        <joint name="rear_wheel" type="hinge" axis="0 1 0" damping="0.002" />
+        <geom name="rear_wheel_visual_20" type="mesh" mesh="rear_wheel_visual_20" rgba="0.0478819051 0.0478819051 0.0478819051 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="rear_wheel_visual_21" type="mesh" mesh="rear_wheel_visual_21" rgba="0.0405244336 0.0792831961 0.0399963139 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <geom name="rear_wheel_visual_22" type="mesh" mesh="rear_wheel_visual_22" rgba="0 0 0 1" mass="0" contype="0" conaffinity="0" group="2" />
+        <inertial pos="0 0 0" mass="0.243243243" diaginertia="0.00147200164 0.0028892895 0.00147200164" />
+        <geom name="rear_wheel" type="mesh" mesh="tyre_collision" mass="0" group="3" rgba="0.8 0.2 0.1 0.4" friction="1 0.005 0.0001" />
+      </body>
+      <geom name="frame_visual_06" type="mesh" mesh="frame_visual_06" rgba="0.245635022 0.245635022 0.245635022 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_07" type="mesh" mesh="frame_visual_07" rgba="0.159071049 0.0943310351 0.106982321 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_08" type="mesh" mesh="frame_visual_08" rgba="0.192529176 0.196392588 0.198105972 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_09" type="mesh" mesh="frame_visual_09" rgba="0.207174672 0.0984336006 0.211619263 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_10" type="mesh" mesh="frame_visual_10" rgba="0.17408603 0.0348593219 0.0562001718 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_11" type="mesh" mesh="frame_visual_11" rgba="0.290147195 0.273207457 0.294192079 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_12" type="mesh" mesh="frame_visual_12" rgba="0.339231724 0.339231724 0.339231724 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_13" type="mesh" mesh="frame_visual_13" rgba="0.141174829 0.388120087 0.135049201 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_14" type="mesh" mesh="frame_visual_14" rgba="0.17408603 0.0881908215 0.0994773136 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_15" type="mesh" mesh="frame_visual_15" rgba="0.237049632 0.596992752 0.0200284552 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="frame_visual_16" type="mesh" mesh="frame_visual_16" rgba="0.0339945867 0.0339945867 0.0339945867 1" mass="0" contype="0" conaffinity="0" group="2" />
+      <geom name="rear_stay_-1" type="capsule" size="0.012" fromto="0 -0.0332101113 0.128638173 0.177344066 -0.0332101113 0.141501991" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="rear_stay_1" type="capsule" size="0.012" fromto="0 0.0332101113 0.128638173 0.177344066 0.0332101113 0.141501991" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="main_tube" type="capsule" size="0.024" fromto="0.177344066 0 0.141501991 0.48495127 -3.42683439e-08 0.296750452" mass="0.255405405" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="seat_post" type="capsule" size="0.012" fromto="0.177344066 0 0.141501991 0.177344066 -0.000448228944 0.331030308" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="head_tube" type="capsule" size="0.018" fromto="0.48495127 -3.42683439e-08 0.296750452 0.45715894 -4.84040589e-08 0.36655214" mass="0" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="saddle" type="box" pos="0.177344066 -0.000448228944 0.331030308" size="0.100056806 0.0525374654 0.0272355141" mass="0.145945946" group="3" />
+      <site name="seat" pos="0.177344066 0 0.358265822" size="0.005" rgba="1 0.5 0 1" group="4" />
+    </body>
+  </worldbody>
+</mujoco>

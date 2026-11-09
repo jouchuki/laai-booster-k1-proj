@@ -87,7 +87,7 @@ directory is named `booster`.
 ### Project layout
 
 ```
-assets/bike/          balance-bike model (placeholder dimensions; measure the real bike)
+assets/bike/          original USDZ, scaled MuJoCo derivative, primitive baseline and model notes
 src/k1bike/           our code: paths, scene builder (K1 + bike), robots/k1.py, tasks/ per phase
 configs/              how to configure runs and W&B conventions
 scripts/              setup_booster.sh, view_model.py, train.py, play.py
@@ -95,11 +95,14 @@ cluster/              GPU cluster notes and SLURM job template
 tests/                quick checks that the models load and simulate (run in CI)
 docs/decisions.md     decision log (what we chose and why)
 docs/commands.md      command reference, separated by OS and execution target
+docs/bike-dimensions.md physical bike measurements, estimates, and missing dimensions
 AGENTS.md            shared instructions for coding agents
 handover docs/        handover notes; credentials.md and PDFs are gitignored
 ```
 
 View the models with the [Linux or macOS viewer commands](docs/commands.md#view-the-bike-or-the-k1-and-bike).
+The viewer defaults to the green USDZ-derived bike at 56.5 cm wheelbase; its
+physical parameters remain provisional (see [dimensions](docs/bike-dimensions.md)).
 The `k1_bike` scene places the robot next to the bike; seated interaction is not implemented yet.
 
 ### Decisions

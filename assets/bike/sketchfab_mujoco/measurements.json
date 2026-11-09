@@ -1,0 +1,437 @@
+{
+  "source": "Balance_bike.usdz",
+  "sha256": "093e92bfed8b3b044b388b08cf42c226960d785a664b8291b3a60219f076096e",
+  "wheelbase_reference_m": 0.565,
+  "uniform_scale_after_usd_units": 0.14676594429041148,
+  "source_pitch_removed_rad": 0.019799392566392862,
+  "wheel_radius_m": 0.12863817345138198,
+  "tyre_diameter_m": 0.25727634690276396,
+  "tyre_width_m": 0.04242022265519314,
+  "saddle_top_m": 0.3582658224172208,
+  "source_grip_centre_height_m": 0.41008441536535667,
+  "handlebar_target_height_m": 0.45,
+  "handlebar_extension_vector_m": [
+    -0.015892841065539832,
+    -8.08340526440586e-09,
+    0.03991558463464334
+  ],
+  "stem_extension_m": 0.04296319696973155,
+  "grip_centre_height_m": 0.45,
+  "grip_centre_spacing_m": 0.26967042616526,
+  "steering_axis": [
+    -0.3699175616920842,
+    -1.8814720119875587e-07,
+    0.9290645820134077
+  ],
+  "estimated_total_mass_kg": 1.5,
+  "physics_assumptions": [
+    "Mass is a provisional point within the owner's unweighed 1-2 kg estimate.",
+    "Component mass fractions retain the placeholder's frame/fork/wheel ratios.",
+    "Wheel inertias assume a uniform torus; the rounded convex tyre is an idealization.",
+    "Frame/fork collisions are compound primitives approximating the visual geometry.",
+    "Steering axis is inferred from mesh bearing rings; limits and damping are unmeasured.",
+    "Friction and compliance are untuned; no robot, clips or stabilizer is included."
+  ],
+  "part_assignments": [
+    {
+      "material": "Opaque_76_76_76__0",
+      "component": 0,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_76_76_76__0",
+      "component": 1,
+      "body": "fork"
+    },
+    {
+      "material": "Material_003_0",
+      "component": 0,
+      "body": "fork"
+    },
+    {
+      "material": "Material_003_0",
+      "component": 1,
+      "body": "fork"
+    },
+    {
+      "material": "Material_003_0",
+      "component": 2,
+      "body": "frame"
+    },
+    {
+      "material": "Material_003_0",
+      "component": 3,
+      "body": "fork"
+    },
+    {
+      "material": "Material_003_0",
+      "component": 4,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 0,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 1,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 2,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 3,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 4,
+      "body": "fork"
+    },
+    {
+      "material": "Opaque_244_244_244__0",
+      "component": 5,
+      "body": "frame"
+    },
+    {
+      "material": "Aluminum___Anodized_Glossy__Grey__0",
+      "component": 0,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Aluminum___Anodized_Glossy__Grey__0",
+      "component": 1,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Aluminum___Anodized_Glossy__Grey__0",
+      "component": 2,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Aluminum___Anodized_Glossy__Grey__0",
+      "component": 3,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Aluminum___Anodized_Glossy__Grey__0",
+      "component": 4,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 0,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 1,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 2,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 3,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 4,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 5,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 6,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 7,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 8,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 9,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 10,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 11,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 12,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 13,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 14,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 15,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 16,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 17,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 18,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 19,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 20,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 21,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 22,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 23,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 24,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 25,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 26,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 27,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 28,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 29,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 30,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 31,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 32,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 33,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 34,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 35,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 36,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 37,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 38,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 39,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 40,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 41,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 42,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 43,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 44,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 45,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Satin_0",
+      "component": 46,
+      "body": "fork"
+    },
+    {
+      "material": "Nylon_12__with_Formlabs_Fuse_1_3D_Printer__0",
+      "component": 0,
+      "body": "front_wheel"
+    },
+    {
+      "material": "Nylon_12__with_Formlabs_Fuse_1_3D_Printer__0",
+      "component": 1,
+      "body": "rear_wheel"
+    },
+    {
+      "material": "Steel___Rough_0",
+      "component": 0,
+      "body": "fork"
+    },
+    {
+      "material": "Steel___Rough_0",
+      "component": 1,
+      "body": "frame"
+    },
+    {
+      "material": "Leather___Matte__Black__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Material_004_0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Material_004_0",
+      "component": 1,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_25_25_25__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_228_233_237__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_170_178_196__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_192_192_192__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Opaque_192_192_192__0",
+      "component": 1,
+      "body": "frame"
+    },
+    {
+      "material": "Plastic___Translucent_Glossy__Green__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Leather___Matte__Tan__0",
+      "component": 0,
+      "body": "frame"
+    },
+    {
+      "material": "Leather___Matte__Tan__0",
+      "component": 1,
+      "body": "frame"
+    }
+  ]
+}
