@@ -35,3 +35,6 @@ handover docs/*.pdf
 # mjlab training runs (checkpoints, exported ONNX, TensorBoard) and MuJoCo warnings
 logs/
 MUJOCO_LOG.TXT
+
+
+.ruff_cache
