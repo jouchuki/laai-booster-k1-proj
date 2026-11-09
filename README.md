@@ -4,24 +4,43 @@ Teaching the Booster K1 humanoid to ride a balance bike: train in MuJoCo on a GP
 
 Robot login (IP, user, password): see `handover docs/credentials.md` (gitignored, ask a teammate), described under "Robot access and credentials" below.
 
-### Setup (Mac)
+### Commands by platform
 
-1. Install the `uv` package manager:
+Use [docs/commands.md](docs/commands.md) for separate Linux host, macOS host,
+Linux GPU cluster, and robot commands. Run commands from the repository root
+unless an example explicitly changes directory.
 
-```
+### Setup
+
+Install `uv` on **Linux or macOS**:
+
+```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-2. From the repo folder, get Booster's code at the versions the team has pinned, then install everything:
+The project uses **Python 3.12**. Get Booster's code at the pinned versions,
+install the simulation and training groups, and run the checks.
 
-```
-scripts/setup_booster.sh
+#### Linux host
+
+```bash
+bash scripts/setup_booster.sh
 uv sync --group sim --group train
 uv run pre-commit install
 uv run pytest
 ```
 
-If `uv` picks an Intel (x86_64) Python on an Apple Silicon Mac, create the environment with an arm64 Python first, for example `uv venv --python /opt/homebrew/bin/python3.12`, then rerun the `uv sync` line.
+#### macOS host
+
+```bash
+bash scripts/setup_booster.sh
+uv sync --group sim --group train
+uv run pre-commit install
+uv run pytest
+```
+
+On Apple Silicon, use an arm64 Python. See the [macOS setup notes](docs/commands.md#macos-host)
+if uv selects an Intel interpreter.
 
 Dependency groups (`pyproject.toml`): `sim` runs Booster's policies in the MuJoCo viewer, `train` is mjlab and W&B (real training on the Linux GPU cluster; on a Mac it runs on CPU for tests and smoke runs), `robot` is Booster's robot SDK (`boosteros[brain]`; Linux only, since Booster publishes no Mac build of its SDK), and `dev` (always installed) has pytest, ruff and pre-commit.
 
@@ -29,39 +48,41 @@ Dependency groups (`pyproject.toml`): `sim` runs Booster's policies in the MuJoC
 
 Tasks are mjlab tasks defined in `src/k1bike/tasks/`. So far: `K1Bike-Walk-Flat` (phase 1, walking on flat ground).
 
-```
-# On the cluster (see cluster/README.md):
-sbatch cluster/train.slurm K1Bike-Walk-Flat --agent.run-name walk-baseline-ep
+Use the [Linux GPU training and CPU smoke-run commands](docs/commands.md#train-our-mjlab-task).
+CPU smoke runs use ordinary Python on both Linux and macOS. Full training runs on
+a Linux NVIDIA machine; cluster submission uses SLURM (see [cluster/README.md](cluster/README.md)).
 
-# Quick smoke test on a Mac (CPU, a few robots, a few iterations):
-uv run python scripts/train.py K1Bike-Walk-Flat --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 --agent.logger tensorboard
-
-# Watch a trained policy:
-uv run python scripts/play.py K1Bike-Walk-Flat --checkpoint-file logs/rsl_rl/k1_walk/<run>/model_<n>.pt
-```
+For playback, use the [separate Linux and macOS examples](docs/commands.md#watch-our-trained-policy).
+The native MuJoCo viewer uses `python` on Linux and `mjpython` on macOS.
 
 Each run saves checkpoints, an exported ONNX policy and its full config in `logs/rsl_rl/<experiment>/<run>/` (gitignored). See `configs/README.md` for overriding settings and W&B.
 
-### Booster toolchain (`booster/`, gitignored)
+### Booster toolchain (gitignored)
 
-`scripts/setup_booster.sh` clones Booster's repos into `booster/` at pinned commits, so everyone uses the same robot model and deploy code:
+`scripts/setup_booster.sh` finds existing Booster checkouts at the project root
+first, then checks the older `booster/` subfolder. The project directory itself
+can have any name. New clones use this layout:
 
 ```
-booster/
+<project root>/
+├── pyproject.toml
 ├── booster_assets/   (K1 robot model)
 └── booster_deploy/   (runs policies in MuJoCo or on the robot)
 ```
 
+Existing checkouts are preserved; setup reports a warning if their commits differ
+from the pins. For nested checkouts, it creates top-level relative symlinks so
+uv can use its `booster_assets` dependency path without cloning another copy.
+
 To update a version, change the commit in the script, rerun it, and check that the tests pass. Once we fork `booster_deploy` for our own tasks, set `BOOSTER_DEPLOY_REPO` in the script to the fork.
 
-Watch Booster's ready-trained K1 walk in the simulator (on a Mac the viewer needs `mjpython`):
+Watch Booster's ready-trained K1 walk using the [platform-specific pretrained-policy
+commands](docs/commands.md#run-boosters-pretrained-policy). The optional wrapper
+`scripts/run_sample_task.sh` selects the viewer launcher for Linux or macOS.
 
-```
-cd booster/booster_deploy
-uv run mjpython scripts/deploy.py --task k1_walk --mujoco
-```
-
-Note: the handover PDF uses `~/booster/...` paths and a conda env; in this repo they are `booster/...` and the uv environment instead.
+Note: the handover PDF uses `~/booster/...` paths and a conda env. Resolve commands
+from this project's root and use its uv environment; do not assume that its root
+directory is named `booster`.
 
 ### Project layout
 
@@ -73,10 +94,13 @@ scripts/              setup_booster.sh, view_model.py, train.py, play.py
 cluster/              GPU cluster notes and SLURM job template
 tests/                quick checks that the models load and simulate (run in CI)
 docs/decisions.md     decision log (what we chose and why)
+docs/commands.md      command reference, separated by OS and execution target
+AGENTS.md            shared instructions for coding agents
 handover docs/        handover notes; credentials.md and PDFs are gitignored
 ```
 
-View the models: `uv run mjpython scripts/view_model.py bike --push 3` or `uv run mjpython scripts/view_model.py k1_bike`.
+View the models with the [Linux or macOS viewer commands](docs/commands.md#view-the-bike-or-the-k1-and-bike).
+The `k1_bike` scene places the robot next to the bike; seated interaction is not implemented yet.
 
 ### Decisions
 
@@ -92,11 +116,16 @@ Still open:
 
 Robot login details (SSH user, password, IP, Wi-Fi) live in `handover docs/credentials.md`. That file is gitignored, so ask a teammate for it. To create your own, copy `handover docs/credentials.example.md` to `handover docs/credentials.md` and fill in the values. Never put passwords in committed files.
 
-The robot firmware must be v1.7.2 or newer before it can run our own policies (check with `cat /opt/booster/version.txt` on the robot).
+The robot firmware must be v1.7.2 or newer before it can run our own policies
+(check with `cat /opt/booster/version.txt` after SSH, on the robot's Linux system).
+See [robot access commands](docs/commands.md#robot-access) for the distinction
+between Linux-only SDK commands and SSH from either host OS.
 
 ### Troubleshooting
 
-- `ModuleNotFoundError: booster_assets` (or `k1bike`) on macOS: macOS sometimes marks files in `.venv` as hidden, and Python then skips them. Fix with `chflags -R nohidden .venv`.
+- See [platform-specific troubleshooting](docs/commands.md#platform-specific-troubleshooting)
+  for the Linux GTK/Wayland workaround, Linux headless rendering, and the team's
+  macOS hidden-file workaround.
 
 ### Initial plan
 
@@ -117,5 +146,7 @@ extra things: Stride and glide. Lift both feet and coast, balancing by steering 
 
 ### Team scripts (from PR #5)
 
-- `scripts/robot_info.py`: connects to the real K1 with `boosteros` and prints its model, mode and joint count. Run it on the robot's network: `uv run --group robot python scripts/robot_info.py`.
-- `connect-booster-k1.sh`, `mujoco-script.sh`, `run_sample_task.sh`: earlier setup and run scripts. `scripts/setup_booster.sh` and the commands above cover the same steps with pinned versions.
+- `scripts/robot_info.py`: connects to the real K1 with `boosteros` and prints its model, mode and joint count. Run from a Linux environment on the robot's network; see the command reference.
+- `scripts/run_sample_task.sh`: Linux/macOS wrapper for Booster's pretrained MuJoCo tasks; defaults to `k1_fight` and accepts a task name plus deployment options.
+- `scripts/connect-booster-k1.sh`, `scripts/mujoco-script.sh`: legacy setup experiments. Use `scripts/setup_booster.sh` and the command reference for the current pinned workflow.
+- The ROS installer and Docker rebuild scripts under `scripts/` belong to an optional Ubuntu-container experiment. They are separate from the current mjlab workflow; see [legacy scripts](docs/commands.md#legacy-scripts).

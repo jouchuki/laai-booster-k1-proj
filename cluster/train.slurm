@@ -1,6 +1,8 @@
 #!/bin/bash
+# Linux GPU cluster only; submit from the repository root on the login node.
 # Training job template. TODO: set partition, GPU type and time limit for our cluster
 # (see cluster/README.md), then submit with:
+#   mkdir -p logs
 #   sbatch cluster/train.slurm K1Bike-Walk-Flat --agent.run-name walk-baseline-ep
 # Everything after the task name is passed to mjlab's train command.
 #SBATCH --job-name=k1-train

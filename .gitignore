@@ -12,10 +12,12 @@ __pycache__/
 runs/
 wandb/
 
-# Booster's own repos (booster_assets, booster_deploy), cloned by scripts/setup_booster.sh
+# Older nested Booster layout (still supported by scripts/setup_booster.sh)
 booster/
-# Same repos when cloned at the repo root (connect-booster-k1.sh)
+# Booster repos or compatibility links at the project root
 booster_*/
+/booster_assets
+/booster_deploy
 
 # ROS workspaces and local Docker setup (from PR #5; was `*ros*`, which also matched
 # unrelated names, so narrowed to folders starting with "ros")

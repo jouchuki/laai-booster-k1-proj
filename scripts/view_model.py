@@ -1,9 +1,16 @@
 """Open a scene in the MuJoCo viewer.
 
-Usage (on a Mac the viewer needs mjpython):
+Linux host (from the repository root):
+    uv run python scripts/view_model.py bike
+    uv run python scripts/view_model.py bike --push 3
+    uv run python scripts/view_model.py k1_bike
+
+macOS host (native viewer requires mjpython):
     uv run mjpython scripts/view_model.py bike           # bike alone
     uv run mjpython scripts/view_model.py bike --push 3  # bike pushed at 3 m/s
     uv run mjpython scripts/view_model.py k1_bike        # K1 next to the bike
+
+See docs/commands.md for setup and platform-specific troubleshooting.
 """
 
 import argparse
