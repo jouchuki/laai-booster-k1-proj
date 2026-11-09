@@ -1,9 +1,58 @@
 [project]
 name = "laai-booster-k1-proj"
 version = "0.1.0"
-description = "Add your description here"
+description = "Teaching the Booster K1 humanoid to ride a balance bike (sim-to-real RL)"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.13"
 dependencies = [
+    "mujoco>=3.3",
+    "numpy",
+    "pyyaml",
+    # K1 robot model; cloned by scripts/setup_booster.sh at a pinned commit.
+    # Installed editable because it locates its files relative to its source folder.
+    "booster-assets",
+]
+
+[dependency-groups]
+# Run Booster's policies in the MuJoCo viewer on a Mac (booster_deploy needs these).
+sim = [
+    "torch",
+    "scipy",
+    "onnxruntime",
+]
+# Training with mjlab (Isaac Lab API on MuJoCo Warp). Real training needs Linux + NVIDIA
+# (the cluster); on a Mac it installs too and runs on CPU, for tests and smoke runs only.
+train = [
+    "mjlab>=1.6",
+    "wandb",
+]
+# Booster's robot SDK (Python wrapper). Code that runs on the robot uses the robot's own runtime.
+robot = [
     "boosteros>=1.2.3",
 ]
+dev = [
+    "pytest>=8",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.sources]
+booster-assets = { path = "booster/booster_assets", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/k1bike"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["booster"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

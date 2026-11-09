@@ -12,22 +12,28 @@ permissions:
 jobs:
   python-checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Check out code
         uses: actions/checkout@v7
 
-      - name: Set up python
-        uses: actions/setup-python@v7
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
-      - name: install tools
-        run: python -m pip install ruff
+      - name: Get the K1 robot model (pinned booster_assets)
+        run: scripts/setup_booster.sh assets
+
+      - name: Install dependencies (dev group only, no torch)
+        run: uv sync --locked
 
       - name: check the code
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: check formatting
-        run: ruff format --check
+        run: uv run ruff format --check
+
+      - name: run tests
+        run: uv run pytest
