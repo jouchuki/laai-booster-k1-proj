@@ -1,5 +1,10 @@
 LAAI Humanoid Cycling project
 
+### robot ip and login
+
+ssh booster@10.0.0.239
+password 10.0.0.239
+
 ### Dependencies
 
 to install all dependencies, first install `uv` package manager
@@ -26,3 +31,8 @@ uv sync
 6. Simulation to real robot. Carefully test on real robot
 
 extra things: Stride and glide. Lift both feet and coast, balancing by steering only, then push again, steering on command. Ride in a requested direction.
+
+
+### Resources
+
+very cool resource: https://www.roboticscenter.ai/hardware/booster-k1/software

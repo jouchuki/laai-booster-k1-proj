@@ -1,2 +1,5 @@
 .venv
 venv
+booster_*/
+*ros*
+Dockerfile
