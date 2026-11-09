@@ -1,0 +1,17 @@
+# Training output (keep on Drive)
+logs/
+logs_v2/
+model_*.pt
+*.mp4
+events.out.tfevents.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Misc
+MUJOCO_LOG.TXT
+.DS_Store
+.ipynb_checkpoints/
