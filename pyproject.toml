@@ -28,7 +28,7 @@ train = [
 ]
 # Booster's robot SDK (Python wrapper). Code that runs on the robot uses the robot's own runtime.
 robot = [
-    "boosteros>=1.2.3",
+    "boosteros[brain]>=1.2.3",
 ]
 dev = [
     "pytest>=8",

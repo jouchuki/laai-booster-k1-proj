@@ -2,6 +2,8 @@ LAAI Humanoid Cycling project
 
 Teaching the Booster K1 humanoid to ride a balance bike: train in MuJoCo on a GPU cluster, then transfer to the real robot.
 
+Robot login (IP, user, password): see `handover docs/credentials.md` (gitignored, ask a teammate), described under "Robot access and credentials" below.
+
 ### Setup (Mac)
 
 1. Install the `uv` package manager:
@@ -21,7 +23,7 @@ uv run pytest
 
 If `uv` picks an Intel (x86_64) Python on an Apple Silicon Mac, create the environment with an arm64 Python first, for example `uv venv --python /opt/homebrew/bin/python3.12`, then rerun the `uv sync` line.
 
-Dependency groups (`pyproject.toml`): `sim` runs Booster's policies in the MuJoCo viewer, `train` is mjlab and W&B (real training on the Linux GPU cluster; on a Mac it runs on CPU for tests and smoke runs), `robot` is Booster's robot SDK, and `dev` (always installed) has pytest, ruff and pre-commit.
+Dependency groups (`pyproject.toml`): `sim` runs Booster's policies in the MuJoCo viewer, `train` is mjlab and W&B (real training on the Linux GPU cluster; on a Mac it runs on CPU for tests and smoke runs), `robot` is Booster's robot SDK (`boosteros[brain]`; Linux only, since Booster publishes no Mac build of its SDK), and `dev` (always installed) has pytest, ruff and pre-commit.
 
 ### Training
 
@@ -106,3 +108,14 @@ The robot firmware must be v1.7.2 or newer before it can run our own policies (c
 6. Simulation to real robot. Carefully test on real robot
 
 extra things: Stride and glide. Lift both feet and coast, balancing by steering only, then push again, steering on command. Ride in a requested direction.
+
+### Resources
+
+- K1 software overview: https://www.roboticscenter.ai/hardware/booster-k1/software
+- Booster's repos: [booster_assets](https://github.com/BoosterRobotics/booster_assets), [booster_deploy](https://github.com/BoosterRobotics/booster_deploy), [booster_train](https://github.com/BoosterRobotics/booster_train)
+- [mjlab](https://github.com/mujocolab/mjlab) (training framework)
+
+### Team scripts (from PR #5)
+
+- `scripts/robot_info.py`: connects to the real K1 with `boosteros` and prints its model, mode and joint count. Run it on the robot's network: `uv run --group robot python scripts/robot_info.py`.
+- `connect-booster-k1.sh`, `mujoco-script.sh`, `run_sample_task.sh`: earlier setup and run scripts. `scripts/setup_booster.sh` and the commands above cover the same steps with pinned versions.
