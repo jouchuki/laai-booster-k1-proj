@@ -40,7 +40,7 @@ dev = [
 default-groups = ["dev"]
 
 [tool.uv.sources]
-booster-assets = { path = "booster/booster_assets", editable = true }
+booster-assets = { path = "booster_assets", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -51,7 +51,7 @@ packages = ["src/k1bike"]
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["booster"]
+extend-exclude = ["booster", "booster_assets", "booster_deploy", "booster_train"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

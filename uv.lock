@@ -89,7 +89,7 @@ wheels = [
 [[package]]
 name = "booster-assets"
 version = "1.0.0"
-source = { editable = "booster/booster_assets" }
+source = { editable = "booster_assets" }
 
 [[package]]
 name = "booster-robotics-sdk-python"
@@ -820,7 +820,7 @@ train = [
 
 [package.metadata]
 requires-dist = [
-    { name = "booster-assets", editable = "booster/booster_assets" },
+    { name = "booster-assets", editable = "booster_assets" },
     { name = "mujoco", specifier = ">=3.3" },
     { name = "numpy" },
     { name = "pyyaml" },

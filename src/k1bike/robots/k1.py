@@ -5,7 +5,7 @@ torque motors and differently named sensors. mjlab wants a bare robot that it ad
 terrain and position actuators to, so `k1_spec()` edits the model on load.
 
 The PD gains, effort limits and default pose are copied from Booster's `k1_walk` deploy
-config (booster/booster_deploy/tasks/locomotion/robots/k1/__init__.py). booster_deploy
+config (booster_deploy/tasks/locomotion/robots/k1/__init__.py). booster_deploy
 sends those same gains to the real robot, so training with them keeps sim and robot
 consistent. This module only needs mujoco, so it is tested on any machine.
 """
