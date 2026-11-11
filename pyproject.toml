@@ -51,8 +51,8 @@ packages = ["src/k1bike"]
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["booster", "booster_assets", "booster_deploy", "booster_train"]
+extend-exclude = ["booster", "booster_assets", "booster_deploy", "booster_train", "runs"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
