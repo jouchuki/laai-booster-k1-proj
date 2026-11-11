@@ -74,6 +74,7 @@ uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
+uv run python scripts/view_model.py k1_seated
 ```
 
 ### macOS host
@@ -86,18 +87,31 @@ uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
+uv run mjpython scripts/view_model.py k1_seated
 ```
 
 Run one viewer command at a time. `--push 3` sets an initial rolling speed of
 3 m/s, including wheel rotation. `--lean` sets the initial roll angle in degrees;
 `--drop` raises the bike by the specified metres before release. A 5° lean
 demonstrates toppling, and a 0.3 m drop demonstrates gravity. These options only
-change the bike's initial state, including in the combined scene.
+change the bike's initial state, including in the combined scene; `k1_seated`
+rejects them because they would move the bike out from under the seated K1.
 Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulation.
 
-`k1_bike` places the K1 next to the bike; it does not seat or attach it. See the
+`k1_bike` places the K1 next to the bike, unattached. `k1_seated` starts the K1
+sitting on the USDZ-derived bike with both hands welded to the grips, and holds
+that pose with the k1_walk PD gains (see `src/k1bike/seat.py`). See the
 [bike model notes](../assets/bike/README.md) for physics limitations and the
 [physical measurements](bike-dimensions.md) before changing its parameters.
+
+### Linux and macOS: re-solve the K1's seated pose
+
+Rerun after changing the bike model or the clip geometry in `src/k1bike/seat.py`
+(headless; needs the `sim` group for scipy):
+
+```bash
+uv run --group sim python scripts/solve_seated_pose.py
+```
 
 ### Linux and macOS: regenerate the converted bike
 

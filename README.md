@@ -44,7 +44,7 @@ extra things: Stride and glide. Lift both feet and coast, balancing by steering 
 | `scripts/train.py`, `scripts/play.py` | Train any phase's task (GPU cluster) and watch a checkpoint |
 | `deploy/` | `install.sh <phase>` (into booster_deploy), `setup_robot.sh` (copy to the robot), `dry_run.py` (policy on live sensors, no motor commands) |
 | `docs/commands.md` | Every command, separated by Linux host, macOS host, cluster and robot |
-| `src/k1bike/` | Shared Python code: model paths, bike and K1 + bike scenes |
+| `src/k1bike/` | Shared Python code: model paths, the K1 model and booster_deploy settings (`robots/k1.py`), bike and K1 + bike scenes, seating the K1 on the bike (`seat.py`) |
 | `assets/bike/` | Bike model: original USDZ, scaled MuJoCo derivative, primitive baseline and notes |
 | `scripts/` (other) | `setup_booster.sh` and `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py`, `robot_info.py`, legacy scripts |
 | `tests/` | Quick checks that the models load and the tasks build (run in CI) |
@@ -120,7 +120,7 @@ do not assume that its root directory is named `booster`.
 View the models with the [Linux or macOS viewer commands](docs/commands.md#view-the-bike-or-the-k1-and-bike).
 The viewer defaults to the green USDZ-derived bike at 56.5 cm wheelbase; its
 physical parameters remain provisional (see [dimensions](docs/bike-dimensions.md)).
-The `k1_bike` scene places the robot next to the bike; seated interaction is not implemented yet.
+The `k1_bike` scene places the robot next to the bike; `k1_seated` seats it with both hands welded to the grips and the pelvis resting on the saddle by contact only (see [dimensions: Seated K1](docs/bike-dimensions.md#seated-k1)).
 
 ### Robot access
 

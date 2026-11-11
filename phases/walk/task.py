@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import math
 
-import mujoco
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.entity import EntityArticulationInfoCfg, EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -50,217 +49,33 @@ from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
+from mjlab.utils.spec_config import CollisionCfg
 
-from k1bike.paths import k1_xml
+# Robot model and booster_deploy settings, shared with the other phases. Re-exported here
+# because export.py and the tests read them from this module.
+from k1bike.robots.k1 import (  # noqa: F401
+    ACTION_SCALE,
+    BASE_HEIGHT,
+    DAMPING,
+    DEFAULT_POS,
+    DELAY_MAX_STEPS,
+    DEPLOY_JOINTS,
+    EFFORT,
+    FOOT_GEOMS,
+    FOOT_SITES,
+    HISTORY,
+    JOINT_VEL_SCALE,
+    MASS_BODIES,
+    POLICY_JOINT_REGEX,
+    POLICY_JOINTS,
+    STIFFNESS,
+    k1_spec,
+    name_collision_geoms,
+)
 
 TASK_ID = "LAAI-K1-Walk-Flat"
-K1_XML = str(k1_xml())
-
-# --- Values copied from booster_deploy/tasks/locomotion/robots/k1/__init__.py (k1_walk) ----------
-# booster_deploy joint order (all 22 joints).
-DEPLOY_JOINTS = [
-    "aahead_yaw_joint",
-    "aahead_pitch_joint",
-    "aaleft_shoulder_pitch_joint",
-    "left_shoulder_roll_joint",
-    "left_elbow_pitch_joint",
-    "left_elbow_yaw_joint",
-    "aaright_shoulder_pitch_joint",
-    "right_shoulder_roll_joint",
-    "right_elbow_pitch_joint",
-    "right_elbow_yaw_joint",
-    "left_hip_pitch_joint",
-    "left_hip_roll_joint",
-    "left_hip_yaw_joint",
-    "left_knee_pitch_joint",
-    "left_ankle_pitch_joint",
-    "left_ankle_roll_joint",
-    "right_hip_pitch_joint",
-    "right_hip_roll_joint",
-    "right_hip_yaw_joint",
-    "right_knee_pitch_joint",
-    "right_ankle_pitch_joint",
-    "right_ankle_roll_joint",
-]
-DEFAULT_POS = [
-    0,
-    0,
-    0.2,
-    -1.25,
-    0,
-    -0.5,
-    0.2,
-    1.25,
-    0,
-    0.5,
-    -0.15,
-    0,
-    0,
-    0.3,
-    -0.15,
-    0,
-    -0.15,
-    0,
-    0,
-    0.3,
-    -0.15,
-    0,
-]
-STIFFNESS = [
-    4.0,
-    4.0,
-    20.0,
-    20.0,
-    20.0,
-    20.0,
-    20.0,
-    20.0,
-    20.0,
-    20.0,
-    100.0,
-    100.0,
-    100.0,
-    100.0,
-    65.0,
-    65.0,
-    100.0,
-    100.0,
-    100.0,
-    100.0,
-    65.0,
-    65.0,
-]
-DAMPING = [
-    1.0,
-    1.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    1.0,
-    1.0,
-    2.0,
-    2.0,
-    2.0,
-    2.0,
-    1.0,
-    1.0,
-]
-EFFORT = [
-    6.0,
-    6.0,
-    14.0,
-    14.0,
-    14.0,
-    14.0,
-    14.0,
-    14.0,
-    14.0,
-    14.0,
-    30.0,
-    20.0,
-    15.0,
-    35.0,
-    24.0,
-    15.0,
-    30.0,
-    20.0,
-    15.0,
-    35.0,
-    24.0,
-    15.0,
-]
-# The 20 joints the policy controls, in booster_deploy's policy order.
-POLICY_JOINTS = [
-    "aaleft_shoulder_pitch_joint",
-    "aaright_shoulder_pitch_joint",
-    "left_hip_pitch_joint",
-    "right_hip_pitch_joint",
-    "left_shoulder_roll_joint",
-    "right_shoulder_roll_joint",
-    "left_hip_roll_joint",
-    "right_hip_roll_joint",
-    "left_elbow_pitch_joint",
-    "right_elbow_pitch_joint",
-    "left_hip_yaw_joint",
-    "right_hip_yaw_joint",
-    "left_elbow_yaw_joint",
-    "right_elbow_yaw_joint",
-    "left_knee_pitch_joint",
-    "right_knee_pitch_joint",
-    "left_ankle_pitch_joint",
-    "right_ankle_pitch_joint",
-    "left_ankle_roll_joint",
-    "right_ankle_roll_joint",
-]
-ACTION_SCALE = 0.25
-JOINT_VEL_SCALE = 0.1
-HISTORY = 10
-BASE_HEIGHT = 0.53
-# Motor command delay, in physics steps of 0.005 s: 0..4 = 0..20 ms.
-DELAY_MAX_STEPS = 4
-# ------------------------------------------------------------------------------------------------
-
-POLICY_JOINT_REGEX = tuple(f"^{n}$" for n in POLICY_JOINTS)
-# Bodies with real mass/inertia (camera frames and tiny ankle cross links excluded).
-MASS_BODIES = (
-    r"^trunk$",
-    r"^aahead_.*_link$",
-    r"^aa(left|right)_shoulder_pitch_link$",
-    r"^(left|right)_(shoulder_roll|elbow_pitch|elbow_yaw)_link$",
-    r"^(left|right)_(hip_pitch|hip_roll|hip_yaw|knee_pitch|ankle_roll)_link$",
-)
-FOOT_GEOMS = ("left_foot_collision", "right_foot_collision")
-FOOT_SITES = ("left_foot", "right_foot")
-
-
-def get_k1_spec() -> mujoco.MjSpec:
-    """Booster's K1 model, adapted for mjlab: no ground/actuators/old sensors, named foot
-    geoms, foot sites, and the IMU sensors mjlab's velocity task expects."""
-    spec = mujoco.MjSpec.from_file(K1_XML)
-    for geom in list(spec.geoms):
-        if geom.name == "ground":
-            spec.delete(geom)
-    for light in list(spec.lights):
-        spec.delete(light)
-    for act in list(spec.actuators):
-        spec.delete(act)
-    for sensor in list(spec.sensors):
-        spec.delete(sensor)
-    for side in ("left", "right"):
-        foot = spec.body(f"{side}_ankle_roll_link")
-        for geom in foot.geoms:
-            if geom.type == mujoco.mjtGeom.mjGEOM_BOX:
-                geom.name = f"{side}_foot_collision"
-                geom.friction[0] = 0.8
-        foot.add_site(name=f"{side}_foot", pos=[0.026, 0.0, -0.038], size=[0.01, 0.01, 0.01])
-    spec.add_sensor(
-        name="imu_ang_vel",
-        type=mujoco.mjtSensor.mjSENS_GYRO,
-        objtype=mujoco.mjtObj.mjOBJ_SITE,
-        objname="imu",
-    )
-    spec.add_sensor(
-        name="imu_lin_vel",
-        type=mujoco.mjtSensor.mjSENS_VELOCIMETER,
-        objtype=mujoco.mjtObj.mjOBJ_SITE,
-        objname="imu",
-    )
-    spec.add_sensor(
-        name="root_angmom",
-        type=mujoco.mjtSensor.mjSENS_SUBTREEANGMOM,
-        objtype=mujoco.mjtObj.mjOBJ_BODY,
-        objname="trunk",
-    )
-    return spec
+# Run 3 ablation (runs/run3/notes.md): run 2 with the K1's self-collisions turned off.
+RUN3_TASK_ID = "LAAI-K1-Walk-Flat-NoSelfCollision"
 
 
 def get_k1_robot_cfg() -> EntityCfg:
@@ -281,7 +96,7 @@ def get_k1_robot_cfg() -> EntityCfg:
             joint_pos={f"^{n}$": float(p) for n, p in zip(DEPLOY_JOINTS, DEFAULT_POS)},
             joint_vel={".*": 0.0},
         ),
-        spec_fn=get_k1_spec,
+        spec_fn=k1_spec,
         articulation=EntityArticulationInfoCfg(
             actuators=actuators, soft_joint_pos_limit_factor=0.9
         ),
@@ -544,10 +359,46 @@ def k1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     )
 
 
+# --- Run 3: no self-collision (ablation of run 2; see runs/run3/notes.md) -----------------------
+# Booster's model leaves every collision geom colliding with every other one (174 geom pairs
+# on the K1 are checked each step, e.g. knee-knee, forearm-trunk). This keeps each geom's
+# contact parameters exactly as in run 2 and changes one thing: robot geoms only collide
+# with the terrain (contype 0 never initiates a contact; conaffinity 1 accepts the
+# terrain's). The same rule lets the bike collide with the robot in later phases.
+NO_SELF_COLLISION = CollisionCfg(
+    geom_names_expr=(r".*_collision.*",),
+    contype=0,
+    conaffinity=1,
+    condim=3,  # run 2 value (MuJoCo default) for every K1 geom
+    priority=0,  # run 2 value
+)
+
+
+def k1_spec_named_collisions():
+    """`k1_spec` with every collision geom named, so a CollisionCfg can select it."""
+    return name_collision_geoms(k1_spec())
+
+
+def k1_no_self_collision_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+    """Run 2's walk task with self-collision off; everything else identical."""
+    cfg = k1_flat_env_cfg(play=play)
+    robot = cfg.scene.entities["robot"]
+    robot.spec_fn = k1_spec_named_collisions
+    robot.collisions = (NO_SELF_COLLISION,)
+    return cfg
+
+
 register_mjlab_task(
     task_id=TASK_ID,
     env_cfg=k1_flat_env_cfg(),
     play_env_cfg=k1_flat_env_cfg(play=True),
+    rl_cfg=k1_ppo_runner_cfg(),
+    runner_cls=VelocityOnPolicyRunner,
+)
+register_mjlab_task(
+    task_id=RUN3_TASK_ID,
+    env_cfg=k1_no_self_collision_env_cfg(),
+    play_env_cfg=k1_no_self_collision_env_cfg(play=True),
     rl_cfg=k1_ppo_runner_cfg(),
     runner_cls=VelocityOnPolicyRunner,
 )
