@@ -370,6 +370,38 @@ scp 'booster@ROBOT_IP:~/booster_deploy/logs/stop_*' experiments/walk/runs/runN/r
 scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' experiments/walk/runs/runN/dry_run/
 ```
 
+## Robot test: hold the seated pose (phase 3)
+
+`laai_sit_hold` holds the solved seated pose on the Puky. It does not balance. The full
+procedure (people, placement, dry run, keys) is in [experiments/sit/README.md](../experiments/sit/README.md).
+
+### Linux and macOS: rehearse it in simulation on the bike
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py
+```
+
+### Linux and macOS host: copy to the robot
+
+```bash
+bash robot/setup_robot.sh ROBOT_IP sit
+```
+
+### Robot (Linux): dry run with the robot placed on the bike, then hold
+
+```bash
+cd ~/booster_deploy && source .venv/bin/activate
+source /opt/booster/BoosterRos2Interface/install/setup.bash
+python3 scripts/dry_run.py --task laai_sit_hold --seconds 10 | tee logs/dry_run_report_$(date +%Y%m%d_%H%M%S).txt
+```
+
+```bash
+python3 scripts/deploy.py --task laai_sit_hold
+```
+
+X slides the joints to the seated pose in 1 s, A starts the hold, Ctrl+C stops into damping
+(limp) mode. Never add `--exit-mode walking` to this task.
+
 ## Development checks
 
 ### Linux and macOS

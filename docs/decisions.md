@@ -2,6 +2,23 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: First seated robot test holds the solved pose
+
+**Decision:** The first real-robot test of phase 3 runs `laai_sit_hold`
+(`experiments/sit/deploy/laai_sit.py`): no policy, every joint held at the solved Puky pose
+with the k1_walk gains. The task's prepare pose is the seated pose, so X slides into it and
+Booster's walking mode never runs; its exit mode is damping. It stops on trunk tilt (15 deg
+from seated), joint speed, sustained torque near the limit and tracking error. It is
+rehearsed in our K1 + bike scene (`experiments/sit/check_hold.py`), and the dry run checks
+the robot's placement against the pose before any torque is sent.
+
+**Why:** It tests the seated pose, the gains and the bike on the robot before any training,
+with nothing that can act unexpectedly. It does not balance; a person holds the bike.
+
+**Considered:** Running Booster's MuJoCo mode (it loads the robot without the bike); using
+the walking preparation (it would stand the robot up on the bike); training a sit policy first
+(we do not yet know whether the pose fits the real bike and clips).
+
 ## 2026-11-12: Saddle collision follows the visible saddle
 
 **Decision:** Every scene loads a bike through `load_bike()` (`src/k1bike/scene.py`), which

@@ -108,7 +108,7 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 |---|---|---|---|
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [experiments/walk/](experiments/walk/README.md) |
 | 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
-| 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis on the saddle by contact); no training task yet | [models/k1_on_bike/](models/k1_on_bike/README.md) |
+| 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis in the saddle dip by contact); robot task `laai_sit_hold` holds the pose for a first real test (no balance); no training task yet | [experiments/sit/](experiments/sit/README.md), [models/k1_on_bike/](models/k1_on_bike/README.md) |
 | 4 | Walk the bike, supported | Not started | |
 | 5 | Free bike, feet as support | Not started | |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
@@ -132,8 +132,9 @@ models/              everything the simulator loads
   primitive_bike/    the old placeholder bike, kept for comparison
   hand_clips/        the orange add-on hand clips (code in src/k1bike/hand_clips.py)
   k1_on_bike/        the K1 seated on a bike: one solved pose per bike (puky_bike.json, yellow_bike.json)
-experiments/         one folder per skill (walk, later sit, push, ride)
+experiments/         one folder per skill (walk, sit, later push, ride)
   walk/              training task, export, booster_deploy task files
+  sit/               robot task holding the seated pose, its simulation rehearsal
     runs/runN/       record of each training run: notes, task snapshot, policy, robot logs
 logs/                raw training output, gitignored: logs/laai_<experiment>/<date>_<run-name>/
 src/k1bike/          shared Python code: model paths, K1 settings, scenes, seating
