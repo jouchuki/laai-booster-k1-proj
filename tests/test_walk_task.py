@@ -36,3 +36,41 @@ def test_actor_matches_booster_deploy_layout():
         "actions",
     ], "order must match booster_deploy's LocomotionPolicy.compute_observation"
     assert actor.history_length == walk.HISTORY == 10
+
+
+def _collision_pairs(task_id):
+    """(self-collision pairs, robot-ground pairs) in the compiled mjlab scene of a task."""
+    import itertools
+
+    from mjlab.scene import Scene
+
+    model = Scene(load_env_cfg(task_id).scene, "cpu").compile()
+
+    def is_robot(g):
+        return model.body(model.geom_bodyid[g]).name.startswith("robot/")
+
+    colliding = [
+        g for g in range(model.ngeom) if model.geom_contype[g] or model.geom_conaffinity[g]
+    ]
+    robot = [g for g in colliding if is_robot(g)]
+    world = [g for g in colliding if not is_robot(g)]
+
+    def can_touch(a, b):
+        ba, bb = model.geom_bodyid[a], model.geom_bodyid[b]
+        if ba == bb or model.body_parentid[ba] == bb or model.body_parentid[bb] == ba:
+            return False
+        return bool(
+            model.geom_contype[a] & model.geom_conaffinity[b]
+            or model.geom_contype[b] & model.geom_conaffinity[a]
+        )
+
+    self_pairs = sum(can_touch(a, b) for a, b in itertools.combinations(robot, 2))
+    ground_pairs = sum(can_touch(a, b) for a in robot for b in world)
+    return self_pairs, ground_pairs
+
+
+def test_walk_task_keeps_self_collision():
+    # The robot must not pass through itself (docs/decisions.md): Booster's model as is.
+    self_pairs, ground_pairs = _collision_pairs(walk.TASK_ID)
+    assert self_pairs == 174, "every K1 collision geom touches every non-adjacent one"
+    assert ground_pairs == 20, "every robot collision geom touches the ground"

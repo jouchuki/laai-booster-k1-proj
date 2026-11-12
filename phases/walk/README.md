@@ -8,7 +8,7 @@ This is the phase overview. Each run's full settings and results are in its note
 
 | File | What |
 |---|---|
-| `task.py` | mjlab task `LAAI-K1-Walk-Flat` (run 2 settings) |
+| `task.py` | mjlab task `LAAI-K1-Walk-Flat` (run 2 settings); K1 settings come from `src/k1bike/robots/k1.py` |
 | `export.py` | Export to booster_deploy's policy format, with equivalence check and video |
 | `deploy/laai_walk.py` | booster_deploy tasks `laai_walk` and `laai_walk_ankle_kd15` |
 | `runs/run1/`, `runs/run2/` | Notes, task snapshot, notebooks, policy, robot logs |
@@ -43,6 +43,7 @@ time (for example `stop_20261111_203535` was at 13:35 local). Colab times are UT
 | Robot | Booster K1, firmware 1.8.1.2 |
 | Robot model | `K1_22dof.xml` (booster_assets, pinned commit) |
 | Training | mjlab (MuJoCo Warp), RSL-RL PPO, 4096 environments |
+| Collisions | As in Booster's model: self-collision on (174 geom pairs), every collision geom touches the ground |
 | Deployment | booster_deploy (ROS 2 `/low_state`, `/joint_ctrl`), TorchScript on the robot CPU, 50 Hz |
 
 ### Policy interface
@@ -73,7 +74,6 @@ Matched to Booster's `k1_walk` task, so booster_deploy runs the policy unchanged
 |---|---|---|---|---|---|
 | [1](runs/run1/notes.md) | 2026-11-09 | Baseline | Reward ~101, no falls | Walks | Violent shaking at handover |
 | [2](runs/run2/notes.md) | 2026-11-11 | Actuator delay, dynamics randomization, smoothness penalties | Reward ~110, no falls | Walks; survives 60 ms delay | Walks and turns; ankle-roll oscillation, 94 s of walking with ankle kd 1.5 |
-
 ## Robot-side features (`deploy/laai_walk.py`, 2026-11-11)
 
 What `laai_walk` adds to Booster's `k1_walk` settings:
