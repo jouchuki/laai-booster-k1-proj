@@ -3,7 +3,7 @@
 The values below are copied from booster_deploy/tasks/locomotion/robots/k1/__init__.py
 (Booster's `k1_walk` task). booster_deploy sends the same PD gains to the real robot and
 builds the policy's observations in the same joint order, so a policy trained with them
-runs on the K1 unchanged. Moved here from phases/walk/task.py (run 2) without changes, so
+runs on the K1 unchanged. Moved here from experiments/walk/task.py (run 2) without changes, so
 the sit and push phases use the same robot as the walk.
 """
 

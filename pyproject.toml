@@ -51,7 +51,10 @@ packages = ["src/k1bike"]
 
 [tool.ruff]
 line-length = 100
+# runs/: task snapshots stay exactly as trained. force-exclude applies this list to files
+# passed explicitly too (pre-commit passes renamed or edited files by name).
 extend-exclude = ["booster", "booster_assets", "booster_deploy", "booster_train", "runs"]
+force-exclude = true
 
 [tool.ruff.lint.isort]
 # Booster's checkouts may sit at the repository root (CI, setup_booster.sh) or under

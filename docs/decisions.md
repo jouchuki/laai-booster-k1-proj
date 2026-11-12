@@ -2,6 +2,29 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: Top-level layout: models, experiments, logs, robot
+
+**Decision:** Every simulation model lives in `models/`: `k1/` (pointer to Booster's pinned
+K1 model), `bike/` (the bike we use, with its source USDZ in `source/`), `bike_scan/`
+(textured scan of the real bike, was `assets/bike/real_bike/`), `bike_primitive/` (old
+placeholder, kept for comparison), `hand_clips/` (orange add-on clips; their code is
+`src/k1bike/hand_clips.py`) and `k1_on_bike/` (seated pose). Combined scenes are
+built in code (`src/k1bike/scene.py`), so they always use the current robot and bike. Skills
+live in `experiments/<experiment>/` (was `phases/`), with the curated record of each training
+run in `runs/runN/`; raw training output goes to `logs/laai_<experiment>/<date>_<run-name>/`
+(gitignored; `scripts/train.py` and `play.py` set mjlab's `--log-root` to `logs/`). Real-robot
+tools live in `robot/` (was `deploy/`, plus `robot_info.py`). Handover notes and the
+credentials template are in `docs/handover/`; the ROS 2 Docker experiment is in
+`legacy/ros2_docker/`. Two superseded setup scripts were deleted.
+
+**Why:** Anyone opening the repository should find the robot, the bike and the robot on the
+bike in one place, and tell a skill (experiment), one attempt at it (run) and its raw output
+(logs) apart.
+
+**Considered:** Copying Booster's K1 XML and meshes into `models/k1/` (duplicates a pinned
+dependency and its updates); storing the combined scenes as XML (would go stale when the
+robot or bike changes); keeping logs inside each experiment folder (harder to sync or clean).
+
 ## 2026-11-12: The K1 collides with itself and with the bike
 
 **Decision:** Every task keeps the K1's self-collision as in Booster's model (174 geom
@@ -15,10 +38,13 @@ through each other, or through the frame, learns sitting and pushing motions the
 
 **Considered:** Training without self-collision for speed (mjlab's own humanoid tasks do;
 planned as walk run 3 and dropped). Collision geoms of the bike stay the measured primitives
-(capsules, cylinders) of `assets/bike/sketchfab_mujoco/`, not its visual mesh; they need
+(capsules, cylinders) of `models/bike/`, not its visual mesh; they need
 updating when the bike model changes.
 
 ## 2026-11-11: One folder per project phase
+
+(Folders renamed on 2026-11-12: `phases/` is now `experiments/`, `deploy/` is now `robot/`;
+see "Top-level layout" above.)
 
 **Decision:** Everything that belongs to one phase of the plan lives in `phases/<phase>/`:
 the mjlab task (`task.py`), the export to the robot's format (`export.py`), the booster_deploy
@@ -38,17 +64,17 @@ together). That spread one phase over five places.
 
 ## 2026-11-11: Walk policy uses booster_deploy's `k1_walk` interface
 
-**Decision:** The phase 1 walk task (`phases/walk/task.py`) trains with the observation,
+**Decision:** The phase 1 walk task (`experiments/walk/task.py`) trains with the observation,
 action, PD gains, default pose and joint order of Booster's `k1_walk` deploy task: 690 inputs
-(69 per frame x 10 frames), 20 outputs, action scale 0.25. `phases/walk/export.py` writes a
+(69 per frame x 10 frames), 20 outputs, action scale 0.25. `experiments/walk/export.py` writes a
 TorchScript policy that reorders mjlab's layout into booster_deploy's and checks the result
 against mjlab's own actions.
 
 **Why:** booster_deploy's existing `LocomotionPolicy` then runs our policy unchanged, in MuJoCo
 and on the robot, without forking booster_deploy.
 
-**Result:** Run 2 walks on the robot (see `phases/walk/README.md`). Robot-side additions live in
-`phases/walk/deploy/laai_walk.py`: speed limits, safety watchdog, smooth handover, ankle damping variant.
+**Result:** Run 2 walks on the robot (see `experiments/walk/README.md`). Robot-side additions live in
+`experiments/walk/deploy/laai_walk.py`: speed limits, safety watchdog, smooth handover, ankle damping variant.
 
 **Considered:** mjlab's default observation layout plus a custom policy class in a
 booster_deploy fork.
@@ -56,7 +82,7 @@ booster_deploy fork.
 ## 2026-11-09: Train with mjlab; runs 1-2 on Google Colab
 
 **Decision:** Train with [mjlab](https://github.com/mujocolab/mjlab). Walk runs 1 and 2 ran
-on a Colab GPU (their notebooks are in `phases/walk/runs/`); new runs use `scripts/train.py`
+on a Colab GPU (their notebooks are in `experiments/walk/runs/`); new runs use `scripts/train.py`
 on the Linux GPU cluster.
 
 **Why:** mjlab trains in MuJoCo, the same physics engine as booster_deploy's simulator and our

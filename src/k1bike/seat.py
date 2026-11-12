@@ -16,7 +16,7 @@ Two different kinds of connection, matching the physical setup:
 
 The seated starting pose comes from `scripts/solve_seated_pose.py`, which solves
 for a pose with the pelvis on the saddle, feet flat on the floor and both clip
-points on the grips. It is stored in `k1_seated_pose.json` next to this module.
+points on the grips. It is stored in `models/k1_on_bike/seated_pose.json`.
 
 Clip geometry (an assumption until the clip's frames are measured): the clip is
 collinear with the forearm. The robot's hand occupies clip positions s = 4-8 cm,
@@ -31,6 +31,8 @@ from pathlib import Path
 
 import mujoco
 import numpy as np
+
+from k1bike.paths import SEATED_POSE_JSON
 
 SIDES = ("left", "right")
 
@@ -50,7 +52,7 @@ FORK_BODY = "fork"
 SADDLE_GEOM = "saddle"
 GRIP_SITES = {"left": "left_grip", "right": "right_grip"}
 
-SEATED_POSE_FILE = Path(__file__).with_name("k1_seated_pose.json")
+SEATED_POSE_FILE = SEATED_POSE_JSON
 SEATED_KEY = "seated"
 
 

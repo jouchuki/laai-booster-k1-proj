@@ -3,10 +3,17 @@
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ASSETS_DIR = REPO_ROOT / "assets"
-BIKE_XML = ASSETS_DIR / "bike" / "balance_bike.xml"
-SKETCHFAB_BIKE_XML = ASSETS_DIR / "bike" / "sketchfab_mujoco" / "bike.xml"
-REAL_BIKE_XML = ASSETS_DIR / "bike" / "real_bike" / "bike.xml"
+MODELS_DIR = REPO_ROOT / "models"
+# The balance bike we use (USDZ-derived, measured wheelbase); see models/bike/README.md.
+BIKE_XML = MODELS_DIR / "bike" / "bike.xml"
+# The first placeholder bike made of simple shapes, kept for comparison.
+PRIMITIVE_BIKE_XML = MODELS_DIR / "bike_primitive" / "bike.xml"
+# Textured real-bike scan, calibrated to its reported dimensions; see its README.
+SCAN_BIKE_XML = MODELS_DIR / "bike_scan" / "bike.xml"
+# The K1's solved seated pose on BIKE_XML (written by scripts/solve_seated_pose.py).
+SEATED_POSE_JSON = MODELS_DIR / "k1_on_bike" / "seated_pose.json"
+# Raw training output (gitignored): logs/<experiment>/<date>_<run-name>/.
+LOGS_DIR = REPO_ROOT / "logs"
 
 
 def booster_assets_dir() -> Path:
@@ -17,5 +24,5 @@ def booster_assets_dir() -> Path:
 
 
 def k1_xml() -> Path:
-    """MuJoCo model of the 22-DoF Booster K1."""
+    """MuJoCo model of the 22-DoF Booster K1 (see models/k1/README.md)."""
     return booster_assets_dir() / "robots" / "K1" / "K1_22dof.xml"

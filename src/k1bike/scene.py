@@ -6,7 +6,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from k1bike.paths import BIKE_XML, SKETCHFAB_BIKE_XML, k1_xml
+from k1bike.paths import BIKE_XML, k1_xml
 from k1bike.seat import add_hand_clip_sites, clip_hands_to_bike
 
 
@@ -99,7 +99,7 @@ def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = BIKE_XML) -> mujoc
     return spec
 
 
-def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = SKETCHFAB_BIKE_XML):
+def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = BIKE_XML):
     """K1 sitting on the USDZ-derived bike, hands welded to the grips (phase 3+).
 
     The seated pose is solved for the USDZ-derived bike only, so `bike_xml` must be
@@ -107,7 +107,7 @@ def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = SKETCHFAB_BI
     with `mujoco.mj_resetDataKeyframe(model, data, model.key("seated").id)`.
     See k1bike/seat.py for how the welds and the (contact-only) seat work.
     """
-    if Path(bike_xml).resolve() != SKETCHFAB_BIKE_XML.resolve():
+    if Path(bike_xml).resolve() != BIKE_XML.resolve():
         raise ValueError("The seated pose is solved for the USDZ-derived bike only")
     spec = k1_bike_scene(bike_pos=bike_pos, bike_xml=bike_xml)
     add_hand_clip_sites(spec)

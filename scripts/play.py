@@ -19,9 +19,13 @@ from pathlib import Path
 
 from mjlab.scripts.play import main
 
-# Repository root on the import path, so the tasks in phases/ can be imported.
+# Repository root on the import path, so the tasks in experiments/ can be imported.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import phases  # noqa: F401  (registers every phase's task with mjlab)
+import experiments  # noqa: F401  (registers every experiment's task with mjlab)
+from k1bike.paths import LOGS_DIR
 
 if __name__ == "__main__":
+    # Logs in logs/<experiment>/ instead of mjlab's default logs/rsl_rl/<experiment>/.
+    if not any(arg.startswith("--log-root") for arg in sys.argv[1:]):
+        sys.argv += ["--log-root", str(LOGS_DIR)]
     main()

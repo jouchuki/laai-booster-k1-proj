@@ -1,7 +1,8 @@
 # Physical bike and hand-clip dimensions
 
 Measurements are scoped by model. The values reported on 2026-11-12 apply only
-to `real_bike`. The earlier Sketchfab calibration reference is kept separately;
+to `real_bike`, now stored at `models/bike_scan/` and selected with `--model bike_scan`
+or its `--model real_bike` alias. The earlier Sketchfab calibration reference is kept separately;
 these updates do not change the green Sketchfab model, the primitive bike, or
 its seated K1 pose. Use SI units in simulation configuration.
 
@@ -114,20 +115,20 @@ need physical experiments; dimensions alone do not determine those parameters.
 
 ## Current models and downloaded asset
 
-The existing [primitive model](../assets/bike/balance_bike.xml) still has a 0.30 m
+The existing [primitive model](../models/bike_primitive/bike.xml) still has a 0.30 m
 tyre diameter, 0.415 m saddle site, 0.61 m grip sites and 3.7 kg total mass. These
 are placeholder values and do not yet match the measurements above. Its tube
 inertias and mass distribution are also estimates.
 
-The original [Sketchfab USD](../assets/bike/SKETCHFAB_ATTRIBUTION.md) is stored at
-`assets/bike/Balance_bike.usdz`. It contains visual meshes and materials,
+The original [Sketchfab USD](../models/bike/source/SKETCHFAB_ATTRIBUTION.md) is stored at
+`models/bike/source/Balance_bike.usdz`. It contains visual meshes and materials,
 with no authored rigid bodies, colliders, masses or joints. Its Y-up, centimetre metadata
 produces an overall model over 5 m long when composed, so verify and normalize
 its scale before use.
 
 ### USDZ-derived model scaled to 56.5 cm wheelbase
 
-The converted model is [sketchfab_mujoco/bike.xml](../assets/bike/sketchfab_mujoco/bike.xml).
+The converted model is [models/bike/bike.xml](../models/bike/bike.xml).
 One uniform scale makes its axle centres 0.565 m apart. A rigid rotation levels
 those centres and changes Y-up to Z-up. The stem is then extended along the
 steering axis to raise the grip centres to 0.45 m; the frame, saddle, wheels and
@@ -151,7 +152,7 @@ and 1.59 cm rearward**. Only the short stem section above the headset is
 lengthened; bar width, grip shape and the steering joint remain unchanged.
 This is a requested geometric adjustment, not a measured stem setting or proof
 of its physical adjustment range. The saddle remains at 35.83 cm. The generated
-[measurements.json](../assets/bike/sketchfab_mujoco/measurements.json) stores
+[measurements.json](../models/bike/measurements.json) stores
 the exact scale, source hash, derived dimensions and physical assumptions.
 
 The four moving bodies are the frame, fork/handlebars, rear wheel and front
@@ -168,9 +169,9 @@ record every calibration change against the measurements in this document.
 
 ### Real bike from the uploaded scan
 
-The third option is [real_bike/bike.xml](../assets/bike/real_bike/bike.xml),
-selected with `--model real_bike`. Its source exports are stored under
-`assets/bike/real_bike/source/`.
+The third option is [models/bike_scan/bike.xml](../models/bike_scan/bike.xml),
+selected with `--model bike_scan`. Its source exports are stored under
+`models/bike_scan/source/`.
 Fitted tyre annuli define the axle centres and scan orientation; uniform scaling
 sets the wheelbase to **0.50 m**. Each visible wheel is sized radially to **0.11 m**
 maximum radius; symmetric rounded contact hulls use that radius and an inferred
@@ -184,9 +185,9 @@ shape and mechanical adjustment limits remain approximate.
 Its mass is **3.7 kg**, the midpoint of the owner's
 reported **3.5–3.9 kg** range. Component mass distribution and contact/steering
 properties remain provisional. Spatial mesh cuts approximate the joints and can
-show seams during motion. See the [rescaling process](../assets/bike/real_bike/README.md#geometry-and-articulation)
+show seams during motion. See the [rescaling process](../models/bike_scan/README.md#geometry-and-articulation)
 and generated
-[manifest](../assets/bike/real_bike/measurements.json).
+[manifest](../models/bike_scan/measurements.json).
 
 ## Seated K1
 

@@ -445,8 +445,10 @@ def main():
         description=__doc__.splitlines()[0],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--source", type=Path, default=ROOT / "assets/bike/Balance_bike.usdz")
-    parser.add_argument("--output", type=Path, default=ROOT / "assets/bike/sketchfab_mujoco")
+    parser.add_argument(
+        "--source", type=Path, default=ROOT / "models/bike/source/Balance_bike.usdz"
+    )
+    parser.add_argument("--output", type=Path, default=ROOT / "models/bike")
     parser.add_argument(
         "--wheelbase", type=float, default=DEFAULT_WHEELBASE, help="wheel-centre distance in metres"
     )
