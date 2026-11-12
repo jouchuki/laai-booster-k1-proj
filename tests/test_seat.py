@@ -4,7 +4,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import BIKE_XML
+from k1bike.paths import PRIMITIVE_BIKE_XML
 from k1bike.robots.k1 import hold_pose_torques
 from k1bike.scene import k1_seated_bike_scene
 from k1bike.seat import FORK_BODY, HAND_LINKS, SADDLE_GEOM, SEAT_BODY, SIDES, seat_contact
@@ -155,4 +155,4 @@ def test_k1_can_rise_off_the_saddle_with_hands_still_clipped(model):
 
 def test_seated_scene_rejects_other_bike_models():
     with pytest.raises(ValueError):
-        k1_seated_bike_scene(bike_xml=BIKE_XML)
+        k1_seated_bike_scene(bike_xml=PRIMITIVE_BIKE_XML)

@@ -60,16 +60,16 @@ uv sync --group sim --group train
 
 The viewer defaults to the green, USDZ-derived bike scaled to **56.5 cm between
 wheel centres**, with its stem extended to **45 cm grip-centre height**.
-It loads `assets/bike/sketchfab_mujoco/bike.xml`, which contains
+It loads `models/bike/bike.xml`, which contains
 the separated meshes and provisional physics; it does not load the USDZ directly.
-Use `--model primitive` to compare with the original blue prototype.
+Use `--model bike_primitive` to compare with the original blue prototype.
 
 ### Linux host
 
 ```bash
 uv run python scripts/view_model.py bike
 uv run python scripts/view_model.py bike --paused
-uv run python scripts/view_model.py bike --model primitive
+uv run python scripts/view_model.py bike --model bike_primitive
 uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
@@ -82,7 +82,7 @@ uv run python scripts/view_model.py k1_seated
 ```bash
 uv run mjpython scripts/view_model.py bike
 uv run mjpython scripts/view_model.py bike --paused
-uv run mjpython scripts/view_model.py bike --model primitive
+uv run mjpython scripts/view_model.py bike --model bike_primitive
 uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
@@ -101,13 +101,13 @@ Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulati
 `k1_bike` places the K1 next to the bike, unattached. `k1_seated` starts the K1
 sitting on the USDZ-derived bike with both hands welded to the grips, and holds
 that pose with the k1_walk PD gains (see `src/k1bike/seat.py`). See the
-[bike model notes](../assets/bike/README.md) for physics limitations and the
+[bike model notes](../models/README.md) for physics limitations and the
 [physical measurements](bike-dimensions.md) before changing its parameters.
 
 ### Linux and macOS: re-solve the K1's seated pose
 
 Rerun after changing the bike model or the clip geometry in `src/k1bike/seat.py`
-(headless; needs the `sim` group for scipy):
+(headless; needs the `sim` group for scipy). It writes `models/k1_on_bike/seated_pose.json`:
 
 ```bash
 uv run --group sim python scripts/solve_seated_pose.py
@@ -116,7 +116,8 @@ uv run --group sim python scripts/solve_seated_pose.py
 ### Linux and macOS: regenerate the converted bike
 
 This is headless preprocessing; ordinary Python is used on both platforms. It
-preserves the original USDZ and writes the derivative under `assets/bike/sketchfab_mujoco/`:
+reads the original USDZ in `models/bike/source/` and writes the derivative
+(`bike.xml`, `meshes/`, `measurements.json`) into `models/bike/`:
 
 ```bash
 uv run --with usd-core python scripts/convert_bike_usdz.py
@@ -159,8 +160,10 @@ bash scripts/run_sample_task.sh k1_walk
 ## Train our mjlab task
 
 New runs train with `scripts/train.py` on the Linux GPU cluster. Walk runs 1 and 2 were
-trained on Google Colab; their notebooks are kept as records in `phases/walk/runs/runN/`.
+trained on Google Colab; their notebooks are kept as records in `experiments/walk/runs/runN/`.
 To submit a training job with SLURM, see [cluster/README.md](../cluster/README.md).
+Checkpoints, TensorBoard files and videos go to `logs/<experiment>/<date>_<run-name>/`
+(gitignored), for example `logs/laai_walk/2026-11-12_10-15-00_walk-baseline-ep/`.
 
 ### Linux GPU cluster node or NVIDIA host
 
@@ -191,7 +194,7 @@ one environment on CPU and explicitly select the native viewer.
 
 ```bash
 uv run --group train python scripts/play.py LAAI-K1-Walk-Flat \
-  --checkpoint-file logs/rsl_rl/laai_walk/YOUR_RUN/model_1000.pt \
+  --checkpoint-file logs/laai_walk/YOUR_RUN/model_1000.pt \
   --device cpu --num-envs 1 --viewer native
 ```
 
@@ -199,7 +202,7 @@ uv run --group train python scripts/play.py LAAI-K1-Walk-Flat \
 
 ```bash
 uv run --group train mjpython scripts/play.py LAAI-K1-Walk-Flat \
-  --checkpoint-file logs/rsl_rl/laai_walk/YOUR_RUN/model_1000.pt \
+  --checkpoint-file logs/laai_walk/YOUR_RUN/model_1000.pt \
   --device cpu --num-envs 1 --viewer native
 ```
 
@@ -214,24 +217,24 @@ Writes `policy.pt`, checks it against mjlab's own actions (must print `OK`) and
 optionally records a video. `MUJOCO_GL=egl` is for headless Linux NVIDIA rendering:
 
 ```bash
-MUJOCO_GL=egl uv run --group train python -m phases.walk.export \
-  --checkpoint logs/rsl_rl/laai_walk/YOUR_RUN/model_3999.pt --video walk.mp4
+MUJOCO_GL=egl uv run --group train python -m experiments.walk.export \
+  --checkpoint logs/laai_walk/YOUR_RUN/model_3999.pt --video walk.mp4
 ```
 
-Keep the result as `phases/walk/runs/runN/policy.pt` (see [phases/README.md](../phases/README.md)).
+Keep the result as `experiments/walk/runs/runN/policy.pt` (see [experiments/README.md](../experiments/README.md)).
 
 ## Run our walk policy in Booster's MuJoCo
 
 Install the walk phase's task file, the dry-run script and a policy into the `booster_deploy`
-checkout (see [deploy/README.md](../deploy/README.md)), then use Booster's `deploy.py`
+checkout (see [robot/README.md](../robot/README.md)), then use Booster's `deploy.py`
 with task `laai_walk` or `laai_walk_ankle_kd15`. Type speed commands in the
 terminal as `x y yaw`, for example `0.3 0 0`.
 
 ### Linux and macOS
 
 ```bash
-bash deploy/install.sh walk                                    # policy of the newest walk run
-bash deploy/install.sh walk phases/walk/runs/run1/policy.pt    # a specific policy
+bash robot/install.sh walk                                    # policy of the newest walk run
+bash robot/install.sh walk experiments/walk/runs/run1/policy.pt    # a specific policy
 ```
 
 ### Linux host
@@ -264,7 +267,7 @@ packages there. You type the robot password once. On macOS, use the Terminal app
 without Local Network permission cannot reach the robot.
 
 ```bash
-bash deploy/setup_robot.sh ROBOT_IP walk
+bash robot/setup_robot.sh ROBOT_IP walk
 ```
 
 ### Robot (Linux): dry run, then the policy
@@ -301,8 +304,8 @@ The robot clock runs 7 hours ahead of Amsterdam time.
 ### Linux and macOS host: keep the robot logs with the run
 
 ```bash
-scp 'booster@ROBOT_IP:~/booster_deploy/logs/stop_*' phases/walk/runs/runN/robot_logs/
-scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' phases/walk/runs/runN/dry_run/
+scp 'booster@ROBOT_IP:~/booster_deploy/logs/stop_*' experiments/walk/runs/runN/robot_logs/
+scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' experiments/walk/runs/runN/dry_run/
 ```
 
 ## Development checks
@@ -322,7 +325,7 @@ uv run pytest
 The `boosteros` SDK dependency group is Linux-only:
 
 ```bash
-uv run --group robot python scripts/robot_info.py
+uv run --group robot python robot/robot_info.py
 ```
 
 ### Linux and macOS: SSH client
@@ -355,19 +358,23 @@ cluster node. This setting is not for launching a local native viewer.
 
 ### macOS: hidden environment files
 
-For the team's documented macOS hidden-file issue, the platform-specific command is:
+If the project folder syncs with iCloud, macOS can mark the environment's `.pth` files
+hidden, and Python then skips them (`ModuleNotFoundError: No module named 'k1bike'`, or
+`cannot import name 'BOOSTER_ASSETS_DIR'`). Clear the flag:
 
 ```bash
-chflags -R nohidden .venv
+chflags -R nohidden .venv/
 ```
 
-## Legacy scripts
+To stop it recurring, keep the environment out of iCloud: move it to `.venv.nosync`
+(iCloud skips `.nosync` names) and link `.venv` to it.
 
-`scripts/connect-booster-k1.sh` and `scripts/mujoco-script.sh` are earlier setup
-experiments. Use the pinned setup and platform-specific commands above for the
-current workflow.
+```bash
+mv .venv .venv.nosync && ln -s .venv.nosync .venv && chflags -R nohidden .venv.nosync
+```
 
-`scripts/docker-install-ros2-humble-ubuntu-22-04.sh` runs inside an Ubuntu 22.04
-Linux container. Its old bridge-launch section is not part of the current mjlab
-workflow and has not been validated. `scripts/rebuild-ros2-cont.sh` operates on
-that optional Docker setup; it is separate from local simulation and GPU training.
+## Legacy ROS 2 Docker scripts
+
+`legacy/ros2_docker/` holds an optional, unvalidated Ubuntu 22.04 container experiment
+with ROS 2 Humble. It is not part of the simulation, training or robot workflow above;
+see [its README](../legacy/ros2_docker/README.md).

@@ -1,5 +1,6 @@
 # Python environments and caches
 .venv
+.venv.nosync
 venv
 __pycache__/
 .pytest_cache/
@@ -8,39 +9,32 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Training outputs at the project root (phases/<phase>/runs/ are kept)
+# Training output: checkpoints, TensorBoard, videos (logs/<experiment>/<date>_<run-name>/),
+# W&B local files and MuJoCo warnings. The curated record of each run is kept in
+# experiments/<experiment>/runs/runN/.
+logs/
 /runs/
+wandb/
+MUJOCO_LOG.TXT
 
-# Older nested Booster layout (still supported by scripts/setup_booster.sh)
+# Booster's code, cloned by scripts/setup_booster.sh: at the project root, or in the
+# older nested booster/ folder (root links then point into it)
 booster/
-# Booster repos or compatibility links at the project root
 booster_*/
 /booster_assets
 /booster_deploy
 
-# ROS workspaces and local Docker setup (from PR #5; was `*ros*`, which also matched
-# unrelated names, so narrowed to folders starting with "ros")
-ros*/
-Dockerfile
+# Optional ROS 2 Docker experiment (legacy/ros2_docker/): local workspaces and Dockerfile
+/ros*/
+/Dockerfile
 
-# Local secrets (robot password etc.): never commit them
+# Local secrets (robot password etc.): never commit them; see docs/handover/
 credentials*.md
-*.pdf
+!credentials.example.md
+# The handover PDF contains the robot password; share it directly, not via git
+docs/handover/*.pdf
 
-# mjlab training runs (checkpoints, exported ONNX, TensorBoard) and MuJoCo warnings
-logs/
-MUJOCO_LOG.TXT
-
-
-.ruff_cache
-uv run ruff check . && uv run ruff format --check && uv run pytest
 # graphify knowledge graph output (rebuild locally with `graphify update .`)
 graphify-out/
 # Personal Claude Code settings (graphify hooks point to each person's own install)
 .claude/settings.local.json
-
-# Local secrets (robot password etc.): never commit them
-credentials*.md
-!credentials.example.md
-# Handover PDF contains the robot password; share it directly, not via git
-handover docs/*.pdf

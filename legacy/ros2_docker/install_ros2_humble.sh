@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-BOOSTER_IP=10.0.0.238
+BOOSTER_IP="${BOOSTER_IP:?set BOOSTER_IP to the robot address (ask a teammate; never commit it)}"
 export DEBIAN_FRONTEND=noninteractive
 export TZ=Europe/Amsterdam
 set -euo pipefail

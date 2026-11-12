@@ -3,7 +3,7 @@
 Linux and macOS, from the repository root (headless, no viewer):
     uv run --group sim python scripts/solve_seated_pose.py
 
-Writes src/k1bike/k1_seated_pose.json, which k1bike.seat loads. Rerun this after
+Writes models/k1_on_bike/seated_pose.json, which k1bike.seat loads. Rerun this after
 changing the bike model, the clip geometry in k1bike/seat.py, or the targets below.
 
 The pose is a least-squares fit, with joints kept inside 90% of their limits:
@@ -20,7 +20,7 @@ import mujoco
 import numpy as np
 from scipy.optimize import least_squares
 
-from k1bike.paths import SKETCHFAB_BIKE_XML
+from k1bike.paths import BIKE_XML
 from k1bike.robots.k1 import POLICY_JOINTS
 from k1bike.scene import k1_bike_scene
 from k1bike.seat import (
@@ -46,7 +46,7 @@ NEUTRAL = {
 
 
 def _model() -> mujoco.MjModel:
-    spec = k1_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml=SKETCHFAB_BIKE_XML)
+    spec = k1_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml=BIKE_XML)
     add_hand_clip_sites(spec)
     return spec.compile()
 

@@ -2,6 +2,11 @@
 
 Nov 6, 2026 · @David Borensztajn
 
+> **This folder:** these notes (a record of the first setup; the current commands are in
+> [docs/commands.md](../commands.md)), `credentials.example.md` (template: copy it to
+> `credentials.md` here and fill in the robot login) and the handover PDF. `credentials.md` and
+> the PDF hold the robot password, so both are gitignored: share them directly, never via git.
+
 ## Status at a glance
 
 The Mac can run Booster's simulator, and the Mac can log in to the robot over Wi-Fi. The next step is training a simple walking policy, the first step toward teaching the robot to ride a bike.

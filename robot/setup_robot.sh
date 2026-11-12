@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Linux and macOS host: install a phase into booster_deploy, copy it to the K1 and set it up there.
+# Linux and macOS host: install an experiment into booster_deploy, copy it to the K1 and set it up there.
 #
 # Usage (from anywhere):
-#   bash deploy/setup_robot.sh <robot-ip> <phase>                 # policy of the newest run
-#   bash deploy/setup_robot.sh <robot-ip> <phase> <policy.pt>     # a specific policy
+#   bash robot/setup_robot.sh <robot-ip> <experiment>                 # policy of the newest run
+#   bash robot/setup_robot.sh <robot-ip> <experiment> <policy.pt>     # a specific policy
 #
 # You type the robot password once (ask a teammate; never commit it).
 # The robot needs internet (lab Wi-Fi) for pip.
 set -euo pipefail
 
-USAGE="Usage: bash deploy/setup_robot.sh <robot-ip> <phase> [policy.pt]"
+USAGE="Usage: bash robot/setup_robot.sh <robot-ip> <experiment> [policy.pt]"
 ROBOT_IP="${1:?$USAGE}"
-PHASE="${2:?$USAGE}"
+EXPERIMENT="${2:?$USAGE}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$REPO_ROOT/scripts/booster_paths.sh"
 DEPLOY_DIR="$(booster_checkout_path "$REPO_ROOT" booster_deploy)"
@@ -19,8 +19,8 @@ TARGET="booster@${ROBOT_IP}"
 # Reuse one SSH connection, so the password is asked only once.
 SSH_OPTS=(-o ControlMaster=auto -o ControlPath=/tmp/k1-ssh-%r@%h -o ControlPersist=10m)
 
-echo "== 1/4 Installing phase '$PHASE' into booster_deploy"
-bash "$REPO_ROOT/deploy/install.sh" "$PHASE" "${@:3}"
+echo "== 1/4 Installing experiment '$EXPERIMENT' into booster_deploy"
+bash "$REPO_ROOT/robot/install.sh" "$EXPERIMENT" "${@:3}"
 
 echo "== 2/4 Connecting to the robot"
 ssh "${SSH_OPTS[@]}" "$TARGET" \

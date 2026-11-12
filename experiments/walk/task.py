@@ -1,7 +1,7 @@
 """Phase 1: Booster K1 velocity-tracking (walking) task for mjlab.
 
 Validated on the real K1 (run 2, 2026-11-11): see README.md and runs/ in this folder.
-Train with scripts/train.py, export with phases/walk/export.py, deploy files in phases/walk/deploy/
+Train with scripts/train.py, export with experiments/walk/export.py, deploy files in experiments/walk/deploy/
 (commands: docs/commands.md).
 
 The policy is set up to match Booster's own deploy tool (booster_deploy, task "k1_walk")

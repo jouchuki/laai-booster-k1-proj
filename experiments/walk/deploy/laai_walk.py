@@ -1,8 +1,8 @@
 """booster_deploy tasks "laai_walk" and "laai_walk_ankle_kd15": run our phase 1 walking policy
-(trained with phases/walk/task.py),
+(trained with experiments/walk/task.py),
 with extra safety for first tests on the real robot.
 
-Source of truth: phases/walk/deploy/laai_walk.py in the project repository. deploy/install.sh copies it
+Source of truth: experiments/walk/deploy/laai_walk.py in the project repository. robot/install.sh copies it
 to booster_deploy/tasks/locomotion/robots/k1/ and the policy to .../k1/models/laai_walk.pt.
 
 Commands: docs/commands.md (install, Booster's MuJoCo, robot).

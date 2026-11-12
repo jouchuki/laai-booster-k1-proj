@@ -1,10 +1,10 @@
 """Export a trained K1 walking policy for Booster's deploy tool, check it, and record a video.
 
 Linux GPU cluster node or NVIDIA host (from the repository root):
-    uv run --group train python -m phases.walk.export --checkpoint logs/rsl_rl/laai_walk/<run>/model_3999.pt
-    MUJOCO_GL=egl uv run --group train python -m phases.walk.export --checkpoint ... --video walk.mp4
+    uv run --group train python -m experiments.walk.export --checkpoint logs/laai_walk/<run>/model_3999.pt
+    MUJOCO_GL=egl uv run --group train python -m experiments.walk.export --checkpoint ... --video walk.mp4
 
-Then keep policy.pt as phases/walk/runs/runN/policy.pt and install it with deploy/install.sh walk.
+Then keep policy.pt as experiments/walk/runs/runN/policy.pt and install it with robot/install.sh walk.
 
 Writes policy.pt (TorchScript). booster_deploy feeds it 690 numbers (10 frames x 69, oldest
 first, joints in booster_deploy's policy order) and expects 20 actions in that same joint order.
@@ -26,7 +26,7 @@ from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 from torch import nn
 
-from phases.walk import task as K
+from experiments.walk import task as K
 
 FRAME = 3 + 3 + 3 + 20 + 20 + 20  # 69 numbers per frame, booster_deploy layout
 

@@ -2,7 +2,7 @@
   Balance bike (no pedals) for the Booster K1. PLACEHOLDER GEOMETRY.
 
   Dimensions approximate a 12-inch kids' balance bike. Replace them with
-  measurements of the real bike (see assets/bike/README.md) before training
+  measurements of the real bike (see models/README.md) before training
   anything that should transfer to hardware.
 
   Frame: x forward, y left, z up. Origin on the ground under the rear axle.

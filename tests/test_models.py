@@ -4,7 +4,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import BIKE_XML, SKETCHFAB_BIKE_XML, k1_xml
+from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, k1_xml
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene
 
 
@@ -16,7 +16,7 @@ def _step(model: mujoco.MjModel, seconds: float, data: mujoco.MjData | None = No
 
 
 @pytest.fixture(
-    params=[BIKE_XML, SKETCHFAB_BIKE_XML], ids=["primitive", "sketchfab"], scope="module"
+    params=[BIKE_XML, PRIMITIVE_BIKE_XML], ids=["bike", "bike_primitive"], scope="module"
 )
 def bike_path(request):
     return request.param
@@ -110,8 +110,8 @@ def test_k1_and_bike_scene_simulates(bike_path):
     assert np.isfinite(data.qpos).all()
 
 
-def test_sketchfab_wheelbase_matches_reported_measurement():
-    model = bike_scene(SKETCHFAB_BIKE_XML).compile()
+def test_bike_wheelbase_matches_reported_measurement():
+    model = bike_scene(BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     front = data.xanchor[model.joint("front_wheel").id]
@@ -123,8 +123,8 @@ def test_sketchfab_wheelbase_matches_reported_measurement():
     )
 
 
-def test_sketchfab_steering_moves_front_assembly_without_moving_frame():
-    model = bike_scene(SKETCHFAB_BIKE_XML).compile()
+def test_bike_steering_moves_front_assembly_without_moving_frame():
+    model = bike_scene(BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     front = model.body("front_wheel").id
@@ -148,8 +148,8 @@ def test_sketchfab_steering_moves_front_assembly_without_moving_frame():
             assert model.geom_conaffinity[geom] == 0
 
 
-def test_sketchfab_raised_handlebars_keep_saddle_and_grip_spacing():
-    model = bike_scene(SKETCHFAB_BIKE_XML).compile()
+def test_bike_raised_handlebars_keep_saddle_and_grip_spacing():
+    model = bike_scene(BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     left = data.site_xpos[model.site("left_grip").id]

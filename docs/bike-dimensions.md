@@ -95,20 +95,20 @@ need physical experiments; dimensions alone do not determine those parameters.
 
 ## Current models and downloaded asset
 
-The existing [primitive model](../assets/bike/balance_bike.xml) still has a 0.30 m
+The existing [primitive model](../models/bike_primitive/bike.xml) still has a 0.30 m
 tyre diameter, 0.415 m saddle site, 0.61 m grip sites and 3.7 kg total mass. These
 are placeholder values and do not yet match the measurements above. Its tube
 inertias and mass distribution are also estimates.
 
-The original [Sketchfab USD](../assets/bike/SKETCHFAB_ATTRIBUTION.md) is stored at
-`assets/bike/Balance_bike.usdz`. It contains visual meshes and materials,
+The original [Sketchfab USD](../models/bike/source/SKETCHFAB_ATTRIBUTION.md) is stored at
+`models/bike/source/Balance_bike.usdz`. It contains visual meshes and materials,
 with no authored rigid bodies, colliders, masses or joints. Its Y-up, centimetre metadata
 produces an overall model over 5 m long when composed, so verify and normalize
 its scale before use.
 
 ### USDZ-derived model scaled to 56.5 cm wheelbase
 
-The converted model is [sketchfab_mujoco/bike.xml](../assets/bike/sketchfab_mujoco/bike.xml).
+The converted model is [models/bike/bike.xml](../models/bike/bike.xml).
 One uniform scale makes its axle centres 0.565 m apart. A rigid rotation levels
 those centres and changes Y-up to Z-up. The stem is then extended along the
 steering axis to raise the grip centres to 0.45 m; the frame, saddle, wheels and
@@ -132,7 +132,7 @@ and 1.59 cm rearward**. Only the short stem section above the headset is
 lengthened; bar width, grip shape and the steering joint remain unchanged.
 This is a requested geometric adjustment, not a measured stem setting or proof
 of its physical adjustment range. The saddle remains at 35.83 cm. The generated
-[measurements.json](../assets/bike/sketchfab_mujoco/measurements.json) stores
+[measurements.json](../models/bike/measurements.json) stores
 the exact scale, source hash, derived dimensions and physical assumptions.
 
 The four moving bodies are the frame, fork/handlebars, rear wheel and front

@@ -14,4 +14,4 @@ parts, or other modifications alongside that derivative.
 
 The composed USD is Y-up with `metersPerUnit = 0.01`. Taking that metadata
 literally gives a model over 5 m long, so normalize its scale against the
-[physical bike dimensions](../../docs/bike-dimensions.md) before use.
+[physical bike dimensions](../../../docs/bike-dimensions.md) before use.

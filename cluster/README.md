@@ -44,7 +44,7 @@ mkdir -p logs
 sbatch cluster/train.slurm LAAI-K1-Walk-Flat --agent.run-name walk-baseline-ep
 ```
 
-Any registered task works (the first argument). Checkpoints and the exported ONNX policy land in `logs/rsl_rl/laai_walk/<date>_<run-name>/`.
+Any registered task works (the first argument). Checkpoints and the exported ONNX policy land in `logs/laai_walk/<date>_<run-name>/`.
 
 Headless rendering (for rollout videos) needs `MUJOCO_GL=egl`, which `train.slurm` sets.
 The headless job uses ordinary Python, not the macOS `mjpython` viewer launcher.
