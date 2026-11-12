@@ -44,11 +44,14 @@ def main() -> None:
         "--paused", action="store_true", help="start paused; Space toggles simulation"
     )
     parser.add_argument("--push", type=float, default=0.0, help="initial bike speed (m/s)")
+    parser.add_argument(
+        "--steer", type=float, default=0.0, help="initial steering angle (degrees; then passive)"
+    )
     parser.add_argument("--lean", type=float, default=0.0, help="initial bike roll angle (degrees)")
     parser.add_argument("--drop", type=float, default=0.0, help="raise the bike before release (m)")
     args = parser.parse_args()
-    if not all(math.isfinite(value) for value in (args.push, args.lean, args.drop)):
-        parser.error("--push, --lean and --drop must be finite numbers")
+    if not all(math.isfinite(value) for value in (args.push, args.steer, args.lean, args.drop)):
+        parser.error("--push, --steer, --lean and --drop must be finite numbers")
     if args.drop < 0:
         parser.error("--drop must be nonnegative")
 
@@ -57,29 +60,52 @@ def main() -> None:
         parser.error(f"Bike model is missing: {bike_xml}; see docs/commands.md for conversion")
     model = SCENES[args.scene](bike_xml=bike_xml).compile()
     data = mujoco.MjData(model)
-    initialize_bike_state(
-        model,
-        data,
-        prefix="" if args.scene == "bike" else "bike/",
-        forward_speed=args.push,
-        lean_degrees=args.lean,
-        drop_height=args.drop,
-    )
+    prefix = "" if args.scene == "bike" else "bike/"
+    steering = model.joint(f"{prefix}steer")
+    angle = math.radians(args.steer)
+    if model.jnt_limited[steering.id] and not (
+        model.jnt_range[steering.id, 0] <= angle <= model.jnt_range[steering.id, 1]
+    ):
+        parser.error("--steer must be within the model's steering limits")
+
+    def reset():
+        mujoco.mj_resetData(model, data)
+        data.qpos[model.jnt_qposadr[steering.id]] = angle
+        initialize_bike_state(
+            model,
+            data,
+            prefix=prefix,
+            forward_speed=args.push,
+            lean_degrees=args.lean,
+            drop_height=args.drop,
+        )
+
+    reset()
     print(f"Model: {args.model} ({bike_xml})", flush=True)
     print(f"Gravity: {model.opt.gravity.tolist()} m/s²", flush=True)
     print(f"Bike: lean={args.lean:g}°, drop={args.drop:g} m, speed={args.push:g} m/s")
+    print(f"Mass: {model.body_subtreemass[model.body(f'{prefix}frame').id]:g} kg")
+    print(f"Initial steering: {args.steer:g}° (passive after release)")
 
     paused = args.paused
+    reset_requested = False
 
     def key_callback(keycode):
-        nonlocal paused
+        nonlocal paused, reset_requested
         if keycode == ord(" "):
             paused = not paused
+        elif keycode in (ord("R"), ord("r")):
+            reset_requested = True
 
-    print("Space: pause/resume simulation", flush=True)
+    print("Space: pause/resume simulation; R: repeat initial push", flush=True)
     with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as viewer:
+        viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+        viewer.cam.trackbodyid = model.body(f"{prefix}frame").id
         while viewer.is_running():
             start = time.time()
+            if reset_requested:
+                reset()
+                reset_requested = False
             if not paused:
                 mujoco.mj_step(model, data)
             viewer.sync()

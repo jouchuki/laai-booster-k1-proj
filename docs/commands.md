@@ -76,6 +76,7 @@ uv run python scripts/view_model.py bike
 uv run python scripts/view_model.py bike --paused
 uv run python scripts/view_model.py bike --model primitive
 uv run python scripts/view_model.py bike --model real_bike --paused
+uv run python scripts/view_model.py bike --model real_bike --push 1.5 --steer 12 --paused
 uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
@@ -90,6 +91,7 @@ uv run mjpython scripts/view_model.py bike
 uv run mjpython scripts/view_model.py bike --paused
 uv run mjpython scripts/view_model.py bike --model primitive
 uv run mjpython scripts/view_model.py bike --model real_bike --paused
+uv run mjpython scripts/view_model.py bike --model real_bike --push 1.5 --steer 12 --paused
 uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
@@ -102,7 +104,11 @@ Run one viewer command at a time. `--push 3` sets an initial rolling speed of
 `--drop` raises the bike by the specified metres before release. A 5° lean
 demonstrates toppling, and a 0.3 m drop demonstrates gravity. These options only
 change the bike's initial state, including in the combined scene.
-Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulation.
+`--steer 12` starts with 12° steering and leaves it passive after release; it
+does not hold the angle or add a controller. Use `--paused` to inspect the
+initial pose; **Space** pauses or resumes simulation. **R** resets the bike to
+the requested initial state so you can repeat the push or drop. The camera
+follows the bike, and the viewer prints the bike's configured mass at startup.
 
 `k1_bike` places the K1 next to the bike; it does not seat or attach it. See the
 [bike model notes](../assets/bike/README.md) for physics limitations and the
