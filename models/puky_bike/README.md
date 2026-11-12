@@ -1,11 +1,14 @@
-# Bike scan (textured scan of the real bike)
+# Puky bike: the real bike we use
+
+The blue Puky balance bike the K1 will ride.
 
 This bike model derives from [`source/real_bike.obj`](source/real_bike.obj).
 The source OBJ, material, colour/AO/normal textures and companion USDZ are stored
 in [`source/`](source/). The exports were renamed and their material/texture
 references updated; source geometry, UVs, texture images and USDZ are preserved.
-The viewer selects this derivative with `--model bike_scan`; the default remains
-the green [models/bike](../bike/README.md). Both the bike-only and K1/bike scenes support it.
+This is the default bike in the viewer and every scene, and the K1 sits on it in
+`k1_seated` (pose in [models/k1_on_bike/puky_bike.json](../k1_on_bike/README.md)). The earlier
+green [models/yellow_bike](../yellow_bike/README.md) stays available with `--model yellow_bike`.
 See the [platform-specific viewer commands](../../docs/commands.md#view-the-bike-or-the-k1-and-bike).
 
 ## Geometry and articulation
@@ -81,7 +84,7 @@ project owner; no external author or licence metadata was supplied with it.
 **Linux and macOS**, from the repository root, headless with Python 3.12:
 
 ```bash
-uv run python scripts/convert_bike_scan.py
+uv run python scripts/convert_puky_bike.py
 ```
 
 No extra conversion package is required. Optional `--wheelbase`, `--tyre-diameter`,

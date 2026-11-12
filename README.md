@@ -2,10 +2,11 @@
 
 Teaching the Booster K1 humanoid to ride a balance bike: train in simulation, then run on the real robot.
 
-## Quick start: watch the bike scan roll and steer
+## Quick start: watch the real bike roll and steer
 
-The calibrated real bike is now stored in `models/bike_scan/`. The earlier
-`--model real_bike` option still works as an alias for `--model bike_scan`.
+The real bike is the blue Puky, `models/puky_bike/`: a textured scan calibrated to its
+measurements, and the default bike everywhere. Earlier names still work in the viewer:
+`--model real_bike` or `bike_scan` selects `puky_bike`.
 
 Run this on a **Linux or macOS desktop**. No GPU or robot is required. Open a
 terminal in the cloned repository's root: the folder containing `pyproject.toml`.
@@ -30,20 +31,20 @@ uv sync
 
 This fetches the pinned robot assets required by the project and installs the
 local viewer dependencies. The generated bike meshes and textures are included
-in `models/bike_scan/`; you can view them without running the converter.
+in `models/puky_bike/`; you can view them without running the converter.
 
 ### 2. Open the rolling and steering demo
 
 **Linux host**, from the repository root:
 
 ```bash
-uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+uv run python scripts/view_model.py bike --model puky_bike --push 1.5 --steer 12 --paused
 ```
 
 **macOS host**, from the repository root:
 
 ```bash
-uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+uv run mjpython scripts/view_model.py bike --model puky_bike --push 1.5 --steer 12 --paused
 ```
 
 The window opens **paused**, with the blue textured bike's front assembly turned
@@ -61,7 +62,7 @@ It can turn, slow down and topple as gravity and ground contact act on it.
 `--steer` sets the starting steering angle; the steering joint moves freely
 after release. `--push` gives an initial rolling speed. This is a passive physics
 demo; powered riding and automatic balance remain future work. A separate
-`k1_seated` scene holds the K1 seated on the green Sketchfab bike with PD control.
+`k1_seated` scene holds the K1 seated on this bike with PD control.
 The bike scan's configured mass is **3.7 kg**, the midpoint of the owner's
 reported 3.5–3.9 kg range. Its model matches the reported **50 cm wheelbase,
 22 cm tyre diameter, 42 cm saddle top and 53 cm grip-centre height**.
@@ -77,26 +78,27 @@ repeat.
 
 ```bash
 # Straight initial push, with no initial steering.
-uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --paused
+uv run python scripts/view_model.py bike --model puky_bike --push 1.5 --paused
 
 # Lean-and-fall test.
-uv run python scripts/view_model.py bike --model bike_scan --lean 5 --drop 0.03 --paused
+uv run python scripts/view_model.py bike --model puky_bike --lean 5 --drop 0.03 --paused
 ```
 
 **macOS host**, from the repository root:
 
 ```bash
 # Straight initial push, with no initial steering.
-uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --paused
+uv run mjpython scripts/view_model.py bike --model puky_bike --push 1.5 --paused
 
 # Lean-and-fall test.
-uv run mjpython scripts/view_model.py bike --model bike_scan --lean 5 --drop 0.03 --paused
+uv run mjpython scripts/view_model.py bike --model puky_bike --lean 5 --drop 0.03 --paused
 ```
 
 Change `--steer 12` to `--steer -12` to try the opposite starting direction,
-or change `--push` to compare speeds. Omitting `--model bike_scan` loads the
-older green bike; `--model bike_primitive` selects the original simple blue shapes.
-See the [model notes](models/bike_scan/README.md) for scan and physics
+or change `--push` to compare speeds. The Puky is the default bike, so `--model puky_bike`
+can be left out; `--model yellow_bike` loads the earlier green bike and `--model primitive_bike`
+the original simple blue shapes.
+See the [model notes](models/puky_bike/README.md) for scan and physics
 limitations, and [platform troubleshooting](docs/commands.md#platform-specific-troubleshooting)
 if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 
@@ -105,8 +107,8 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 | Phase | Goal | Status | Where |
 |---|---|---|---|
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [experiments/walk/](experiments/walk/README.md) |
-| 2 | Balance-bike model in simulation | USDZ-derived bike (measured size, used by every scene), textured scan of the real bike, primitive placeholder; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
-| 3 | Sit on a supported bike | Seated scene ready (hands welded to the grips, pelvis on the saddle by contact); no training task yet | [models/k1_on_bike/](models/k1_on_bike/README.md) |
+| 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
+| 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis on the saddle by contact); no training task yet | [models/k1_on_bike/](models/k1_on_bike/README.md) |
 | 4 | Walk the bike, supported | Not started | |
 | 5 | Free bike, feet as support | Not started | |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
@@ -125,11 +127,11 @@ Extra: stride and glide. Lift both feet and coast, balancing by steering only, t
 ```
 models/              everything the simulator loads
   k1/                the Booster K1 robot (Booster's model, pinned; settings in src/k1bike/robots/k1.py)
-  bike/              the balance bike we use (USDZ-derived), with its source USDZ
-  bike_scan/         calibrated real-bike scan (50 cm wheelbase, 22 cm tyres, 42 cm saddle, 53 cm grips)
-  bike_primitive/    the old placeholder bike, kept for comparison
+  puky_bike/         the real bike we use: calibrated scan (50 cm wheelbase, 22 cm tyres, 42 cm saddle, 53 cm grips)
+  yellow_bike/       the earlier green bike, made from a USDZ model from the internet (Sketchfab)
+  primitive_bike/    the old placeholder bike, kept for comparison
   hand_clips/        the orange add-on hand clips (code in src/k1bike/hand_clips.py)
-  k1_on_bike/        the K1 seated on the bike: solved pose
+  k1_on_bike/        the K1 seated on a bike: one solved pose per bike (puky_bike.json, yellow_bike.json)
 experiments/         one folder per skill (walk, later sit, push, ride)
   walk/              training task, export, booster_deploy task files
     runs/runN/       record of each training run: notes, task snapshot, policy, robot logs
@@ -146,11 +148,11 @@ legacy/              old, unvalidated experiments (ROS 2 Docker)
 
 | Folder | Contents |
 |---|---|
-| [models/](models/README.md) | `k1/README.md` (where the robot model comes from), `bike/` (`bike.xml`, `meshes/`, `measurements.json`, `source/`), `bike_scan/` (`bike.xml`, `meshes/`, `source/` with textures), `bike_primitive/bike.xml`, `hand_clips/README.md`, `k1_on_bike/seated_pose.json` |
+| [models/](models/README.md) | `k1/README.md` (where the robot model comes from), `puky_bike/` (`bike.xml`, `meshes/`, `source/` with textures), `yellow_bike/` (`bike.xml`, `meshes/`, `measurements.json`, `source/`), `primitive_bike/bike.xml`, `hand_clips/README.md`, `k1_on_bike/<bike>.json` |
 | [experiments/](experiments/README.md) | `<experiment>/task.py` (mjlab task `LAAI-K1-<Experiment>-...`), `export.py`, `deploy/` (booster_deploy tasks `laai_<experiment>...`), `runs/runN/`, `README.md` (experiment report) |
 | `logs/` | Checkpoints, TensorBoard and videos from `scripts/train.py`; link the ones you keep from the run's `notes.md` |
 | `src/k1bike/` | `paths.py` (every model and log path), `robots/k1.py` (K1 model and booster_deploy settings), `scene.py` (bike, K1 + bike and seated scenes), `seat.py` (hand welds, seat contact), `hand_clips.py` (orange clip geometry and attachments) |
-| `scripts/` | `setup_booster.sh`, `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `train.py`, `play.py` (any experiment), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py` (makes `models/bike/`), `convert_bike_scan.py` (makes `models/bike_scan/`), `solve_seated_pose.py` (makes `models/k1_on_bike/`) |
+| `scripts/` | `setup_booster.sh`, `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `train.py`, `play.py` (any experiment), `run_sample_task.sh` (Booster's pretrained policies), `convert_yellow_bike.py` (makes `models/yellow_bike/`), `convert_puky_bike.py` (makes `models/puky_bike/`), `solve_seated_pose.py --bike <bike>` (makes `models/k1_on_bike/<bike>.json`) |
 | [robot/](robot/README.md) | `install.sh <experiment>`, `setup_robot.sh`, `dry_run.py` (policy on live sensors, no motor commands), `robot_info.py` |
 | [cluster/](cluster/README.md) | `train.slurm` (cluster details still to fill in) |
 | `docs/` | [commands.md](docs/commands.md) (every command by platform), [decisions.md](docs/decisions.md), [bike-dimensions.md](docs/bike-dimensions.md), [handover/](docs/handover/README.md) (first setup, credentials template) |

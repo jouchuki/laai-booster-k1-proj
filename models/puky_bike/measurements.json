@@ -100,7 +100,7 @@
     "front_wheel": 4263
   },
   "physics_assumptions": [
-    "Default dimensions apply only to real_bike: wheelbase 0.50 m and tyre diameter 0.22 m.",
+    "Default dimensions apply only to puky_bike: wheelbase 0.50 m and tyre diameter 0.22 m.",
     "Saddle top is fitted to 0.42 m and both grip centres to 0.53 m by default.",
     "The exposed seat post and stem are deformed locally; the complete bar is levelled.",
     "Fused scan is cut spatially; seams and misassigned boundary triangles are possible.",

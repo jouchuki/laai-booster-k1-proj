@@ -2,11 +2,60 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: Saddle collision follows the visible saddle
+
+**Decision:** Every scene loads a bike through `load_bike()` (`src/k1bike/scene.py`), which
+replaces the saddle's flat collision box with 12 thin convex slices fitted by ray-casting the
+visible saddle (`src/k1bike/saddle.py`). The box keeps its mass and no longer collides.
+The seated poses were re-solved on the fitted saddles, and the pose solver now starts from
+several trunk leans and keeps the best fit.
+
+**Why:** The K1 should sit on the saddle as it looks and as the real one is shaped. On the
+flat box, set at the saddle's highest point, the pelvis hovered 13-14 mm above the Puky's
+dished saddle (4-5 mm on the yellow bike) while pressing on nothing visible. Now the visible
+gap is under 1 mm and the K1 puts about 96 N (Puky) and 86 N (yellow bike) of its 193 N on
+the saddle; tests check both.
+
+**Follow-up the same day:** the K1 now sits in the saddle's dip (a `saddle_dip` site the
+solver aims the pelvis at), the Puky's seat post is shortened below the dip (the K1 had been
+sitting on it), the K1 + bike scenes have one floor instead of two (Booster's `ground` plane
+doubled every foot and wheel contact), and the solved poses keep the feet 5 mm up so the
+legs are relaxed. Holding the pose, the Puky's saddle carries 86% of the K1's weight, the
+feet 10% and the hands 4% (yellow bike 67/23/9), like a rider on a balance bike.
+
+**Considered:** Lowering the box to the dish (the rider would sink into the visible rim and
+could slide off the flat top); one convex hull of the saddle (fills the dish, the same
+problem as the box); fitting the slices in the bike converters (only for the two converted
+bikes, and every bike would have to be regenerated).
+
+## 2026-11-12: The real bike is the default; the K1 can sit on any bike
+
+**Decision:** `models/puky_bike` (the calibrated scan of the bike we will use) is the default
+bike for every scene, the viewer and the seated K1 (`DEFAULT_BIKE` in `src/k1bike/paths.py`).
+Seated poses are stored per bike, `models/k1_on_bike/<bike>.json`, solved with
+`scripts/solve_seated_pose.py --bike <bike>`; `k1_seated_bike_scene(bike_xml)` loads the one
+for its bike, and the seat tests run on every bike that has one. The solver now also targets
+the feet 6 cm in front of the saddle and a 20 deg forward trunk lean, and refuses to write a
+pose whose fit fails.
+
+**Why:** Training and robot tests must use the bike the robot will ride, and the next bike
+(or a re-measured one) should only need a solved pose, not code changes. On the real bike the
+saddle is 7.6 cm in front of the rear axle: an upright K1 with its feet behind the hips
+pulled the bike over backwards in simulation. A forward lean with the feet in front keeps it
+seated (about 118 N on the saddle, steady for 10 s).
+
+**Renamed the same day** to the names the team uses: `bike_scan/` (the scan of our blue Puky
+bike) is now `puky_bike/`, `bike/` (the green bike from an internet USDZ model) is now
+`yellow_bike/`, and `bike_primitive/` is now `primitive_bike/`. The viewer still accepts the
+old names (`real_bike`, `bike_scan`, `bike`, `sketchfab`, `bike_primitive`, `primitive`).
+
+**Considered:** One hard-coded pose for one bike (what we had).
+
 ## 2026-11-12: Top-level layout: models, experiments, logs, robot
 
 **Decision:** Every simulation model lives in `models/`: `k1/` (pointer to Booster's pinned
-K1 model), `bike/` (the bike we use, with its source USDZ in `source/`), `bike_scan/`
-(textured scan of the real bike, was `assets/bike/real_bike/`), `bike_primitive/` (old
+K1 model), `bike/` (the bike we used then, with its source USDZ in `source/`), `bike_scan/`
+(textured scan of the real bike, was `assets/bike/puky_bike/`), `primitive_bike/` (old
 placeholder, kept for comparison), `hand_clips/` (orange add-on clips; their code is
 `src/k1bike/hand_clips.py`) and `k1_on_bike/` (seated pose). Combined scenes are
 built in code (`src/k1bike/scene.py`), so they always use the current robot and bike. Skills
@@ -38,7 +87,7 @@ through each other, or through the frame, learns sitting and pushing motions the
 
 **Considered:** Training without self-collision for speed (mjlab's own humanoid tasks do;
 planned as walk run 3 and dropped). Collision geoms of the bike stay the measured primitives
-(capsules, cylinders) of `models/bike/`, not its visual mesh; they need
+(capsules, cylinders) of `models/yellow_bike/`, not its visual mesh; they need
 updating when the bike model changes.
 
 ## 2026-11-11: One folder per project phase

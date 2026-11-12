@@ -1,7 +1,7 @@
 """Convert the uploaded textured bike scan into an articulated MuJoCo asset.
 
 Linux and macOS, from the repository root (headless):
-    uv run python scripts/convert_bike_scan.py
+    uv run python scripts/convert_puky_bike.py
 
 The source files remain unchanged. Alignment and spatial cuts are specific to
 this inspected scan; they are approximations of mechanical part boundaries.
@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "models/bike_scan/source/real_bike.obj"
+SOURCE = ROOT / "models/puky_bike/source/real_bike.obj"
 SOURCE_HASH = "27e141881121c985eb9fae675a54c84a53008e722f8bbbe0de93ca475cc2d741"
 TEXTURE = "textures/base_color.png"
 DEFAULT_MASS = 3.7  # Midpoint of the owner's reported 3.5–3.9 kg real-bike range.
@@ -436,7 +436,7 @@ def convert(
         "source_triangle_count": len(faces),
         "triangles_per_body": {name: int((labels == name).sum()) for name in bodies},
         "physics_assumptions": [
-            "Default dimensions apply only to real_bike: wheelbase 0.50 m and tyre diameter 0.22 m.",
+            "Default dimensions apply only to puky_bike: wheelbase 0.50 m and tyre diameter 0.22 m.",
             "Saddle top is fitted to 0.42 m and both grip centres to 0.53 m by default.",
             "The exposed seat post and stem are deformed locally; the complete bar is levelled.",
             "Fused scan is cut spatially; seams and misassigned boundary triangles are possible.",
@@ -456,7 +456,7 @@ def convert(
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", type=Path, default=SOURCE)
-    parser.add_argument("--output", type=Path, default=ROOT / "models/bike_scan")
+    parser.add_argument("--output", type=Path, default=ROOT / "models/puky_bike")
     parser.add_argument(
         "--wheelbase", type=float, default=DEFAULT_WHEELBASE, help="wheel-centre distance (m)"
     )

@@ -73,31 +73,31 @@ uv sync --group sim --group train
 
 ## View the bike or the K1 and bike
 
-The viewer defaults to the green, USDZ-derived bike scaled to **56.5 cm between
-wheel centres**, with its stem extended to **45 cm grip-centre height**.
-It loads `models/bike/bike.xml`, which contains
-the separated meshes and provisional physics; it does not load the USDZ directly.
-Use `--model bike_primitive` to compare with the original blue prototype.
-Use `--model bike_scan` for the uploaded textured blue bike scan, rescaled to
-50 cm wheelbase, 22 cm tyre diameter, 42 cm saddle top and 53 cm grip centres. See the
-[scan notes](../models/bike_scan/README.md). The default remains green.
-The earlier names remain aliases: `real_bike` selects `bike_scan`, `sketchfab`
-selects `bike`, and `primitive` selects `bike_primitive`.
+The viewer defaults to the real bike, `models/puky_bike` (the textured scan,
+calibrated to its measurements). Use `--model yellow_bike` for the earlier green bike,
+made from a USDZ model from the internet (Sketchfab) (**56.5 cm between wheel centres**, **45 cm grip-centre height**),
+and `--model primitive_bike` to compare with the original blue prototype.
+The real bike is the uploaded textured blue scan, rescaled to 50 cm wheelbase, 22 cm
+tyre diameter, 42 cm saddle top and 53 cm grip centres; see the
+[real bike notes](../models/puky_bike/README.md).
+Earlier names still work as aliases: `bike_scan` selects `puky_bike`; `bike` and
+`sketchfab` select `yellow_bike`; `bike_primitive` and `primitive` select `primitive_bike`.
 
 ### Linux host
 
 ```bash
 uv run python scripts/view_model.py bike
 uv run python scripts/view_model.py bike --paused
-uv run python scripts/view_model.py bike --model bike_primitive
-uv run python scripts/view_model.py bike --model bike_scan --paused
-uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+uv run python scripts/view_model.py bike --model yellow_bike
+uv run python scripts/view_model.py bike --model primitive_bike
+uv run python scripts/view_model.py bike --push 1.5 --steer 12 --paused
 uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
-uv run python scripts/view_model.py k1_bike --model bike_scan
+uv run python scripts/view_model.py k1_bike --model yellow_bike
 uv run python scripts/view_model.py k1_seated
+uv run python scripts/view_model.py k1_seated --model yellow_bike
 ```
 
 ### macOS host
@@ -105,15 +105,16 @@ uv run python scripts/view_model.py k1_seated
 ```bash
 uv run mjpython scripts/view_model.py bike
 uv run mjpython scripts/view_model.py bike --paused
-uv run mjpython scripts/view_model.py bike --model bike_primitive
-uv run mjpython scripts/view_model.py bike --model bike_scan --paused
-uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+uv run mjpython scripts/view_model.py bike --model yellow_bike
+uv run mjpython scripts/view_model.py bike --model primitive_bike
+uv run mjpython scripts/view_model.py bike --push 1.5 --steer 12 --paused
 uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
-uv run mjpython scripts/view_model.py k1_bike --model bike_scan
+uv run mjpython scripts/view_model.py k1_bike --model yellow_bike
 uv run mjpython scripts/view_model.py k1_seated
+uv run mjpython scripts/view_model.py k1_seated --model yellow_bike
 ```
 
 Run one viewer command at a time. `--push 3` sets an initial rolling speed of
@@ -131,28 +132,36 @@ pose-holding target in `k1_seated`. The camera follows the bike, and the viewer
 prints the bike's configured mass at startup.
 
 `k1_bike` places the K1 next to the bike, unattached. `k1_seated` starts the K1
-sitting on the USDZ-derived bike with both hands welded to the grips, and holds
-that pose with the k1_walk PD gains (see `src/k1bike/seat.py`). See the
+sitting on the chosen bike with both hands welded to the grips, and holds that pose
+with the k1_walk PD gains (see `src/k1bike/seat.py`). It works for every bike with a
+solved pose in `models/k1_on_bike/` (now `puky_bike` and `yellow_bike`); for any other bike it
+prints the command that solves one. See the
 [bike model notes](../models/README.md) for physics limitations and the
 [physical measurements](bike-dimensions.md) before changing its parameters.
 
 ### Linux and macOS: re-solve the K1's seated pose
 
-Rerun after changing the bike model or the clip geometry in `src/k1bike/seat.py`
-(headless; needs the `sim` group for scipy). It writes `models/k1_on_bike/seated_pose.json`:
+Rerun after changing a bike model or the clip geometry in `src/k1bike/seat.py`
+(headless; needs the `sim` group for scipy). It writes `models/k1_on_bike/<bike>.json`
+and refuses to write a pose that does not fit (it prints which target failed):
 
 ```bash
-uv run --group sim python scripts/solve_seated_pose.py
+uv run --group sim python scripts/solve_seated_pose.py                 # the real bike (puky_bike)
+uv run --group sim python scripts/solve_seated_pose.py --bike yellow_bike     # any other bike
 ```
+
+A new bike only needs the standard part names (`frame`, `fork`, `saddle`, `seat`,
+`left_grip`, `right_grip`, `steer`, `root`), an entry in `BIKES` in `src/k1bike/paths.py`,
+and a solved pose.
 
 ### Linux and macOS: regenerate the converted bike
 
 This is headless preprocessing; ordinary Python is used on both platforms. It
-reads the original USDZ in `models/bike/source/` and writes the derivative
-(`bike.xml`, `meshes/`, `measurements.json`) into `models/bike/`:
+reads the original USDZ in `models/yellow_bike/source/` and writes the derivative
+(`bike.xml`, `meshes/`, `measurements.json`) into `models/yellow_bike/`:
 
 ```bash
-uv run --with usd-core python scripts/convert_bike_usdz.py
+uv run --with usd-core python scripts/convert_yellow_bike.py
 ```
 
 The owner's **56.5 cm wheelbase** and **45 cm grip-centre height** are the defaults;
@@ -168,21 +177,21 @@ not needed for normal viewing or tests.
 From the repository root, headless with ordinary Python on both platforms:
 
 ```bash
-uv run python scripts/convert_bike_scan.py
+uv run python scripts/convert_puky_bike.py
 ```
 
-This reads the exports in `models/bike_scan/source/` and writes the derivative
-under `models/bike_scan/`. It uses the source colour texture through a
+This reads the exports in `models/puky_bike/source/` and writes the derivative
+under `models/puky_bike/`. It uses the source colour texture through a
 relative path; keep the source folder with the generated asset. No extra dependency
 group is needed. Defaults are 0.50 m axle spacing, 0.22 m tyre diameter,
 0.42 m saddle-top height, 0.53 m grip-centre height and 3.7 kg mass (the midpoint
-of the owner's reported 3.5–3.9 kg range for `real_bike`). Optional `--wheelbase`,
+of the owner's reported 3.5–3.9 kg range for `puky_bike`). Optional `--wheelbase`,
 `--tyre-diameter`, `--saddle-height` and `--handlebar-height` set dimensions
 independently in metres; `--mass` sets kilograms. Wheelbase determines the
 uniform scale; radial wheel sizing and local post adjustments fit the other
-targets. See [the measurements](bike-dimensions.md#measurements-for-real_bike-only-2026-11-12).
+targets. See [the measurements](bike-dimensions.md#measurements-for-puky_bike-only-2026-11-12).
 The rescaling process and limitations are in the
-[scan notes](../models/bike_scan/README.md).
+[real bike notes](../models/puky_bike/README.md).
 
 ## Run Booster's pretrained policy
 
