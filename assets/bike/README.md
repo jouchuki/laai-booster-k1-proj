@@ -7,6 +7,11 @@ uniformly scaled to the reported **56.5 cm wheel-centre distance**. It has movin
 wheels and steering with provisional physics. Use `--model primitive` to view
 the original blue prototype described below.
 
+A third option, `--model real_bike`, loads the uploaded textured blue bike scan
+with moving wheels and steering. See its [conversion notes](real_bike/README.md)
+for approximate mesh cuts, provisional physics and the taller scanned saddle
+and handlebars. Both viewer scenes accept all three models.
+
 ## Original primitive model
 
 `balance_bike.xml` is a placeholder made of simple shapes. Its numbers approximate a
@@ -59,7 +64,7 @@ Use controlled experiments rather than judging gravity from the upright pose:
   wheels sliding along the floor.
 
 The commands are listed for [Linux and macOS](../../docs/commands.md#view-the-bike-or-the-k1-and-bike).
-Both models are checked for free fall, toppling and rolling. The flat-sided
+All three models are checked for free fall, toppling and rolling. The flat-sided
 tyre caveat above describes the original primitive model; the converted model
 uses rounded tyre collision proxies.
 Headless tests in `tests/test_models.py` check free fall, toppling in both

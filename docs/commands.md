@@ -65,6 +65,9 @@ wheel centres**, with its stem extended to **45 cm grip-centre height**.
 It loads `assets/bike/sketchfab_mujoco/bike.xml`, which contains
 the separated meshes and provisional physics; it does not load the USDZ directly.
 Use `--model primitive` to compare with the original blue prototype.
+Use `--model real_bike` for the uploaded textured blue bike scan. Its uniformly
+scaled saddle and grip heights differ from the measured bike; see the
+[scan notes](../assets/bike/real_bike/README.md). The default remains green.
 
 ### Linux host
 
@@ -72,10 +75,12 @@ Use `--model primitive` to compare with the original blue prototype.
 uv run python scripts/view_model.py bike
 uv run python scripts/view_model.py bike --paused
 uv run python scripts/view_model.py bike --model primitive
+uv run python scripts/view_model.py bike --model real_bike --paused
 uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
+uv run python scripts/view_model.py k1_bike --model real_bike
 ```
 
 ### macOS host
@@ -84,10 +89,12 @@ uv run python scripts/view_model.py k1_bike
 uv run mjpython scripts/view_model.py bike
 uv run mjpython scripts/view_model.py bike --paused
 uv run mjpython scripts/view_model.py bike --model primitive
+uv run mjpython scripts/view_model.py bike --model real_bike --paused
 uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
+uv run mjpython scripts/view_model.py k1_bike --model real_bike
 ```
 
 Run one viewer command at a time. `--push 3` sets an initial rolling speed of
@@ -117,6 +124,22 @@ the stem along the steering axis. Optional flags override these defaults.
 Regeneration also prints the derived dimensions; check them against
 [docs/bike-dimensions.md](bike-dimensions.md). The extra `usd-core` package is
 not needed for normal viewing or tests.
+
+### Linux and macOS: regenerate the real bike
+
+From the repository root, headless with ordinary Python on both platforms:
+
+```bash
+uv run python scripts/convert_real_bike.py
+```
+
+This reads the exports in `assets/bike/real_bike/source/` and writes the derivative
+under `assets/bike/real_bike/`. It uses the source colour texture through a
+relative path; keep the source folder with the generated asset. No extra dependency
+group is needed. Defaults are 0.565 m axle spacing and a provisional 1.5 kg mass;
+`--wheelbase` and `--mass` override them. The scan's saddle and handlebars retain
+their uniformly scaled geometry. Conversion details and limitations are in the
+[scan notes](../assets/bike/real_bike/README.md).
 
 ## Run Booster's pretrained policy
 

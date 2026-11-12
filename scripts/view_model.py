@@ -18,7 +18,8 @@ macOS host (native viewer requires mjpython):
 
 See docs/commands.md for setup and platform-specific troubleshooting.
 The default bike is the scaled USDZ-derived model. Use --model primitive for the
-original blue prototype. Neither model includes robot hand attachments yet.
+original blue prototype, or --model real_bike for the uploaded textured scan.
+None of the models includes robot hand attachments yet.
 """
 
 import argparse
@@ -28,11 +29,11 @@ import time
 import mujoco
 import mujoco.viewer
 
-from k1bike.paths import BIKE_XML, SKETCHFAB_BIKE_XML
+from k1bike.paths import BIKE_XML, REAL_BIKE_XML, SKETCHFAB_BIKE_XML
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene
 
 SCENES = {"bike": bike_scene, "k1_bike": k1_bike_scene}
-MODELS = {"sketchfab": SKETCHFAB_BIKE_XML, "primitive": BIKE_XML}
+MODELS = {"sketchfab": SKETCHFAB_BIKE_XML, "primitive": BIKE_XML, "real_bike": REAL_BIKE_XML}
 
 
 def main() -> None:
