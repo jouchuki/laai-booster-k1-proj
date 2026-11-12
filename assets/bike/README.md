@@ -1,5 +1,7 @@
 # Balance bike models
 
+Orange hand clips: [assets/hand_clips](../hand_clips/README.md).
+
 The viewer now defaults to the green [USDZ-derived model](sketchfab_mujoco/README.md),
 uniformly scaled to the reported **56.5 cm wheel-centre distance**. It has moving
 wheels and steering with provisional physics. Use `--model primitive` to view
