@@ -147,6 +147,24 @@ A better-looking mesh does not establish correct physical properties. Keep its
 visual geometry separate from the collision, mass and inertia assumptions, and
 record every calibration change against the measurements in this document.
 
+### Real bike from the uploaded scan
+
+The third option is [real_bike/bike.xml](../assets/bike/real_bike/bike.xml),
+selected with `--model real_bike`. Its source exports are stored under
+`assets/bike/real_bike/source/`.
+Fitted tyre annuli define the axle centres and scan orientation; uniform scaling
+sets the wheelbase to 0.565 m. A separate symmetric contact model uses 0.125 m
+tyre radius and an inferred 0.056 m width.
+
+Preserving the scanned geometry gives a **0.5044 m saddle top** and **0.5945 m
+left / 0.5830 m right grip centres**. These are derived scan dimensions, not new
+physical measurements, and differ substantially from the reported heights.
+The scan retains its asymmetry. It has not been adjusted to the measured seat
+or handlebar settings. Its 1.5 kg mass and all contact/steering properties remain
+provisional. Spatial mesh cuts approximate the joints and can show seams during
+motion. See the [scan notes](../assets/bike/real_bike/README.md) and generated
+[manifest](../assets/bike/real_bike/measurements.json).
+
 ## Seated K1
 
 `k1_seated_bike_scene()` (`src/k1bike/scene.py`, built by `src/k1bike/seat.py`)

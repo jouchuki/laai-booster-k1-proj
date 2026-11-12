@@ -1,9 +1,17 @@
 # Balance bike models
 
+Orange hand clips: [assets/hand_clips](../hand_clips/README.md).
+
 The viewer now defaults to the green [USDZ-derived model](sketchfab_mujoco/README.md),
 uniformly scaled to the reported **56.5 cm wheel-centre distance**. It has moving
 wheels and steering with provisional physics. Use `--model primitive` to view
 the original blue prototype described below.
+
+A third option, `--model real_bike`, loads the uploaded textured blue bike scan
+with moving wheels and steering. See its [conversion notes](real_bike/README.md)
+for approximate mesh cuts, provisional physics and the taller scanned saddle
+and handlebars. The `bike` and unattached `k1_bike` scenes accept all three
+models. The `k1_seated` pose is solved for the green Sketchfab model only.
 
 ## Original primitive model
 
@@ -58,7 +66,7 @@ Use controlled experiments rather than judging gravity from the upright pose:
   wheels sliding along the floor.
 
 The commands are listed for [Linux and macOS](../../docs/commands.md#view-the-bike-or-the-k1-and-bike).
-Both models are checked for free fall, toppling and rolling. The flat-sided
+All three models are checked for free fall, toppling and rolling. The flat-sided
 tyre caveat above describes the original primitive model; the converted model
 uses rounded tyre collision proxies.
 Headless tests in `tests/test_models.py` check free fall, toppling in both

@@ -1,0 +1,75 @@
+{
+  "source": "source/real_bike.obj",
+  "sha256": "27e141881121c985eb9fae675a54c84a53008e722f8bbbe0de93ca475cc2d741",
+  "color_texture_sha256": "c466811ada318870a940b90d53c8865cd768f3838c15340154e82510c6a732ea",
+  "source_axle_centres": [
+    [
+      0.22312950866609635,
+      0.5390868672434076,
+      -0.008843819953814377
+    ],
+    [
+      -0.014405259615519611,
+      0.1053692163745865,
+      0.07957120338833629
+    ]
+  ],
+  "source_to_bike_rotation": [
+    [
+      -0.47285140774084167,
+      -0.8633851930772083,
+      0.17600441634384092
+    ],
+    [
+      -0.015196210331690751,
+      0.20770652952611585,
+      0.9780731428598639
+    ],
+    [
+      -0.8810111357917443,
+      0.4598086623447285,
+      -0.11133450787465726
+    ]
+  ],
+  "uniform_scale": 1.124723960649143,
+  "wheelbase_m": 0.565,
+  "collision_tyre_radius_m": 0.125,
+  "collision_tyre_width_m": 0.056,
+  "saddle_top_m": 0.5044065750167137,
+  "grip_centres_m": [
+    [
+      0.36910692212631346,
+      0.1631289939606118,
+      0.5944801707691383
+    ],
+    [
+      0.34351211498590156,
+      -0.16462768684619683,
+      0.5830244963396954
+    ]
+  ],
+  "steering_axis": [
+    -0.3162277660168378,
+    0.0,
+    0.9486832980505139
+  ],
+  "estimated_total_mass_kg": 1.5,
+  "source_triangle_count": 25000,
+  "triangles_per_body": {
+    "frame": 11206,
+    "fork": 4691,
+    "rear_wheel": 4840,
+    "front_wheel": 4263
+  },
+  "physics_assumptions": [
+    "Uniform scale uses the approximate measured 0.565 m wheelbase by default.",
+    "Scan saddle and handlebar heights are preserved, not fitted to measurements.",
+    "Fused scan is cut spatially; seams and misassigned boundary triangles are possible.",
+    "Steering axis and collision primitives are manually approximated from the scan.",
+    "Default tyre collider radius is the approximate measured 0.125 m; width is inferred.",
+    "Default 1.5 kg mass is provisional; component ratios follow the original prototype.",
+    "Wheel inertias assume a uniform torus; contact uses a rounded convex hull.",
+    "Friction, damping and steering limits are unmeasured; no clips or controller.",
+    "Only the colour texture is used; source AO and normal maps remain in the upload."
+  ]
+}
