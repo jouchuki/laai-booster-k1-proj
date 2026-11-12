@@ -4,6 +4,9 @@ Teaching the Booster K1 humanoid to ride a balance bike: train in simulation, th
 
 ## Quick start: watch the bike scan roll and steer
 
+The calibrated real bike is now stored in `models/bike_scan/`. The earlier
+`--model real_bike` option still works as an alias for `--model bike_scan`.
+
 Run this on a **Linux or macOS desktop**. No GPU or robot is required. Open a
 terminal in the cloned repository's root: the folder containing `pyproject.toml`.
 All commands below run from that directory. The project uses **Python 3.12**;
@@ -58,8 +61,10 @@ It can turn, slow down and topple as gravity and ground contact act on it.
 `--steer` sets the starting steering angle; the steering joint moves freely
 after release. `--push` gives an initial rolling speed. This is a passive physics
 demo; powered riding and automatic balance remain future work. A separate
-`k1_seated` scene holds the K1 seated on the green bike (`models/bike/`) with PD control.
-The scan's configured mass is **1.5 kg**, a provisional estimate.
+`k1_seated` scene holds the K1 seated on the green Sketchfab bike with PD control.
+The bike scan's configured mass is **3.7 kg**, the midpoint of the owner's
+reported 3.5–3.9 kg range. Its model matches the reported **50 cm wheelbase,
+22 cm tyre diameter, 42 cm saddle top and 53 cm grip-centre height**.
 
 ### 3. Try straight rolling or a fall
 
@@ -121,7 +126,7 @@ Extra: stride and glide. Lift both feet and coast, balancing by steering only, t
 models/              everything the simulator loads
   k1/                the Booster K1 robot (Booster's model, pinned; settings in src/k1bike/robots/k1.py)
   bike/              the balance bike we use (USDZ-derived), with its source USDZ
-  bike_scan/         textured scan of the real bike (taller saddle and bars than measured)
+  bike_scan/         calibrated real-bike scan (50 cm wheelbase, 22 cm tyres, 42 cm saddle, 53 cm grips)
   bike_primitive/    the old placeholder bike, kept for comparison
   hand_clips/        the orange add-on hand clips (code in src/k1bike/hand_clips.py)
   k1_on_bike/        the K1 seated on the bike: solved pose

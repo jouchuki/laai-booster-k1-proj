@@ -40,13 +40,18 @@ from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene, k1_se
 SCENES = {"bike": bike_scene, "k1_bike": k1_bike_scene, "k1_seated": k1_seated_bike_scene}
 # Folder names under models/.
 MODELS = {"bike": BIKE_XML, "bike_primitive": PRIMITIVE_BIKE_XML, "bike_scan": SCAN_BIKE_XML}
+# Preserve commands from before the models/ reorganization.
+MODELS.update(real_bike=SCAN_BIKE_XML, sketchfab=BIKE_XML, primitive=PRIMITIVE_BIKE_XML)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("scene", choices=SCENES)
     parser.add_argument(
-        "--model", choices=MODELS, default="bike", help="bike model (models/<name>)"
+        "--model",
+        choices=MODELS,
+        default="bike",
+        help="bike model (models/<name>); real_bike is an alias for bike_scan",
     )
     parser.add_argument(
         "--paused", action="store_true", help="start paused; Space toggles simulation"
@@ -66,7 +71,7 @@ def main() -> None:
     bike_xml = MODELS[args.model]
     if not bike_xml.is_file():
         parser.error(f"Bike model is missing: {bike_xml}; see docs/commands.md for conversion")
-    if args.scene == "k1_seated" and args.model != "bike":
+    if args.scene == "k1_seated" and bike_xml != BIKE_XML:
         parser.error("k1_seated uses models/bike (its seated pose is solved for it)")
     if args.scene == "k1_seated" and (args.push or args.steer or args.lean or args.drop):
         parser.error("--push, --steer, --lean and --drop would disrupt the K1's seated pose")

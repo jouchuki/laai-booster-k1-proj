@@ -1,11 +1,31 @@
 # Physical bike and hand-clip dimensions
 
-Recorded on 2026-11-09 from the project owner's approximate measurements and
-estimate of the physical balance bike. Use SI units in simulation configuration.
-These values describe the physical bike, independently of the downloaded visual
-asset or the current placeholder simulation model.
+Measurements are scoped by model. The values reported on 2026-11-12 apply only
+to `real_bike`, now stored at `models/bike_scan/` and selected with `--model bike_scan`
+or its `--model real_bike` alias. The earlier Sketchfab calibration reference is kept separately;
+these updates do not change the green Sketchfab model, the primitive bike, or
+its seated K1 pose. Use SI units in simulation configuration.
 
-## Available measurements
+## Measurements for real_bike only (2026-11-12)
+
+| Quantity | Reported value | Simulation units | Status |
+|---|---|---|---|
+| Tyre outer diameter | 22 cm | 0.22 m | Owner's reported dimension |
+| Tyre outer radius | Half the reported diameter | 0.11 m | Derived from reported diameter |
+| Distance between wheel centres | 50 cm | 0.50 m | Owner's reported dimension |
+| Saddle height | 42 cm | 0.42 m | Owner's reported dimension |
+| Handlebar height | 53 cm | 0.53 m | Owner's reported dimension |
+| Total mass | 3.5–3.9 kg | 3.5–3.9 kg | Owner's reported range; weighing method not specified |
+
+Only `real_bike` uses this measurement reference. Its default simulation mass is
+**3.7 kg**, the range's midpoint; component mass fractions remain assumptions.
+Its regenerated mesh, collision shapes, attachment sites and joint origins now
+match the four dimensions above: 50 cm wheelbase, 22 cm tyre diameter, 42 cm
+saddle top and 53 cm at both grip centres. Height references are ground to
+saddle top and ground to grip centres. The other bikes retain their existing
+dimensions and masses.
+
+## Earlier Sketchfab calibration reference (2026-11-09)
 
 | Quantity | Reported value | Simulation units | Status |
 |---|---|---|---|
@@ -79,7 +99,7 @@ breakage are not measured; a fixed constraint is the initial idealization.
 
 | Quantity | Measurement or definition |
 |---|---|
-| Wheelbase precision | Repeat the approximate 56.5 cm measurement between axle centres |
+| Wheelbase precision | Repeat axle-centre measurements for each bike: 50 cm for real_bike, 56.5 cm for the Sketchfab reference |
 | Tyre width | Outside width of the inflated tyre |
 | Handlebar width | Distance between the intended left and right clip attachment points |
 | Saddle position | Horizontal distance from the rear axle to the saddle reference point |
@@ -116,7 +136,7 @@ steering bearings retain their uniformly scaled geometry.
 The converter defaults to these dimensions and the provisional 1.5 kg mass;
 regeneration requires no dimension arguments.
 
-| Quantity | Physical bike (approximate) | Current converted model |
+| Quantity | Sketchfab calibration reference (approximate) | Current converted model |
 |---|---|---|
 | Wheel-centre distance | 56.5 cm | 56.50 cm |
 | Outside tyre diameter | 25 cm | 25.73 cm |
@@ -153,16 +173,20 @@ The third option is [models/bike_scan/bike.xml](../models/bike_scan/bike.xml),
 selected with `--model bike_scan`. Its source exports are stored under
 `models/bike_scan/source/`.
 Fitted tyre annuli define the axle centres and scan orientation; uniform scaling
-sets the wheelbase to 0.565 m. A separate symmetric contact model uses 0.125 m
-tyre radius and an inferred 0.056 m width.
+sets the wheelbase to **0.50 m**. Each visible wheel is sized radially to **0.11 m**
+maximum radius; symmetric rounded contact hulls use that radius and an inferred
+**0.0496 m** width. The exposed seat post is shortened to a **0.42 m saddle top**.
+The bar is levelled and the exposed stem adjusted to give **0.53 m grip-centre
+height on both sides**, preserving grip spacing. Collision geometry, axle and
+steering origins, attachment sites and inertias are regenerated from these
+landmarks. These are model adjustments using the reported dimensions; component
+shape and mechanical adjustment limits remain approximate.
 
-Preserving the scanned geometry gives a **0.5044 m saddle top** and **0.5945 m
-left / 0.5830 m right grip centres**. These are derived scan dimensions, not new
-physical measurements, and differ substantially from the reported heights.
-The scan retains its asymmetry. It has not been adjusted to the measured seat
-or handlebar settings. Its 1.5 kg mass and all contact/steering properties remain
-provisional. Spatial mesh cuts approximate the joints and can show seams during
-motion. See the [scan notes](../models/bike_scan/README.md) and generated
+Its mass is **3.7 kg**, the midpoint of the owner's
+reported **3.5–3.9 kg** range. Component mass distribution and contact/steering
+properties remain provisional. Spatial mesh cuts approximate the joints and can
+show seams during motion. See the [rescaling process](../models/bike_scan/README.md#geometry-and-articulation)
+and generated
 [manifest](../models/bike_scan/measurements.json).
 
 ## Seated K1

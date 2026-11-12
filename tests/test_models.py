@@ -115,18 +115,19 @@ def test_k1_and_bike_scene_simulates(bike_path):
     assert np.isfinite(data.qpos).all()
 
 
-@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
-def test_converted_wheelbase_matches_reported_measurement(bike_xml):
+@pytest.mark.parametrize(
+    "bike_xml, expected_wheelbase, expected_mass",
+    [(BIKE_XML, 0.565, 1.5), (SCAN_BIKE_XML, 0.50, 3.7)],
+)
+def test_converted_wheelbase_and_configured_mass(bike_xml, expected_wheelbase, expected_mass):
     model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     front = data.xanchor[model.joint("front_wheel").id]
     rear = data.xanchor[model.joint("rear_wheel").id]
-    assert np.linalg.norm(front - rear) == pytest.approx(0.565, abs=1e-7)
+    assert np.linalg.norm(front - rear) == pytest.approx(expected_wheelbase, abs=1e-7)
     assert front[2] == pytest.approx(rear[2], abs=1e-7)
-    assert model.body_mass.sum() == pytest.approx(1.5), (
-        "Provisional mass, not inferred from visuals"
-    )
+    assert model.body_mass.sum() == pytest.approx(expected_mass)
 
 
 @pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
@@ -184,6 +185,39 @@ def test_bike_scan_visuals_keep_texture_and_all_source_triangles():
     assert triangle_count == 25000
 
 
+def _mesh_world_vertices(model, data, geom_name):
+    geom = model.geom(geom_name)
+    mesh = int(model.geom_dataid[geom.id])
+    first, count = int(model.mesh_vertadr[mesh]), int(model.mesh_vertnum[mesh])
+    vertices = model.mesh_vert[first : first + count]
+    return vertices @ data.geom_xmat[geom.id].reshape(3, 3).T + data.geom_xpos[geom.id]
+
+
+def test_bike_scan_visual_and_collision_dimensions_match_owner_measurements():
+    model = bike_scene(SCAN_BIKE_XML).compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    assert data.site_xpos[model.site("seat").id, 2] == pytest.approx(0.42, abs=1e-7)
+    # Check the actual mesh and collision surfaces as well as attachment sites.
+    assert _mesh_world_vertices(model, data, "frame_visual")[:, 2].max() == pytest.approx(
+        0.42, abs=1e-6
+    )
+    saddle = model.geom("saddle").id
+    assert data.geom_xpos[saddle, 2] + model.geom_size[saddle, 2] == pytest.approx(0.42, abs=1e-7)
+    for side in ("left", "right"):
+        site = model.site(f"{side}_grip").id
+        assert data.site_xpos[site, 2] == pytest.approx(0.53, abs=1e-7)
+        assert model.site_bodyid[site] == model.body("fork").id
+    for name in ("rear_wheel", "front_wheel"):
+        axle = data.xanchor[model.joint(name).id]
+        assert axle[2] == pytest.approx(0.11, abs=1e-7)
+        for geom_name in (name, f"{name}_visual"):
+            vertices = _mesh_world_vertices(model, data, geom_name)
+            radius = np.linalg.norm((vertices - axle)[:, [0, 2]], axis=1).max()
+            assert radius == pytest.approx(0.11, abs=1e-6)
+        assert _mesh_world_vertices(model, data, name)[:, 2].min() == pytest.approx(0, abs=1e-6)
+
+
 def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path):
     subprocess.run(
         [
@@ -193,6 +227,12 @@ def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path
             str(tmp_path),
             "--wheelbase",
             "0.452",
+            "--tyre-diameter",
+            "0.20",
+            "--saddle-height",
+            "0.40",
+            "--handlebar-height",
+            "0.51",
             "--mass",
             "2.0",
         ],
@@ -208,5 +248,9 @@ def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path
     rear = data.xanchor[model.joint("rear_wheel").id]
     assert np.linalg.norm(front - rear) == pytest.approx(0.452, abs=1e-7)
     assert model.body_mass.sum() == pytest.approx(2.0)
+    assert data.site_xpos[model.site("seat").id, 2] == pytest.approx(0.40, abs=1e-7)
+    for side in ("left", "right"):
+        assert data.site_xpos[model.site(f"{side}_grip").id, 2] == pytest.approx(0.51, abs=1e-7)
+    assert front[2] == pytest.approx(0.10, abs=1e-7)
     assert model.ntex == 1
     assert _step(model, 0.5, data).qpos[0] > 0.3

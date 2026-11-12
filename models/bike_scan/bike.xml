@@ -17,37 +17,37 @@
   <worldbody>
     <body name="frame">
       <freejoint name="root" />
-      <body name="fork" pos="0.485 0 0.31">
+      <body name="fork" pos="0.42920354 0 0.273716814">
         <joint name="steer" type="hinge" axis="-0.316227766 0 0.948683298" range="-0.785398163 0.785398163" damping="0.05" armature="0.001" />
-        <body name="front_wheel" pos="0.08 0 -0.185">
+        <body name="front_wheel" pos="0.0707964602 0 -0.163716814">
           <joint name="front_wheel" type="hinge" axis="0 1 0" damping="0.002" />
           <geom name="front_wheel_visual" type="mesh" mesh="front_wheel_visual" material="scan_material" mass="0" contype="0" conaffinity="0" group="2" />
-          <inertial pos="0 0 0" mass="0.243243243" diaginertia="0.00126352703 0.0024317027 0.00126352703" />
+          <inertial pos="0 0 0" mass="0.6" diaginertia="0.00240904299 0.00463388989 0.00240904299" />
           <geom name="front_wheel" type="mesh" mesh="tyre_collision" mass="0" group="3" rgba="0.8 0.2 0.1 0.4" friction="1 0.005 0.0001" />
         </body>
         <geom name="fork_visual" type="mesh" mesh="fork_visual" material="scan_material" mass="0" contype="0" conaffinity="0" group="2" />
-        <geom name="fork_leg_-1" type="capsule" size="0.012" fromto="0 -0.048 0 0.08 -0.048 -0.185" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
-        <geom name="fork_leg_1" type="capsule" size="0.012" fromto="0 0.048 0 0.08 0.048 -0.185" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
-        <geom name="stem" type="capsule" size="0.012" fromto="0 0 0 -0.128690481 -0.000749346443 0.278752334" mass="0.0567567568" group="3" rgba="0.2 0.4 0.8 0.4" />
-        <geom name="handlebar" type="capsule" size="0.016" fromto="-0.141487885 -0.164627687 0.273024496 -0.115893078 0.163128994 0.284480171" mass="0.113513514" group="3" rgba="0.2 0.4 0.8 0.4" />
-        <site name="left_grip" pos="-0.115893078 0.163128994 0.284480171" size="0.005" rgba="1 0.5 0 1" group="4" />
-        <site name="right_grip" pos="-0.141487885 -0.164627687 0.273024496" size="0.005" rgba="1 0.5 0 1" group="4" />
+        <geom name="fork_leg_-1" type="capsule" size="0.010619469" fromto="0 -0.0424778761 0 0.0707964602 -0.0424778761 -0.163716814" mass="0.14" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="fork_leg_1" type="capsule" size="0.010619469" fromto="0 0.0424778761 0 0.0707964602 0.0424778761 -0.163716814" mass="0.14" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="stem" type="capsule" size="0.010619469" fromto="0 0 0 -0.117085283 -0.000663138445 0.256283186" mass="0.14" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <geom name="handlebar" type="capsule" size="0.014159292" fromto="-0.128410419 -0.145776775 0.256283186 -0.105760148 0.144450498 0.256283186" mass="0.28" group="3" rgba="0.2 0.4 0.8 0.4" />
+        <site name="left_grip" pos="-0.105760148 0.144450498 0.256283186" size="0.005" rgba="1 0.5 0 1" group="4" />
+        <site name="right_grip" pos="-0.128410419 -0.145776775 0.256283186" size="0.005" rgba="1 0.5 0 1" group="4" />
       </body>
-      <body name="rear_wheel" pos="0 0 0.125">
+      <body name="rear_wheel" pos="0 0 0.11">
         <joint name="rear_wheel" type="hinge" axis="0 1 0" damping="0.002" />
         <geom name="rear_wheel_visual" type="mesh" mesh="rear_wheel_visual" material="scan_material" mass="0" contype="0" conaffinity="0" group="2" />
-        <inertial pos="0 0 0" mass="0.243243243" diaginertia="0.00126352703 0.0024317027 0.00126352703" />
+        <inertial pos="0 0 0" mass="0.6" diaginertia="0.00240904299 0.00463388989 0.00240904299" />
         <geom name="rear_wheel" type="mesh" mesh="tyre_collision" mass="0" group="3" rgba="0.8 0.2 0.1 0.4" friction="1 0.005 0.0001" />
       </body>
       <geom name="frame_visual" type="mesh" mesh="frame_visual" material="scan_material" mass="0" contype="0" conaffinity="0" group="2" />
-      <geom name="rear_stay_-1" type="capsule" size="0.012" fromto="0 -0.048 0.125 0.16 -0.048 0.16" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="rear_stay_1" type="capsule" size="0.012" fromto="0 0.048 0.125 0.16 0.048 0.16" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="main_tube_rear" type="capsule" size="0.023" fromto="0.16 0 0.16 0.36 0 0.15" mass="0.127702703" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="main_tube_front" type="capsule" size="0.023" fromto="0.36 0 0.15 0.485 0 0.31" mass="0.127702703" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="seat_post" type="capsule" size="0.012" fromto="0.16 0 0.16 0.076728345 0 0.477244201" mass="0.109459459" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="head_tube" type="capsule" size="0.025" fromto="0.485 0 0.31 0.445 0 0.43" mass="0" group="3" rgba="0.2 0.4 0.8 0.4" />
-      <geom name="saddle" type="box" pos="0.076728345 0 0.477244201" size="0.120460438 0.0610185718 0.027162374" mass="0.145945946" group="3" />
-      <site name="seat" pos="0.076728345 0 0.504406575" size="0.005" rgba="1 0.5 0 1" group="4" />
+      <geom name="rear_stay_-1" type="capsule" size="0.010619469" fromto="0 -0.0424778761 0.11 0.14159292 -0.0424778761 0.140973451" mass="0.27" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="rear_stay_1" type="capsule" size="0.010619469" fromto="0 0.0424778761 0.11 0.14159292 0.0424778761 0.140973451" mass="0.27" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="main_tube_rear" type="capsule" size="0.0203539823" fromto="0.14159292 0 0.140973451 0.318584071 0 0.132123894" mass="0.315" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="main_tube_front" type="capsule" size="0.0203539823" fromto="0.318584071 0 0.132123894 0.42920354 0 0.273716814" mass="0.315" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="seat_post" type="capsule" size="0.010619469" fromto="0.14159292 0 0.140973451 0.0761638071 0 0.395962501" mass="0.27" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="head_tube" type="capsule" size="0.0221238938" fromto="0.42920354 0 0.273716814 0.39380531 0 0.379911504" mass="0" group="3" rgba="0.2 0.4 0.8 0.4" />
+      <geom name="saddle" type="box" pos="0.0761638071 0 0.395962501" size="0.106602157 0.0539987361 0.0240374991" mass="0.36" group="3" />
+      <site name="seat" pos="0.0761638071 0 0.42" size="0.005" rgba="1 0.5 0 1" group="4" />
     </body>
   </worldbody>
 </mujoco>

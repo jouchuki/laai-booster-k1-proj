@@ -4,7 +4,7 @@
 |---|---|---|
 | [k1/](k1/README.md) | The Booster K1 robot (Booster's `K1_22dof.xml`, pinned, not copied here) | `k1bike.paths.k1_xml()`, `k1bike.robots.k1.k1_spec()` |
 | [bike/](bike/README.md) | **The balance bike we use**: USDZ-derived, measured 56.5 cm wheelbase, provisional physics | `k1bike.paths.BIKE_XML` |
-| [bike_scan/](bike_scan/README.md) | Textured scan of the real bike; its scanned saddle (50 cm) and bars (~59 cm) are taller than measured | `k1bike.paths.SCAN_BIKE_XML` |
+| [bike_scan/](bike_scan/README.md) | Calibrated real-bike scan: 50 cm wheelbase, 22 cm tyres, 42 cm saddle top, 53 cm grip centres, 3.7 kg | `k1bike.paths.SCAN_BIKE_XML` |
 | [bike_primitive/](bike_primitive/README.md) | The first placeholder bike made of simple shapes, kept for comparison | `k1bike.paths.PRIMITIVE_BIKE_XML` |
 | [hand_clips/](hand_clips/README.md) | The orange add-on hand clips that attach the forearms to the grips; not used by the seated scene yet | `k1bike.hand_clips.add_orange_clips()` |
 | [k1_on_bike/](k1_on_bike/README.md) | The K1 seated on `bike/`: solved pose; scene built in code | `k1bike.scene.k1_seated_bike_scene()` |
@@ -16,6 +16,8 @@ current robot and bike: `src/k1bike/scene.py` (`bike_scene`, `k1_bike_scene`,
 View any of them with [the viewer commands](../docs/commands.md#view-the-bike-or-the-k1-and-bike):
 `scripts/view_model.py bike | k1_bike | k1_seated`, with `--model bike_scan` or `--model bike_primitive`
 for the other bikes.
+The earlier `--model real_bike` option remains an alias for `bike_scan`;
+`--model sketchfab` and `--model primitive` also retain their previous meanings.
 
 ## Rules
 

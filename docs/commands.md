@@ -43,7 +43,7 @@ uv sync
 This local desktop workflow uses Python 3.12 and needs no GPU or optional
 dependency group. The generated bike assets are included in the repository.
 Continue with the [viewer commands](#view-the-bike-or-the-k1-and-bike), or follow
-the [README walkthrough](../README.md#quick-start-watch-the-real-bike-roll-and-steer).
+the [README walkthrough](../README.md#quick-start-watch-the-bike-scan-roll-and-steer).
 The fuller setup below adds pretrained-policy and training dependencies.
 
 ### Linux host
@@ -78,9 +78,11 @@ wheel centres**, with its stem extended to **45 cm grip-centre height**.
 It loads `models/bike/bike.xml`, which contains
 the separated meshes and provisional physics; it does not load the USDZ directly.
 Use `--model bike_primitive` to compare with the original blue prototype.
-Use `--model bike_scan` for the textured scan of the real bike. Its uniformly
-scaled saddle and grip heights differ from the measured bike; see the
+Use `--model bike_scan` for the uploaded textured blue bike scan, rescaled to
+50 cm wheelbase, 22 cm tyre diameter, 42 cm saddle top and 53 cm grip centres. See the
 [scan notes](../models/bike_scan/README.md). The default remains green.
+The earlier names remain aliases: `real_bike` selects `bike_scan`, `sketchfab`
+selects `bike`, and `primitive` selects `bike_primitive`.
 
 ### Linux host
 
@@ -172,9 +174,14 @@ uv run python scripts/convert_bike_scan.py
 This reads the exports in `models/bike_scan/source/` and writes the derivative
 under `models/bike_scan/`. It uses the source colour texture through a
 relative path; keep the source folder with the generated asset. No extra dependency
-group is needed. Defaults are 0.565 m axle spacing and a provisional 1.5 kg mass;
-`--wheelbase` and `--mass` override them. The scan's saddle and handlebars retain
-their uniformly scaled geometry. Conversion details and limitations are in the
+group is needed. Defaults are 0.50 m axle spacing, 0.22 m tyre diameter,
+0.42 m saddle-top height, 0.53 m grip-centre height and 3.7 kg mass (the midpoint
+of the owner's reported 3.5–3.9 kg range for `real_bike`). Optional `--wheelbase`,
+`--tyre-diameter`, `--saddle-height` and `--handlebar-height` set dimensions
+independently in metres; `--mass` sets kilograms. Wheelbase determines the
+uniform scale; radial wheel sizing and local post adjustments fit the other
+targets. See [the measurements](bike-dimensions.md#measurements-for-real_bike-only-2026-11-12).
+The rescaling process and limitations are in the
 [scan notes](../models/bike_scan/README.md).
 
 ## Run Booster's pretrained policy
