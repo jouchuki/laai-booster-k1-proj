@@ -1,1 +1,1 @@
-"""Booster K1 balance-bike project: models, tasks and tools."""
+"""LAAI K1 balance-bike project: scenes, mjlab training tasks and paths."""

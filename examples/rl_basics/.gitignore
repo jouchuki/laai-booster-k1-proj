@@ -1,0 +1,4 @@
+# Outputs of the practice scripts
+*.zip
+*.pkl
+runs*/

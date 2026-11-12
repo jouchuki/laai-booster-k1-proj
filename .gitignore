@@ -8,9 +8,8 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Training outputs: checkpoints, logs, W&B local files
-runs/
-wandb/
+# Training outputs at the project root (phases/<phase>/runs/ are kept)
+/runs/
 
 # Older nested Booster layout (still supported by scripts/setup_booster.sh)
 booster/
@@ -24,15 +23,9 @@ booster_*/
 ros*/
 Dockerfile
 
-# graphify knowledge graph output (rebuild locally with `graphify update .`)
-graphify-out/
-# Personal Claude Code settings (graphify hooks point to each person's own install)
-.claude/settings.local.json
-
-# Local secrets (robot passwords etc.), see handover docs/credentials.example.md
-handover docs/credentials.md
-# Handover PDF contains the robot password; share it directly, not via git
-handover docs/*.pdf
+# Local secrets (robot password etc.): never commit them
+credentials*.md
+*.pdf
 
 # mjlab training runs (checkpoints, exported ONNX, TensorBoard) and MuJoCo warnings
 logs/
@@ -40,3 +33,14 @@ MUJOCO_LOG.TXT
 
 
 .ruff_cache
+uv run ruff check . && uv run ruff format --check && uv run pytest
+# graphify knowledge graph output (rebuild locally with `graphify update .`)
+graphify-out/
+# Personal Claude Code settings (graphify hooks point to each person's own install)
+.claude/settings.local.json
+
+# Local secrets (robot password etc.): never commit them
+credentials*.md
+!credentials.example.md
+# Handover PDF contains the robot password; share it directly, not via git
+handover docs/*.pdf
