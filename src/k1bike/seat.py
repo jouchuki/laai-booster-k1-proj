@@ -107,10 +107,20 @@ def seated_qpos(
     bike_prefix: str = "bike/",
     robot_root: str = "world_joint",
 ) -> np.ndarray:
-    """Full qpos with the bike at its nominal pose and the K1 seated on it."""
+    """Full qpos with the bike at its nominal pose and the K1 seated on it.
+
+    The bike may be free (its "root" free joint) or fixed to the world (no root joint, as in
+    the sit training task, where the bike is held upright).
+    """
     qpos = model.qpos0.copy()
-    bike = int(model.jnt_qposadr[model.joint(f"{bike_prefix}root").id])
-    bike_pos, bike_quat = qpos[bike : bike + 3], qpos[bike + 3 : bike + 7]
+    try:
+        bike = int(model.jnt_qposadr[model.joint(f"{bike_prefix}root").id])
+        bike_pos, bike_quat = qpos[bike : bike + 3], qpos[bike + 3 : bike + 7]
+    except KeyError:  # fixed bike: its frame's pose in the default configuration
+        data = mujoco.MjData(model)
+        mujoco.mj_kinematics(model, data)
+        frame = model.body(f"{bike_prefix}frame").id
+        bike_pos, bike_quat = data.xpos[frame].copy(), data.xquat[frame].copy()
 
     root = int(model.jnt_qposadr[model.joint(f"{robot_prefix}{robot_root}").id])
     offset = np.zeros(3)
@@ -129,6 +139,7 @@ def clip_hands_to_bike(
     robot_prefix: str = "",
     bike_prefix: str = "bike/",
     robot_root: str = "world_joint",
+    add_keyframe: bool = True,
 ) -> np.ndarray:
     """Weld the K1's hand clip sites to the handlebar and add a "seated" keyframe.
 
@@ -179,7 +190,8 @@ def clip_hands_to_bike(
             bodyname2=f"{bike_prefix}{FORK_BODY}",
         )
 
-    spec.add_key(name=SEATED_KEY, qpos=qpos.tolist())
+    if add_keyframe:  # mjlab scenes set their start state themselves
+        spec.add_key(name=SEATED_KEY, qpos=qpos.tolist())
     return qpos
 
 

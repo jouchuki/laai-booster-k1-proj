@@ -370,6 +370,49 @@ scp 'booster@ROBOT_IP:~/booster_deploy/logs/stop_*' experiments/walk/runs/runN/r
 scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' experiments/walk/runs/runN/dry_run/
 ```
 
+## Train the sit task (phase 3)
+
+`LAAI-K1-Sit-Puky`: the K1 seated on the Puky, bike held upright (see
+[experiments/sit/README.md](../experiments/sit/README.md)). Logs go to `logs/laai_sit/`.
+
+### Linux GPU cluster node or NVIDIA host
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 4096 --agent.run-name run1
+```
+
+### Linux and macOS: CPU smoke run
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Sit-Puky \
+  --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 --agent.logger tensorboard
+```
+
+### Linux host: watch a checkpoint
+
+```bash
+uv run --group train python scripts/play.py LAAI-K1-Sit-Puky \
+  --checkpoint-file logs/laai_sit/YOUR_RUN/model_1499.pt --device cpu --num-envs 1 --viewer native
+```
+
+### macOS host: watch a checkpoint
+
+```bash
+uv run --group train mjpython scripts/play.py LAAI-K1-Sit-Puky \
+  --checkpoint-file logs/laai_sit/YOUR_RUN/model_1499.pt --device cpu --num-envs 1 --viewer native
+```
+
+### Linux GPU cluster or NVIDIA host: export for booster_deploy
+
+```bash
+MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
+  --checkpoint logs/laai_sit/YOUR_RUN/model_1499.pt --video sit.mp4
+```
+
+Keep the result as `experiments/sit/runs/runN/policy.pt`. A booster_deploy task that runs it on
+the robot (seated pose as default pose, like `laai_sit_hold`) follows once a policy is trained.
+
 ## Robot test: hold the seated pose (phase 3)
 
 `laai_sit_hold` holds the solved seated pose on the Puky. It does not balance. The full

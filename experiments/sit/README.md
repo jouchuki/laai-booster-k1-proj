@@ -1,13 +1,34 @@
 # Phase 3: sit on the bike
 
-Status 2026-11-12: no training task yet. The seated K1 is modelled on the Puky
+Status 2026-11-12: training task `LAAI-K1-Sit-Puky` set up and smoke-tested on CPU, not
+trained yet. The seated K1 is modelled on the Puky
 ([models/k1_on_bike](../../models/k1_on_bike/README.md)), and a robot task holds the solved
 seated pose for the first real-robot tests.
 
 | File | What |
 |---|---|
+| `task.py` | mjlab training task `LAAI-K1-Sit-Puky` (below) |
+| `export.py` | Export a checkpoint to booster_deploy's policy format, with the same check as the walk export |
 | `deploy/laai_sit.py` | booster_deploy task `laai_sit_hold`: holds the seated pose on the Puky, no policy, with safety stops |
 | `check_hold.py` | Rehearses that task in simulation on the bike, in the same order as on the robot |
+
+## Training task `LAAI-K1-Sit-Puky`
+
+| Item | Setting |
+|---|---|
+| Scene | K1 seated on the Puky; the bike is fixed to the world (held upright; steering and wheels still turn); hands welded to the grips; floor |
+| Start | The solved seated pose (`models/k1_on_bike/puky_bike.json`), joints off by up to 0.05 rad |
+| Policy interface | Same as the walk policy and booster_deploy's `k1_walk`: 20 joints, target = seated pose + 0.25 x action, k1_walk PD gains, 690 inputs (69 x 10 frames); the velocity command input is always 0 |
+| Rewards | Weight on the saddle (full reward from 60% of the K1's weight), both feet on the floor, trunk in its seated orientation, posture near the seated pose, alive; penalties on arm effort (hands only rest on the bar), action rate and acceleration, joint acceleration and torque |
+| Ends early | Trunk more than 35 deg from its seated orientation |
+| Randomization | Motor gains, body mass, joint friction, actuator delay (as walk run 2), pushes every 2-4 s |
+| Episode | 10 s; PPO as the walk task, 1500 iterations, log folder `logs/laai_sit/` |
+
+Holding the seated pose with zero actions already sits (about 85% of the weight on the saddle,
+feet on the floor): the policy learns to keep it so when pushed and when the robot differs from
+the model. Phase 4 builds on this task: free the bike's roll and use the velocity command.
+
+Train, watch and export: [docs/commands.md](../../docs/commands.md#train-the-sit-task-phase-3).
 
 ## What `laai_sit_hold` does, and does not do
 
