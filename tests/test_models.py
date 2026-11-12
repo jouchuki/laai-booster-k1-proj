@@ -256,3 +256,68 @@ def test_puky_bike_converter_supports_scaled_asset_in_another_directory(tmp_path
     assert front[2] == pytest.approx(0.10, abs=1e-7)
     assert model.ntex == 1
     assert _step(model, 0.5, data).qpos[0] > 0.3
+
+
+@pytest.mark.parametrize(
+    "bike_xml", [PUKY_BIKE_XML, YELLOW_BIKE_XML], ids=["puky_bike", "yellow_bike"]
+)
+def test_saddle_collision_follows_the_visible_saddle(bike_xml):
+    """The flat saddle box is replaced by slices whose surface matches the visible saddle, so a
+    rider rests on what the viewer shows (the Puky's saddle is 16 mm lower in the middle)."""
+    from k1bike.saddle import saddle_geom_ids
+
+    model = bike_scene(bike_xml).compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    slices = set(saddle_geom_ids(model))
+    box = model.geom("saddle").id
+    assert box not in slices and len(slices) > 5, "the box no longer collides"
+    assert model.body_mass.sum() == pytest.approx(bike_scene(bike_xml).compile().body_mass.sum())
+    centre, half = data.geom_xpos[box], model.geom_size[box]
+    collision, visible = (
+        np.array([0, 0, 0, 1, 0, 0], np.uint8),
+        np.array([0, 0, 1, 0, 0, 0], np.uint8),
+    )
+    hit, diffs = np.zeros(1, np.int32), []
+    for x in np.linspace(centre[0] - 0.85 * half[0], centre[0] + 0.85 * half[0], 25):
+        for y in np.linspace(centre[1] - 0.6 * half[1], centre[1] + 0.6 * half[1], 5):
+            start = np.array([x, y, centre[2] + 0.2])
+            a = mujoco.mj_ray(model, data, start, np.array([0, 0, -1.0]), collision, 1, -1, hit)
+            on_slice = hit[0] in slices
+            b = mujoco.mj_ray(model, data, start, np.array([0, 0, -1.0]), visible, 1, -1, hit)
+            if a >= 0 and b >= 0 and on_slice and abs(b - a) < 0.05:
+                diffs.append(b - a)
+    assert len(diffs) > 50
+    assert np.percentile(np.abs(diffs), 90) < 0.002
+    assert np.max(np.abs(diffs)) < 0.004
+
+
+@pytest.mark.parametrize(
+    "bike_xml", [PUKY_BIKE_XML, YELLOW_BIKE_XML], ids=["puky_bike", "yellow_bike"]
+)
+def test_nothing_pokes_up_through_the_saddle(bike_xml):
+    """No other collision geom (such as the seat post) reaches above the saddle's dip inside the
+    saddle's footprint, so a rider rests on the saddle surface, not on the post."""
+    from k1bike.saddle import saddle_geom_ids
+
+    model = bike_scene(bike_xml).compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    box = model.geom("saddle").id
+    centre, half = data.geom_xpos[box], model.geom_size[box]
+    dip = data.site_xpos[model.site("saddle_dip").id]
+    saddle = set(saddle_geom_ids(model))
+    collision = np.array([0, 0, 0, 1, 0, 0], np.uint8)
+    hit = np.zeros(1, np.int32)
+    for x in np.linspace(centre[0] - half[0], centre[0] + half[0], 41):
+        for y in np.linspace(centre[1] - half[1], centre[1] + half[1], 11):
+            start = np.array([x, y, dip[2] + 0.1])
+            dist = mujoco.mj_ray(model, data, start, np.array([0, 0, -1.0]), collision, 1, -1, hit)
+            if dist >= 0 and hit[0] not in saddle and model.geom_bodyid[hit[0]] != 0:
+                assert start[2] - dist < dip[2] - 0.003, model.geom(hit[0]).name
+
+
+def test_k1_bike_scene_has_one_floor():
+    model = k1_bike_scene().compile()
+    planes = [g for g in range(model.ngeom) if model.geom_type[g] == mujoco.mjtGeom.mjGEOM_PLANE]
+    assert [model.geom(g).name for g in planes] == ["floor"]

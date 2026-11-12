@@ -10,9 +10,10 @@ targets below. It refuses to write a pose that does not fit (see TOLERANCES); th
 report says which target failed, for example feet that cannot reach the floor.
 
 The pose is a least-squares fit, with joints kept inside 90% of their limits:
-- pelvis (trunk bottom cylinder) touching the saddle top, centred over it;
-- both feet flat on the floor, a little wider than the hips and a little in front of the
-  saddle, so part of the weight rests on the saddle (feet behind the hips is a crouch);
+- pelvis (trunk bottom cylinder) sitting in the saddle's dip: its lowest point on the
+  `saddle_dip` site (k1bike/saddle.py), touching the saddle surface;
+- both feet flat, 5 mm above the floor (they settle onto it), a little wider than the hips
+  and a little in front of the saddle, so part of the weight rests on the saddle (feet behind the hips is a crouch);
 - each hand clip site on its handlebar grip, with the forearm horizontal
   (the owner reports hand and bar centres at about the same height);
 - trunk leaning forward about 20 degrees;
@@ -29,12 +30,12 @@ from scipy.optimize import least_squares
 
 from k1bike.paths import BIKES, DEFAULT_BIKE, seated_pose_json
 from k1bike.robots.k1 import POLICY_JOINTS
+from k1bike.saddle import DIP_SITE, saddle_geom_ids
 from k1bike.scene import k1_bike_scene
 from k1bike.seat import (
     FORK_BODY,
     GRIP_SITES,
     HAND_LINKS,
-    SADDLE_GEOM,
     SEAT_BODY,
     SIDES,
     add_hand_clip_sites,
@@ -42,14 +43,20 @@ from k1bike.seat import (
 
 BIKE = "bike/"
 FOOT_WIDTH = 0.13  # target |y| of each foot centre (hips are at +-0.096)
-FOOT_FORWARD = 0.06  # target x of each foot centre in front of the saddle's seat point
+FOOT_FORWARD = 0.06  # target x of each foot centre in front of the saddle's dip
 # Forward trunk lean, as a rider leans on a balance bike. Sitting upright puts the K1's mass
 # behind its feet; on a bike with the saddle close to the rear axle it then tips the bike
 # backwards through the hand clips.
 TRUNK_PITCH = 0.35  # rad (20 deg)
+START_PITCHES = (0.0, 0.2, 0.35, 0.5)  # rad: starting trunk leans for the multi-start fit
 SADDLE_PENETRATION = 0.001  # start just in contact, not hovering
+# Feet 5 mm above the floor in the solved pose. Holding it, the K1 settles onto the saddle
+# and its feet then just rest on the floor: most weight on the saddle, the rest on the feet,
+# little on the hands (as on a real balance bike). With the feet planted exactly on the floor
+# the leg joints press them down and lift weight off the saddle.
+FOOT_CLEARANCE = 0.005
 # Largest fit errors accepted, in metres: a pose outside these is not written.
-TOLERANCES = {"saddle": 0.003, "clip": 0.002, "foot": 0.003, "penetration": 0.005}
+TOLERANCES = {"saddle": 0.003, "dip": 0.005, "clip": 0.002, "foot": 0.003, "penetration": 0.005}
 # Neutral posture for the weak regularizer: knees and hips bent as when sitting.
 NEUTRAL = {
     ".*_hip_pitch_joint": -0.6,
@@ -93,7 +100,7 @@ def main() -> None:
     hi = np.array([0.9 * model.joint(n).range[1] for n in joints])
     neutral = np.array([_neutral(n) for n in joints])
 
-    saddle = model.geom(f"{BIKE}{SADDLE_GEOM}").id
+    saddle = saddle_geom_ids(model, BIKE)  # slices fitted to the visible saddle
     seat_body = model.body(SEAT_BODY).id
     pelvis = next(  # the trunk's bottom cylinder
         g
@@ -112,7 +119,7 @@ def main() -> None:
         )
         for side in SIDES
     }
-    seat_site = model.site(f"{BIKE}seat").id
+    seat_site = model.site(f"{BIKE}{DIP_SITE}").id  # lowest point of the saddle's middle
     fromto = np.zeros(6)
 
     def apply(x: np.ndarray) -> None:
@@ -126,12 +133,16 @@ def main() -> None:
     def residuals(x: np.ndarray) -> np.ndarray:
         apply(x)
         r = []
-        dist = mujoco.mj_geomDistance(model, data, pelvis, saddle, 0.5, fromto)
+        dist = min(mujoco.mj_geomDistance(model, data, pelvis, g, 0.5, fromto) for g in saddle)
         r += [200 * (dist + SADDLE_PENETRATION)]
-        r += [5 * (data.geom_xpos[pelvis, 0] - data.site_xpos[seat_site, 0])]
+        # The cylinder's lowest point is under its axis: put it over the dip, firmly.
+        r += [50 * (data.geom_xpos[pelvis, 0] - data.site_xpos[seat_site, 0])]
         for side, sign in (("left", 1.0), ("right", -1.0)):
             foot = feet[side]
-            r += [200 * mujoco.mj_geomDistance(model, data, foot, floor, 0.5, fromto)]
+            r += [
+                200
+                * (mujoco.mj_geomDistance(model, data, foot, floor, 0.5, fromto) - FOOT_CLEARANCE)
+            ]
             zaxis = data.geom_xmat[foot].reshape(3, 3)[:, 2]
             r += [5 * zaxis[0], 5 * zaxis[1]]
             r += [2 * (data.geom_xpos[foot, 1] - sign * FOOT_WIDTH)]
@@ -154,7 +165,7 @@ def main() -> None:
     mujoco.mj_kinematics(model, data)
     seat_x = float(data.site_xpos[seat_site, 0])
     seat_z = float(data.site_xpos[seat_site, 2])
-    # Trunk origin starts about 11 cm above the saddle top, as on the first solved bike.
+    # Trunk origin starts about 11 cm above the dip, as on the first solved bike.
     x0 = np.concatenate([[seat_x, seat_z + 0.11, 0.0], np.clip(neutral, lo, hi)])
     # Arms start reaching forward and down rather than out to the sides.
     for name, value in {
@@ -168,15 +179,29 @@ def main() -> None:
         np.concatenate([[-0.5, 0.3, -0.5], lo]),
         np.concatenate([[1.0, 0.8, 0.5], hi]),
     )
-    result = least_squares(residuals, x0, bounds=bounds, xtol=1e-12, ftol=1e-12, max_nfev=5000)
+    # The fit has several local optima (for example feet under the rear axle with an upright
+    # trunk, which barely loads the saddle). Start from a few trunk leans and keep the best.
+    result = None
+    for pitch in START_PITCHES:
+        start = x0.copy()
+        start[2] = pitch
+        trial = least_squares(
+            residuals, start, bounds=bounds, xtol=1e-12, ftol=1e-12, max_nfev=5000
+        )
+        print(f"  start lean {np.degrees(pitch):4.0f} deg: cost {trial.cost:.3e}")
+        if result is None or trial.cost < result.cost:
+            result = trial
     x = result.x
     apply(x)
 
     # Report fit quality against the tolerances.
     print(f"solver: {result.message} (cost {result.cost:.2e})")
-    saddle_gap = mujoco.mj_geomDistance(model, data, pelvis, saddle, 0.5, fromto)
-    fit = {"pelvis_saddle_mm": saddle_gap * 1000}
+    saddle_gap = min(mujoco.mj_geomDistance(model, data, pelvis, g, 0.5, fromto) for g in saddle)
     failures = []
+    fit = {"pelvis_saddle_mm": saddle_gap * 1000}
+    fit["pelvis_to_dip_mm"] = (data.geom_xpos[pelvis, 0] - data.site_xpos[seat_site, 0]) * 1000
+    if abs(fit["pelvis_to_dip_mm"]) > TOLERANCES["dip"] * 1000:
+        failures.append("pelvis is not in the saddle's dip")
     if abs(saddle_gap + SADDLE_PENETRATION) > TOLERANCES["saddle"]:
         failures.append("pelvis does not rest on the saddle")
     for side in SIDES:
@@ -188,7 +213,7 @@ def main() -> None:
         fit[f"{side}_foot_to_floor_mm"] = foot_gap * 1000
         if err > TOLERANCES["clip"]:
             failures.append(f"{side} hand clip does not reach its grip")
-        if abs(foot_gap) > TOLERANCES["foot"]:
+        if abs(foot_gap - FOOT_CLEARANCE) > TOLERANCES["foot"]:
             failures.append(f"{side} foot is not flat on the floor")
     mujoco.mj_forward(model, data)
     worst = min((data.contact[i].dist for i in range(data.ncon)), default=0.0)

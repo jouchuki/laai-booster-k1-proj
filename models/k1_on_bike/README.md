@@ -1,7 +1,8 @@
 # K1 on the bike (seated)
 
-The K1 sitting on a bike: both hands welded to the handlebar grips, pelvis resting on the
-saddle by contact only, feet flat on the floor. It works on any bike in `models/` that has a
+The K1 sitting on a bike: both hands welded to the handlebar grips, pelvis resting by contact
+only in the saddle's dip (most of its weight on the saddle, the rest on its feet, the hands
+just resting on the bar), feet flat on the floor. It works on any bike in `models/` that has a
 solved pose here. By default it sits on the real bike, [models/puky_bike](../puky_bike/README.md).
 
 | File or code | What |

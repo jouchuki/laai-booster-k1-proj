@@ -204,7 +204,7 @@ bike) has a pose too. Every bike uses the same part names (`frame`, `fork`, `sad
   Forearm-to-fork contacts are excluded because the clipped forearm overlaps the
   bar's collision capsule.
 - **Seat: contact only, no constraint.** The pelvis (trunk bottom cylinder) rests on
-  the saddle box under gravity. The robot can rise, slide or lift off, so a policy
+  the saddle under gravity. The robot can rise, slide or lift off, so a policy
   can push with its feet; `seat_contact()` returns the saddle's normal force for a
   "stay seated" reward or termination.
 - **Collisions: no passing through.** The K1 keeps all 174 self-collision pairs and
@@ -217,23 +217,45 @@ bike) has a pose too. Every bike uses the same part names (`frame`, `fork`, `sad
   2 cm in from the tip (s = 6 cm), bar centre 4 cm further along (s = 2 cm), so the
   bar sits 2 cm beyond the forearm tip. The top/bottom offsets and orientation
   above are still unmeasured; update `seat.py` and re-solve once they are.
-- **Seated pose, per bike.** `scripts/solve_seated_pose.py --bike <bike>` fits
-  pelvis-on-saddle, feet flat on the floor (centres at +-0.13 m, 6 cm in front of the
-  saddle's seat point), clip points on the bike's grip sites, horizontal forearms and a
-  trunk leaning about 20 deg forward. It refuses to write a pose whose fit fails. Each
+- **Saddle collision follows the visible saddle.** The converted bikes model the saddle
+  as one flat box at the height of its highest point, but a real saddle is dished: the
+  Puky's visible surface is 16 mm lower in the middle, where the rider sits. On the box,
+  the K1 pressed on the saddle but visibly hovered 13-14 mm above it (4-5 mm on the yellow
+  bike). Every scene now loads bikes through `load_bike()`, which ray-casts the visible
+  saddle and replaces the box's collision with 12 thin convex slices that follow it
+  (`src/k1bike/saddle.py`); they match the visible surface within 1 mm. The box keeps its
+  mass but no longer collides (and moves to geom group 5). Collision parts under the
+  saddle that would poke up through its dip are shortened: the Puky's seat-post capsule
+  ended 4 mm above the dip, and the K1 sat on the post instead of the saddle; its
+  collision copy now ends 5 mm below the dip. A `saddle_dip` site marks the lowest point
+  of the saddle's middle, where the K1 sits. The primitive bike has no separate visible
+  saddle and keeps its box.
+- **Seated pose, per bike.** `scripts/solve_seated_pose.py --bike <bike>` fits the
+  pelvis into the saddle's dip, feet flat 5 mm above the floor (centres at +-0.13 m, 6 cm
+  in front of the dip), clip points on the bike's grip sites, horizontal forearms and a
+  trunk leaning about 20 deg forward, starting from several trunk leans and keeping the
+  best fit (the fit has local optima). It refuses to write a pose whose fit fails. Each
   weld's bike-side site is placed at the robot's clip site in that pose, so the welds
   start at zero error.
 
-| Bike | Pelvis in saddle | Clip to grip | Feet to floor | Trunk lean | Saddle force while holding the pose |
-|---|---|---|---|---|---|
-| `puky_bike` (real bike, default) | 1.0 mm | 0.03 mm | 0.0 mm | 11 deg | about 118 N of 193 N, steady for 10 s |
-| `yellow_bike` | 1.0 mm | 0.02 mm | 0.0 mm | 28 deg | about 80 N after 2 s |
+Holding each pose for 10 s (weight split as a share of the K1's 193 N):
+
+| Bike | Pelvis from dip | Clip to grip | Trunk lean | Saddle | Feet | Hands | Visible gap |
+|---|---|---|---|---|---|---|---|
+| `puky_bike` (real bike, default) | 3 mm | < 0.01 mm | 13 deg | 86% | 10% | 4% | about 1 mm |
+| `yellow_bike` | 14 mm (flat middle) | 0.03 mm | 25 deg | 67% | 23% | 9% | < 1 mm |
+
+`tests/test_seat.py` checks on every seated bike: more than 60% on the saddle, the feet
+touching, under 15% on the hands, the pelvis within 15 mm of the dip and a visible gap
+under 3 mm.
 
 The forward lean and the feet in front of the saddle matter on the real bike: its saddle
 is only 7.6 cm in front of the rear axle (18 cm on `yellow_bike`). Sitting upright with the feet
 behind the hips, the K1's mass drifted behind the rear wheel and pulled the bike over
 backwards through the hand clips.
 
-Holding the pose uses the k1_walk PD gains, so the rest of the weight is on the feet. The
-soft arm gains (kp = 20) mean a fixed joint target can also settle with the pelvis just
-above the saddle: staying seated has to be rewarded, not assumed.
+The weight split comes from how the pose is held (the k1_walk PD gains). With the feet
+planted exactly on the floor in the target pose, the leg joints pressed them down and the
+saddle took only about half the weight. With the target feet 5 mm up, the K1 settles onto the
+saddle and the feet just rest on the floor, as a rider's relaxed legs do. A trained policy
+sets its own split, so staying seated still has to be rewarded, not assumed.

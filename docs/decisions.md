@@ -2,6 +2,32 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: Saddle collision follows the visible saddle
+
+**Decision:** Every scene loads a bike through `load_bike()` (`src/k1bike/scene.py`), which
+replaces the saddle's flat collision box with 12 thin convex slices fitted by ray-casting the
+visible saddle (`src/k1bike/saddle.py`). The box keeps its mass and no longer collides.
+The seated poses were re-solved on the fitted saddles, and the pose solver now starts from
+several trunk leans and keeps the best fit.
+
+**Why:** The K1 should sit on the saddle as it looks and as the real one is shaped. On the
+flat box, set at the saddle's highest point, the pelvis hovered 13-14 mm above the Puky's
+dished saddle (4-5 mm on the yellow bike) while pressing on nothing visible. Now the visible
+gap is under 1 mm and the K1 puts about 96 N (Puky) and 86 N (yellow bike) of its 193 N on
+the saddle; tests check both.
+
+**Follow-up the same day:** the K1 now sits in the saddle's dip (a `saddle_dip` site the
+solver aims the pelvis at), the Puky's seat post is shortened below the dip (the K1 had been
+sitting on it), the K1 + bike scenes have one floor instead of two (Booster's `ground` plane
+doubled every foot and wheel contact), and the solved poses keep the feet 5 mm up so the
+legs are relaxed. Holding the pose, the Puky's saddle carries 86% of the K1's weight, the
+feet 10% and the hands 4% (yellow bike 67/23/9), like a rider on a balance bike.
+
+**Considered:** Lowering the box to the dish (the rider would sink into the visible rim and
+could slide off the flat top); one convex hull of the saddle (fills the dish, the same
+problem as the box); fitting the slices in the bike converters (only for the two converted
+bikes, and every bike would have to be regenerated).
+
 ## 2026-11-12: The real bike is the default; the K1 can sit on any bike
 
 **Decision:** `models/puky_bike` (the calibrated scan of the bike we will use) is the default

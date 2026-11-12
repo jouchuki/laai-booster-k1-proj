@@ -7,6 +7,7 @@ import mujoco
 import numpy as np
 
 from k1bike.paths import DEFAULT_BIKE_XML, k1_xml
+from k1bike.saddle import fit_saddle_to_visual
 from k1bike.seat import add_hand_clip_sites, clip_hands_to_bike, load_seated_pose
 
 
@@ -19,9 +20,16 @@ def _add_floor(spec: mujoco.MjSpec) -> None:
     )
 
 
+def load_bike(bike_xml: Path = DEFAULT_BIKE_XML) -> mujoco.MjSpec:
+    """A bike model, with its saddle collision fitted to the visible saddle (k1bike/saddle.py)."""
+    spec = mujoco.MjSpec.from_file(str(bike_xml))
+    fit_saddle_to_visual(spec)
+    return spec
+
+
 def bike_scene(bike_xml: Path = DEFAULT_BIKE_XML) -> mujoco.MjSpec:
     """Bike on a floor, nothing else. For checking the bike model on its own."""
-    spec = mujoco.MjSpec.from_file(str(bike_xml))
+    spec = load_bike(bike_xml)
     _add_floor(spec)
     spec.worldbody.add_light(pos=[0, 0, 3], dir=[0, 0, -1])
     return spec
@@ -92,7 +100,10 @@ def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = DEFAULT_BIKE_XML) 
     use `k1_seated_bike_scene` for the robot clipped on and sitting.
     """
     spec = mujoco.MjSpec.from_file(str(k1_xml()))
-    bike = mujoco.MjSpec.from_file(str(bike_xml))
+    # Booster's file brings its own "ground" plane; the scene's "floor" replaces it, otherwise
+    # every foot and wheel contact would be counted twice.
+    spec.delete(spec.geom("ground"))
+    bike = load_bike(bike_xml)
     frame = spec.worldbody.add_frame(pos=list(bike_pos))
     frame.attach_body(bike.worldbody.first_body(), "bike/", "")
     _add_floor(spec)

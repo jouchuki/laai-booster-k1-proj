@@ -9,7 +9,8 @@ Two different kinds of connection, matching the physical setup:
   (3 translation + 3 rotation), so the hands steer the bike and the bike's weight
   hangs from the hands. The steering joint itself stays free.
 - Seat: nothing. The robot sits on the saddle only through ordinary contact
-  between its pelvis geoms and the saddle box, with gravity holding it down.
+  between its pelvis geoms and the saddle (collision fitted to the visible saddle,
+  k1bike/saddle.py), with gravity holding it down.
   It can push itself up, slide, and lift off, which is what lets it learn to
   walk the bike with its feet while it is rewarded for staying seated
   (see `seat_contact`).
@@ -34,6 +35,7 @@ import mujoco
 import numpy as np
 
 from k1bike.paths import seated_pose_json
+from k1bike.saddle import saddle_geom_ids
 
 SIDES = ("left", "right")
 
@@ -50,7 +52,6 @@ SEAT_BODY = "trunk"
 
 # Bike side (names inside the bike model, before any prefix).
 FORK_BODY = "fork"
-SADDLE_GEOM = "saddle"
 GRIP_SITES = {"left": "left_grip", "right": "right_grip"}
 
 SEATED_KEY = "seated"
@@ -193,16 +194,18 @@ def seat_contact(
     For rewards and terminations: "stay seated" means this stays positive. The K1
     weighs about 19.7 kg (193 N); sitting with feet down puts part of that on the saddle.
     """
-    saddle = model.geom(f"{bike_prefix}{SADDLE_GEOM}").id
+    saddle = set(saddle_geom_ids(model, bike_prefix))
     seat_body = model.body(f"{robot_prefix}{SEAT_BODY}").id
     force = np.zeros(6)
     total = 0.0
     for i in range(data.ncon):
         contact = data.contact[i]
-        geoms = (contact.geom1, contact.geom2)
-        if saddle not in geoms:
+        if contact.geom1 in saddle:
+            other = contact.geom2
+        elif contact.geom2 in saddle:
+            other = contact.geom1
+        else:
             continue
-        other = geoms[1] if geoms[0] == saddle else geoms[0]
         if model.geom_bodyid[other] != seat_body:
             continue
         mujoco.mj_contactForce(model, data, i, force)

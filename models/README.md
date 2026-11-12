@@ -25,7 +25,9 @@ The earlier `--model puky_bike` option remains an alias for `puky_bike`;
 
 - **Physical collisions everywhere.** The K1 keeps its self-collision and collides with every
   bike collision geom (only each welded forearm against the fork is excluded). Visual meshes
-  never collide; each bike's collision proxies are what the robot touches. See
+  never collide; each bike's collision proxies are what the robot touches. Scenes load bikes
+  with `load_bike()`, which fits the saddle's collision to the visible saddle
+  (`src/k1bike/saddle.py`), so the K1 sits on the saddle you see. See
   [decisions](../docs/decisions.md).
 - **Measurements first.** Physical bike measurements live in
   [docs/bike-dimensions.md](../docs/bike-dimensions.md). Change a model only against them,
