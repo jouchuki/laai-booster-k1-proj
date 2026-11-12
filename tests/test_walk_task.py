@@ -1,4 +1,4 @@
-"""Checks on the phase 1 walk task (phases/walk/task.py). Skipped when mjlab is not installed
+"""Checks on the phase 1 walk task (experiments/walk/task.py). Skipped when mjlab is not installed
 (`uv sync --group train`); only builds the config, so it runs on Linux and macOS."""
 
 import pytest
@@ -7,7 +7,7 @@ pytest.importorskip("mjlab")
 
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 
-from phases.walk import task as walk
+from experiments.walk import task as walk
 
 
 def test_walk_task_is_registered():

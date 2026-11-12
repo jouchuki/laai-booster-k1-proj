@@ -19,9 +19,9 @@ macOS host (native viewer requires mjpython):
     uv run mjpython scripts/view_model.py k1_seated      # K1 seated, hands clipped
 
 See docs/commands.md for setup and platform-specific troubleshooting.
-The default bike is the scaled USDZ-derived model. Use --model primitive for the
-original blue prototype, or --model real_bike for the uploaded textured scan.
-k1_seated starts the K1 sitting on the USDZ-derived bike,
+The default bike is models/bike (the scaled USDZ-derived model). Use
+--model bike_primitive for the original blue placeholder, or --model bike_scan for the
+textured scan of the real bike. k1_seated starts the K1 sitting on models/bike,
 hands welded to the grips, and holds that pose with the k1_walk PD gains
 (enable site group 4 in the viewer's Rendering panel to see the clip sites).
 """
@@ -33,18 +33,21 @@ import time
 import mujoco
 import mujoco.viewer
 
-from k1bike.paths import BIKE_XML, REAL_BIKE_XML, SKETCHFAB_BIKE_XML
+from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, SCAN_BIKE_XML
 from k1bike.robots.k1 import hold_pose_torques
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene, k1_seated_bike_scene
 
 SCENES = {"bike": bike_scene, "k1_bike": k1_bike_scene, "k1_seated": k1_seated_bike_scene}
-MODELS = {"sketchfab": SKETCHFAB_BIKE_XML, "primitive": BIKE_XML, "real_bike": REAL_BIKE_XML}
+# Folder names under models/.
+MODELS = {"bike": BIKE_XML, "bike_primitive": PRIMITIVE_BIKE_XML, "bike_scan": SCAN_BIKE_XML}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("scene", choices=SCENES)
-    parser.add_argument("--model", choices=MODELS, default="sketchfab", help="bike asset to load")
+    parser.add_argument(
+        "--model", choices=MODELS, default="bike", help="bike model (models/<name>)"
+    )
     parser.add_argument(
         "--paused", action="store_true", help="start paused; Space toggles simulation"
     )
@@ -63,8 +66,8 @@ def main() -> None:
     bike_xml = MODELS[args.model]
     if not bike_xml.is_file():
         parser.error(f"Bike model is missing: {bike_xml}; see docs/commands.md for conversion")
-    if args.scene == "k1_seated" and args.model != "sketchfab":
-        parser.error("k1_seated uses the sketchfab bike (its seated pose is solved for it)")
+    if args.scene == "k1_seated" and args.model != "bike":
+        parser.error("k1_seated uses models/bike (its seated pose is solved for it)")
     if args.scene == "k1_seated" and (args.push or args.steer or args.lean or args.drop):
         parser.error("--push, --steer, --lean and --drop would disrupt the K1's seated pose")
     model = SCENES[args.scene](bike_xml=bike_xml).compile()

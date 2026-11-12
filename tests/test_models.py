@@ -7,7 +7,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import BIKE_XML, REAL_BIKE_XML, REPO_ROOT, SKETCHFAB_BIKE_XML, k1_xml
+from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, REPO_ROOT, SCAN_BIKE_XML, k1_xml
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene
 
 
@@ -19,8 +19,8 @@ def _step(model: mujoco.MjModel, seconds: float, data: mujoco.MjData | None = No
 
 
 @pytest.fixture(
-    params=[BIKE_XML, SKETCHFAB_BIKE_XML, REAL_BIKE_XML],
-    ids=["primitive", "sketchfab", "real_bike"],
+    params=[BIKE_XML, PRIMITIVE_BIKE_XML, SCAN_BIKE_XML],
+    ids=["bike", "bike_primitive", "bike_scan"],
     scope="module",
 )
 def bike_path(request):
@@ -115,7 +115,7 @@ def test_k1_and_bike_scene_simulates(bike_path):
     assert np.isfinite(data.qpos).all()
 
 
-@pytest.mark.parametrize("bike_xml", [SKETCHFAB_BIKE_XML, REAL_BIKE_XML])
+@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
 def test_converted_wheelbase_matches_reported_measurement(bike_xml):
     model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
@@ -129,7 +129,7 @@ def test_converted_wheelbase_matches_reported_measurement(bike_xml):
     )
 
 
-@pytest.mark.parametrize("bike_xml", [SKETCHFAB_BIKE_XML, REAL_BIKE_XML])
+@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
 def test_converted_steering_moves_front_assembly_without_moving_frame(bike_xml):
     model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
@@ -155,8 +155,8 @@ def test_converted_steering_moves_front_assembly_without_moving_frame(bike_xml):
             assert model.geom_conaffinity[geom] == 0
 
 
-def test_sketchfab_raised_handlebars_keep_saddle_and_grip_spacing():
-    model = bike_scene(SKETCHFAB_BIKE_XML).compile()
+def test_bike_raised_handlebars_keep_saddle_and_grip_spacing():
+    model = bike_scene(BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     left = data.site_xpos[model.site("left_grip").id]
@@ -169,8 +169,8 @@ def test_sketchfab_raised_handlebars_keep_saddle_and_grip_spacing():
     assert model.site_bodyid[model.site("right_grip").id] == model.body("fork").id
 
 
-def test_real_bike_visuals_keep_texture_and_all_source_triangles():
-    model = bike_scene(REAL_BIKE_XML).compile()
+def test_bike_scan_visuals_keep_texture_and_all_source_triangles():
+    model = bike_scene(SCAN_BIKE_XML).compile()
     assert model.ntex == 1
     assert model.tex_width[0] > 0 and model.tex_height[0] > 0
     triangle_count = 0
@@ -184,11 +184,11 @@ def test_real_bike_visuals_keep_texture_and_all_source_triangles():
     assert triangle_count == 25000
 
 
-def test_real_bike_converter_supports_scaled_asset_in_another_directory(tmp_path):
+def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path):
     subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "scripts/convert_real_bike.py"),
+            str(REPO_ROOT / "scripts/convert_bike_scan.py"),
             "--output",
             str(tmp_path),
             "--wheelbase",
