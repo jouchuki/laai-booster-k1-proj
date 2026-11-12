@@ -6,8 +6,8 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from k1bike.paths import BIKE_XML, k1_xml
-from k1bike.seat import add_hand_clip_sites, clip_hands_to_bike
+from k1bike.paths import DEFAULT_BIKE_XML, k1_xml
+from k1bike.seat import add_hand_clip_sites, clip_hands_to_bike, load_seated_pose
 
 
 def _add_floor(spec: mujoco.MjSpec) -> None:
@@ -19,7 +19,7 @@ def _add_floor(spec: mujoco.MjSpec) -> None:
     )
 
 
-def bike_scene(bike_xml: Path = BIKE_XML) -> mujoco.MjSpec:
+def bike_scene(bike_xml: Path = DEFAULT_BIKE_XML) -> mujoco.MjSpec:
     """Bike on a floor, nothing else. For checking the bike model on its own."""
     spec = mujoco.MjSpec.from_file(str(bike_xml))
     _add_floor(spec)
@@ -84,7 +84,7 @@ def initialize_bike_state(
     mujoco.mj_forward(model, data)
 
 
-def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = BIKE_XML) -> mujoco.MjSpec:
+def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = DEFAULT_BIKE_XML) -> mujoco.MjSpec:
     """K1 (from booster_assets) plus the bike, on a floor.
 
     The K1 model is the base so its physics options and mesh paths are kept.
@@ -99,17 +99,18 @@ def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = BIKE_XML) -> mujoc
     return spec
 
 
-def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = BIKE_XML):
-    """K1 sitting on the USDZ-derived bike, hands welded to the grips (phase 3+).
+def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = DEFAULT_BIKE_XML):
+    """K1 sitting on a bike, hands welded to the grips (phase 3+).
 
-    The seated pose is solved for the USDZ-derived bike only, so `bike_xml` must be
-    that model. The model's keyframe "seated" holds the starting state; reset to it
-    with `mujoco.mj_resetDataKeyframe(model, data, model.key("seated").id)`.
+    Works for any bike that has a solved seated pose (models/k1_on_bike/<bike>.json;
+    `scripts/solve_seated_pose.py --bike <bike>` makes one); raises FileNotFoundError
+    otherwise. The default is the real bike. The model's keyframe "seated" holds the
+    starting state; reset to it with
+    `mujoco.mj_resetDataKeyframe(model, data, model.key("seated").id)`.
     See k1bike/seat.py for how the welds and the (contact-only) seat work.
     """
-    if Path(bike_xml).resolve() != BIKE_XML.resolve():
-        raise ValueError("The seated pose is solved for the USDZ-derived bike only")
+    pose = load_seated_pose(bike_xml)
     spec = k1_bike_scene(bike_pos=bike_pos, bike_xml=bike_xml)
     add_hand_clip_sites(spec)
-    clip_hands_to_bike(spec)
+    clip_hands_to_bike(spec, pose)
     return spec

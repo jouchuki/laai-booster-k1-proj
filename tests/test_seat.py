@@ -1,18 +1,37 @@
-"""K1 seated on the bike: hands welded to the grips, pelvis resting on the saddle by contact."""
+"""K1 seated on a bike: hands welded to the grips, pelvis resting on the saddle by contact.
+
+Every test runs on each bike that has a solved seated pose (models/k1_on_bike/<bike>.json)."""
 
 import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import PRIMITIVE_BIKE_XML
+from k1bike.paths import BIKES, DEFAULT_BIKE, seated_pose_json
 from k1bike.robots.k1 import hold_pose_torques
 from k1bike.scene import k1_seated_bike_scene
 from k1bike.seat import FORK_BODY, HAND_LINKS, SADDLE_GEOM, SEAT_BODY, SIDES, seat_contact
 
+SEATED_BIKES = [name for name, xml in BIKES.items() if seated_pose_json(xml).is_file()]
 
-@pytest.fixture(scope="module")
-def model():
-    return k1_seated_bike_scene().compile()
+
+@pytest.fixture(scope="module", params=SEATED_BIKES)
+def model(request):
+    return k1_seated_bike_scene(bike_xml=BIKES[request.param]).compile()
+
+
+def _bike_collision_geoms(bike_xml):
+    bike = mujoco.MjModel.from_xml_path(str(bike_xml))
+    return sum(bool(bike.geom_contype[g] or bike.geom_conaffinity[g]) for g in range(bike.ngeom))
+
+
+def test_the_puky_bike_has_a_seated_pose_and_is_the_default():
+    assert DEFAULT_BIKE == "puky_bike"
+    assert DEFAULT_BIKE in SEATED_BIKES
+    default = k1_seated_bike_scene().compile()
+    real = k1_seated_bike_scene(bike_xml=BIKES[DEFAULT_BIKE]).compile()
+    assert default.nbody == real.nbody and np.allclose(
+        default.key("seated").qpos, real.key("seated").qpos
+    )
 
 
 def _seated(model):
@@ -110,12 +129,14 @@ def _blocked_bike_bodies(model):
     return blocked, self_pairs, len(bike)
 
 
-def test_robot_collides_with_itself_and_the_bike(model):
+@pytest.mark.parametrize("bike", SEATED_BIKES)
+def test_robot_collides_with_itself_and_the_bike(bike):
     """No passing through: the K1 keeps all its self-collisions and touches every bike
     collision geom, except each welded forearm and the fork (its hand overlaps the bar)."""
+    model = k1_seated_bike_scene(bike_xml=BIKES[bike]).compile()
     blocked, self_pairs, bike_geoms = _blocked_bike_bodies(model)
     assert self_pairs == 174, "same self-collision as the walk task"
-    assert bike_geoms == 12
+    assert bike_geoms == _bike_collision_geoms(BIKES[bike]), "every bike collision geom kept"
     assert blocked == {(HAND_LINKS[side], f"bike/{FORK_BODY}") for side in SIDES}
 
     data = _seated(model)
@@ -153,6 +174,8 @@ def test_k1_can_rise_off_the_saddle_with_hands_still_clipped(model):
     assert data.xpos[frame, 2] > 0.1, "the bike hangs from the clipped hands"
 
 
-def test_seated_scene_rejects_other_bike_models():
-    with pytest.raises(ValueError):
-        k1_seated_bike_scene(bike_xml=PRIMITIVE_BIKE_XML)
+def test_seated_scene_needs_a_solved_pose_for_its_bike():
+    unsolved = [name for name in BIKES if name not in SEATED_BIKES]
+    assert unsolved, "keep one bike without a pose to test this"
+    with pytest.raises(FileNotFoundError, match="solve_seated_pose.py --bike"):
+        k1_seated_bike_scene(bike_xml=BIKES[unsolved[0]])

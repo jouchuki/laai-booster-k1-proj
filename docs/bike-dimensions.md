@@ -1,12 +1,12 @@
 # Physical bike and hand-clip dimensions
 
 Measurements are scoped by model. The values reported on 2026-11-12 apply only
-to `real_bike`, now stored at `models/bike_scan/` and selected with `--model bike_scan`
-or its `--model real_bike` alias. The earlier Sketchfab calibration reference is kept separately;
+to `puky_bike`, now stored at `models/puky_bike/` and selected with `--model puky_bike`
+or its `--model puky_bike` alias. The earlier Sketchfab calibration reference is kept separately;
 these updates do not change the green Sketchfab model, the primitive bike, or
 its seated K1 pose. Use SI units in simulation configuration.
 
-## Measurements for real_bike only (2026-11-12)
+## Measurements for puky_bike only (2026-11-12)
 
 | Quantity | Reported value | Simulation units | Status |
 |---|---|---|---|
@@ -17,7 +17,7 @@ its seated K1 pose. Use SI units in simulation configuration.
 | Handlebar height | 53 cm | 0.53 m | Owner's reported dimension |
 | Total mass | 3.5–3.9 kg | 3.5–3.9 kg | Owner's reported range; weighing method not specified |
 
-Only `real_bike` uses this measurement reference. Its default simulation mass is
+Only `puky_bike` uses this measurement reference. Its default simulation mass is
 **3.7 kg**, the range's midpoint; component mass fractions remain assumptions.
 Its regenerated mesh, collision shapes, attachment sites and joint origins now
 match the four dimensions above: 50 cm wheelbase, 22 cm tyre diameter, 42 cm
@@ -99,7 +99,7 @@ breakage are not measured; a fixed constraint is the initial idealization.
 
 | Quantity | Measurement or definition |
 |---|---|
-| Wheelbase precision | Repeat axle-centre measurements for each bike: 50 cm for real_bike, 56.5 cm for the Sketchfab reference |
+| Wheelbase precision | Repeat axle-centre measurements for each bike: 50 cm for puky_bike, 56.5 cm for the Sketchfab reference |
 | Tyre width | Outside width of the inflated tyre |
 | Handlebar width | Distance between the intended left and right clip attachment points |
 | Saddle position | Horizontal distance from the rear axle to the saddle reference point |
@@ -115,20 +115,20 @@ need physical experiments; dimensions alone do not determine those parameters.
 
 ## Current models and downloaded asset
 
-The existing [primitive model](../models/bike_primitive/bike.xml) still has a 0.30 m
+The existing [primitive model](../models/primitive_bike/bike.xml) still has a 0.30 m
 tyre diameter, 0.415 m saddle site, 0.61 m grip sites and 3.7 kg total mass. These
 are placeholder values and do not yet match the measurements above. Its tube
 inertias and mass distribution are also estimates.
 
-The original [Sketchfab USD](../models/bike/source/SKETCHFAB_ATTRIBUTION.md) is stored at
-`models/bike/source/Balance_bike.usdz`. It contains visual meshes and materials,
+The original [Sketchfab USD](../models/yellow_bike/source/SKETCHFAB_ATTRIBUTION.md) is stored at
+`models/yellow_bike/source/Balance_bike.usdz`. It contains visual meshes and materials,
 with no authored rigid bodies, colliders, masses or joints. Its Y-up, centimetre metadata
 produces an overall model over 5 m long when composed, so verify and normalize
 its scale before use.
 
 ### USDZ-derived model scaled to 56.5 cm wheelbase
 
-The converted model is [models/bike/bike.xml](../models/bike/bike.xml).
+The converted model is [models/yellow_bike/bike.xml](../models/yellow_bike/bike.xml).
 One uniform scale makes its axle centres 0.565 m apart. A rigid rotation levels
 those centres and changes Y-up to Z-up. The stem is then extended along the
 steering axis to raise the grip centres to 0.45 m; the frame, saddle, wheels and
@@ -152,7 +152,7 @@ and 1.59 cm rearward**. Only the short stem section above the headset is
 lengthened; bar width, grip shape and the steering joint remain unchanged.
 This is a requested geometric adjustment, not a measured stem setting or proof
 of its physical adjustment range. The saddle remains at 35.83 cm. The generated
-[measurements.json](../models/bike/measurements.json) stores
+[measurements.json](../models/yellow_bike/measurements.json) stores
 the exact scale, source hash, derived dimensions and physical assumptions.
 
 The four moving bodies are the frame, fork/handlebars, rear wheel and front
@@ -169,9 +169,9 @@ record every calibration change against the measurements in this document.
 
 ### Real bike from the uploaded scan
 
-The third option is [models/bike_scan/bike.xml](../models/bike_scan/bike.xml),
-selected with `--model bike_scan`. Its source exports are stored under
-`models/bike_scan/source/`.
+The third option is [models/puky_bike/bike.xml](../models/puky_bike/bike.xml),
+selected with `--model puky_bike`. Its source exports are stored under
+`models/puky_bike/source/`.
 Fitted tyre annuli define the axle centres and scan orientation; uniform scaling
 sets the wheelbase to **0.50 m**. Each visible wheel is sized radially to **0.11 m**
 maximum radius; symmetric rounded contact hulls use that radius and an inferred
@@ -185,14 +185,17 @@ shape and mechanical adjustment limits remain approximate.
 Its mass is **3.7 kg**, the midpoint of the owner's
 reported **3.5–3.9 kg** range. Component mass distribution and contact/steering
 properties remain provisional. Spatial mesh cuts approximate the joints and can
-show seams during motion. See the [rescaling process](../models/bike_scan/README.md#geometry-and-articulation)
+show seams during motion. See the [rescaling process](../models/puky_bike/README.md#geometry-and-articulation)
 and generated
-[manifest](../models/bike_scan/measurements.json).
+[manifest](../models/puky_bike/measurements.json).
 
 ## Seated K1
 
-`k1_seated_bike_scene()` (`src/k1bike/scene.py`, built by `src/k1bike/seat.py`)
-seats the K1 on the USDZ-derived bike:
+`k1_seated_bike_scene(bike_xml=...)` (`src/k1bike/scene.py`, built by `src/k1bike/seat.py`)
+seats the K1 on any bike that has a solved seated pose in `models/k1_on_bike/<bike>.json`.
+The default is the real bike, `models/puky_bike`; `models/yellow_bike` (the earlier USDZ-derived
+bike) has a pose too. Every bike uses the same part names (`frame`, `fork`, `saddle`, `seat`,
+`left_grip`, `right_grip`), so the same code seats the K1 on each:
 
 - **Hand clips: weld constraints.** Each clip is a MuJoCo weld between a site on
   the K1's forearm (`<side>_hand_clip`) and a site on the fork/handlebar body
@@ -205,8 +208,8 @@ seats the K1 on the USDZ-derived bike:
   can push with its feet; `seat_contact()` returns the saddle's normal force for a
   "stay seated" reward or termination.
 - **Collisions: no passing through.** The K1 keeps all 174 self-collision pairs and
-  collides with all 12 bike collision geoms (frame tubes, saddle, fork legs, stem,
-  handlebar, wheels). The only exclusion is each forearm against the fork, above; it
+  collides with every bike collision geom (frame tubes, saddle, fork, stem, handlebar,
+  wheels). The only exclusion is each forearm against the fork, above; it
   goes once the hand model is attached. In the seated pose only the pelvis touches
   the bike. `tests/test_seat.py` checks this.
 - **Assumed clip frame.** The K1 has no hands; the forearm ends 0.228 m along the
@@ -214,13 +217,23 @@ seats the K1 on the USDZ-derived bike:
   2 cm in from the tip (s = 6 cm), bar centre 4 cm further along (s = 2 cm), so the
   bar sits 2 cm beyond the forearm tip. The top/bottom offsets and orientation
   above are still unmeasured; update `seat.py` and re-solve once they are.
-- **Seated pose.** `scripts/solve_seated_pose.py` fits pelvis-on-saddle, feet flat
-  on the floor (centres at +-0.13 m), clip points on the bike's grip sites and
-  horizontal forearms. Current fit: pelvis 1 mm into the saddle, clips within
-  0.03 mm of the grips, trunk pitched about 22 deg forward. Each weld's bike-side
-  site is placed at the robot's clip site in that pose, so the welds start at zero error.
+- **Seated pose, per bike.** `scripts/solve_seated_pose.py --bike <bike>` fits
+  pelvis-on-saddle, feet flat on the floor (centres at +-0.13 m, 6 cm in front of the
+  saddle's seat point), clip points on the bike's grip sites, horizontal forearms and a
+  trunk leaning about 20 deg forward. It refuses to write a pose whose fit fails. Each
+  weld's bike-side site is placed at the robot's clip site in that pose, so the welds
+  start at zero error.
 
-Holding the pose with the k1_walk PD gains, about 80 N of the K1's 193 N weight
-rests on the saddle and the rest on its feet. The soft arm gains (kp = 20) mean a
-fixed joint target can also settle with the pelvis just above the saddle: staying
-seated has to be rewarded, not assumed.
+| Bike | Pelvis in saddle | Clip to grip | Feet to floor | Trunk lean | Saddle force while holding the pose |
+|---|---|---|---|---|---|
+| `puky_bike` (real bike, default) | 1.0 mm | 0.03 mm | 0.0 mm | 11 deg | about 118 N of 193 N, steady for 10 s |
+| `yellow_bike` | 1.0 mm | 0.02 mm | 0.0 mm | 28 deg | about 80 N after 2 s |
+
+The forward lean and the feet in front of the saddle matter on the real bike: its saddle
+is only 7.6 cm in front of the rear axle (18 cm on `yellow_bike`). Sitting upright with the feet
+behind the hips, the K1's mass drifted behind the rear wheel and pulled the bike over
+backwards through the hand clips.
+
+Holding the pose uses the k1_walk PD gains, so the rest of the weight is on the feet. The
+soft arm gains (kp = 20) mean a fixed joint target can also settle with the pelvis just
+above the saddle: staying seated has to be rewarded, not assumed.

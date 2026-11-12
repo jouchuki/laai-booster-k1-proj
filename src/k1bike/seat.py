@@ -14,9 +14,10 @@ Two different kinds of connection, matching the physical setup:
   walk the bike with its feet while it is rewarded for staying seated
   (see `seat_contact`).
 
-The seated starting pose comes from `scripts/solve_seated_pose.py`, which solves
-for a pose with the pelvis on the saddle, feet flat on the floor and both clip
-points on the grips. It is stored in `models/k1_on_bike/seated_pose.json`.
+The seated starting pose comes from `scripts/solve_seated_pose.py --bike <name>`, which
+solves for a pose with the pelvis on the saddle, feet flat on the floor and both clip
+points on the grips. Each bike has its own pose, in `models/k1_on_bike/<name>.json`, so
+the K1 can be seated on any bike with the standard part names once its pose is solved.
 
 Clip geometry (an assumption until the clip's frames are measured): the clip is
 collinear with the forearm. The robot's hand occupies clip positions s = 4-8 cm,
@@ -32,7 +33,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from k1bike.paths import SEATED_POSE_JSON
+from k1bike.paths import seated_pose_json
 
 SIDES = ("left", "right")
 
@@ -52,13 +53,12 @@ FORK_BODY = "fork"
 SADDLE_GEOM = "saddle"
 GRIP_SITES = {"left": "left_grip", "right": "right_grip"}
 
-SEATED_POSE_FILE = SEATED_POSE_JSON
 SEATED_KEY = "seated"
 
 
 @dataclass(frozen=True)
 class SeatedPose:
-    """K1 pose relative to the bike frame's nominal pose.
+    """K1 pose on one bike, relative to the bike frame's nominal pose.
 
     trunk_pos / trunk_quat: trunk body pose in the bike frame body's coordinates.
     joints: hinge angles (rad) by K1 joint name, without prefix.
@@ -69,7 +69,15 @@ class SeatedPose:
     joints: dict[str, float]
 
 
-def load_seated_pose(path: Path = SEATED_POSE_FILE) -> SeatedPose:
+def load_seated_pose(bike_xml: Path) -> SeatedPose:
+    """The solved seated pose for this bike; raises FileNotFoundError if it has none."""
+    path = seated_pose_json(bike_xml)
+    if not path.is_file():
+        name = path.stem
+        raise FileNotFoundError(
+            f"No seated pose for bike '{name}' ({path}). Solve it with: "
+            f"uv run --group sim python scripts/solve_seated_pose.py --bike {name}"
+        )
     raw = json.loads(path.read_text())
     return SeatedPose(
         trunk_pos=tuple(raw["trunk_pos"]),
@@ -116,14 +124,15 @@ def seated_qpos(
 
 def clip_hands_to_bike(
     spec: mujoco.MjSpec,
-    pose: SeatedPose | None = None,
+    pose: SeatedPose,
     robot_prefix: str = "",
     bike_prefix: str = "bike/",
     robot_root: str = "world_joint",
 ) -> np.ndarray:
     """Weld the K1's hand clip sites to the handlebar and add a "seated" keyframe.
 
-    `spec` must already contain the K1 (with `add_hand_clip_sites`) and the bike.
+    `spec` must already contain the K1 (with `add_hand_clip_sites`) and the bike, and
+    `pose` must be the one solved for that bike (`load_seated_pose(bike_xml)`).
     Prefixes let this run on a combined scene such as mjlab's (`robot/`, `bike/`);
     it can be passed as mjlab's scene `spec_fn`.
 
@@ -135,7 +144,6 @@ def clip_hands_to_bike(
 
     Returns the seated qpos (also stored as keyframe "seated").
     """
-    pose = pose or load_seated_pose()
     model = spec.compile()
     data = mujoco.MjData(model)
     qpos = seated_qpos(model, pose, robot_prefix, bike_prefix, robot_root)

@@ -8,6 +8,7 @@ Linux host (from the repository root):
     uv run python scripts/view_model.py bike --drop 0.3
     uv run python scripts/view_model.py k1_bike
     uv run python scripts/view_model.py k1_seated
+    uv run python scripts/view_model.py k1_seated --model yellow_bike
 
 macOS host (native viewer requires mjpython):
     uv run mjpython scripts/view_model.py bike           # bike alone
@@ -17,11 +18,12 @@ macOS host (native viewer requires mjpython):
     uv run mjpython scripts/view_model.py bike --drop 0.3
     uv run mjpython scripts/view_model.py k1_bike        # K1 next to the bike
     uv run mjpython scripts/view_model.py k1_seated      # K1 seated, hands clipped
+    uv run mjpython scripts/view_model.py k1_seated --model yellow_bike   # on the earlier bike
 
 See docs/commands.md for setup and platform-specific troubleshooting.
-The default bike is models/bike (the scaled USDZ-derived model). Use
---model bike_primitive for the original blue placeholder, or --model bike_scan for the
-textured scan of the real bike. k1_seated starts the K1 sitting on models/bike,
+The default bike is models/puky_bike, the real bike. Use --model yellow_bike for the earlier
+USDZ-derived bike or --model primitive_bike for the blue placeholder. k1_seated starts the
+K1 sitting on the chosen bike (any bike with a solved pose in models/k1_on_bike/),
 hands welded to the grips, and holds that pose with the k1_walk PD gains
 (enable site group 4 in the viewer's Rendering panel to see the clip sites).
 """
@@ -33,15 +35,23 @@ import time
 import mujoco
 import mujoco.viewer
 
-from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, SCAN_BIKE_XML
+from k1bike.paths import BIKES, DEFAULT_BIKE, seated_pose_json
 from k1bike.robots.k1 import hold_pose_torques
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene, k1_seated_bike_scene
 
 SCENES = {"bike": bike_scene, "k1_bike": k1_bike_scene, "k1_seated": k1_seated_bike_scene}
 # Folder names under models/.
-MODELS = {"bike": BIKE_XML, "bike_primitive": PRIMITIVE_BIKE_XML, "bike_scan": SCAN_BIKE_XML}
-# Preserve commands from before the models/ reorganization.
-MODELS.update(real_bike=SCAN_BIKE_XML, sketchfab=BIKE_XML, primitive=PRIMITIVE_BIKE_XML)
+MODELS = dict(BIKES)
+# Earlier names, so older commands keep working (do not use them in new docs).
+OLD_NAMES = {
+    "real_bike": "puky_bike",
+    "bike_scan": "puky_bike",
+    "bike": "yellow_bike",
+    "sketchfab": "yellow_bike",
+    "bike_primitive": "primitive_bike",
+    "primitive": "primitive_bike",
+}
+MODELS.update({old: BIKES[new] for old, new in OLD_NAMES.items()})
 
 
 def main() -> None:
@@ -50,8 +60,8 @@ def main() -> None:
     parser.add_argument(
         "--model",
         choices=MODELS,
-        default="bike",
-        help="bike model (models/<name>); real_bike is an alias for bike_scan",
+        default=DEFAULT_BIKE,
+        help=f"bike model: models/<name> (default {DEFAULT_BIKE})",
     )
     parser.add_argument(
         "--paused", action="store_true", help="start paused; Space toggles simulation"
@@ -71,8 +81,11 @@ def main() -> None:
     bike_xml = MODELS[args.model]
     if not bike_xml.is_file():
         parser.error(f"Bike model is missing: {bike_xml}; see docs/commands.md for conversion")
-    if args.scene == "k1_seated" and bike_xml != BIKE_XML:
-        parser.error("k1_seated uses models/bike (its seated pose is solved for it)")
+    if args.scene == "k1_seated" and not seated_pose_json(bike_xml).is_file():
+        parser.error(
+            f"no seated pose for {args.model}; solve one with "
+            f"uv run --group sim python scripts/solve_seated_pose.py --bike {bike_xml.parent.name}"
+        )
     if args.scene == "k1_seated" and (args.push or args.steer or args.lean or args.drop):
         parser.error("--push, --steer, --lean and --drop would disrupt the K1's seated pose")
     model = SCENES[args.scene](bike_xml=bike_xml).compile()

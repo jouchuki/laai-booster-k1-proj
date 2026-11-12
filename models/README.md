@@ -3,20 +3,22 @@
 | Folder | What | Loaded by |
 |---|---|---|
 | [k1/](k1/README.md) | The Booster K1 robot (Booster's `K1_22dof.xml`, pinned, not copied here) | `k1bike.paths.k1_xml()`, `k1bike.robots.k1.k1_spec()` |
-| [bike/](bike/README.md) | **The balance bike we use**: USDZ-derived, measured 56.5 cm wheelbase, provisional physics | `k1bike.paths.BIKE_XML` |
-| [bike_scan/](bike_scan/README.md) | Calibrated real-bike scan: 50 cm wheelbase, 22 cm tyres, 42 cm saddle top, 53 cm grip centres, 3.7 kg | `k1bike.paths.SCAN_BIKE_XML` |
-| [bike_primitive/](bike_primitive/README.md) | The first placeholder bike made of simple shapes, kept for comparison | `k1bike.paths.PRIMITIVE_BIKE_XML` |
+| [puky_bike/](puky_bike/README.md) | **The real bike we use** (default everywhere): calibrated scan, 50 cm wheelbase, 22 cm tyres, 42 cm saddle top, 53 cm grip centres, 3.7 kg | `k1bike.paths.PUKY_BIKE_XML` |
+| [yellow_bike/](yellow_bike/README.md) | The earlier bike (green in the viewer), made from a USDZ model from the internet (Sketchfab): 56.5 cm wheelbase, provisional physics | `k1bike.paths.YELLOW_BIKE_XML` |
+| [primitive_bike/](primitive_bike/README.md) | The first placeholder bike made of simple shapes, kept for comparison | `k1bike.paths.PRIMITIVE_BIKE_XML` |
 | [hand_clips/](hand_clips/README.md) | The orange add-on hand clips that attach the forearms to the grips; not used by the seated scene yet | `k1bike.hand_clips.add_orange_clips()` |
-| [k1_on_bike/](k1_on_bike/README.md) | The K1 seated on `bike/`: solved pose; scene built in code | `k1bike.scene.k1_seated_bike_scene()` |
+| [k1_on_bike/](k1_on_bike/README.md) | The K1 seated on a bike: one solved pose per bike (`puky_bike.json`, `yellow_bike.json`); scene built in code | `k1bike.scene.k1_seated_bike_scene(bike_xml)` |
 
 Combined scenes (robot + bike) are built in code, not stored as XML, so they always use the
-current robot and bike: `src/k1bike/scene.py` (`bike_scene`, `k1_bike_scene`,
+current robot and bike, and any bike can be swapped in: every bike uses the same part names
+(`frame`, `fork`, `saddle`, `seat`, `left_grip`, `right_grip`, `steer`, `root`) and is listed in
+`BIKES` in `src/k1bike/paths.py` (`DEFAULT_BIKE` is the real bike). The scenes: `src/k1bike/scene.py` (`bike_scene`, `k1_bike_scene`,
 `k1_seated_bike_scene`) and `src/k1bike/seat.py` (hand welds, seat contact).
 
 View any of them with [the viewer commands](../docs/commands.md#view-the-bike-or-the-k1-and-bike):
-`scripts/view_model.py bike | k1_bike | k1_seated`, with `--model bike_scan` or `--model bike_primitive`
+`scripts/view_model.py bike | k1_bike | k1_seated`, with `--model yellow_bike` or `--model primitive_bike`
 for the other bikes.
-The earlier `--model real_bike` option remains an alias for `bike_scan`;
+The earlier `--model puky_bike` option remains an alias for `puky_bike`;
 `--model sketchfab` and `--model primitive` also retain their previous meanings.
 
 ## Rules
@@ -27,10 +29,11 @@ The earlier `--model real_bike` option remains an alias for `bike_scan`;
   [decisions](../docs/decisions.md).
 - **Measurements first.** Physical bike measurements live in
   [docs/bike-dimensions.md](../docs/bike-dimensions.md). Change a model only against them,
-  and re-solve the seated pose (`scripts/solve_seated_pose.py`) after changing `bike/`.
-- **Generated files are regenerated, not hand-edited**: `bike/` comes from
-  `scripts/convert_bike_usdz.py`, `bike_scan/` from `scripts/convert_bike_scan.py`, `k1_on_bike/seated_pose.json` from
-  `scripts/solve_seated_pose.py`.
+  and re-solve that bike's seated pose (`scripts/solve_seated_pose.py --bike <bike>`) after
+  changing it.
+- **Generated files are regenerated, not hand-edited**: `yellow_bike/` comes from
+  `scripts/convert_yellow_bike.py`, `puky_bike/` from `scripts/convert_puky_bike.py`, `k1_on_bike/<bike>.json` from
+  `scripts/solve_seated_pose.py --bike <bike>`.
 
 ## Sanity checks for a bike model
 

@@ -2,11 +2,34 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: The real bike is the default; the K1 can sit on any bike
+
+**Decision:** `models/puky_bike` (the calibrated scan of the bike we will use) is the default
+bike for every scene, the viewer and the seated K1 (`DEFAULT_BIKE` in `src/k1bike/paths.py`).
+Seated poses are stored per bike, `models/k1_on_bike/<bike>.json`, solved with
+`scripts/solve_seated_pose.py --bike <bike>`; `k1_seated_bike_scene(bike_xml)` loads the one
+for its bike, and the seat tests run on every bike that has one. The solver now also targets
+the feet 6 cm in front of the saddle and a 20 deg forward trunk lean, and refuses to write a
+pose whose fit fails.
+
+**Why:** Training and robot tests must use the bike the robot will ride, and the next bike
+(or a re-measured one) should only need a solved pose, not code changes. On the real bike the
+saddle is 7.6 cm in front of the rear axle: an upright K1 with its feet behind the hips
+pulled the bike over backwards in simulation. A forward lean with the feet in front keeps it
+seated (about 118 N on the saddle, steady for 10 s).
+
+**Renamed the same day** to the names the team uses: `bike_scan/` (the scan of our blue Puky
+bike) is now `puky_bike/`, `bike/` (the green bike from an internet USDZ model) is now
+`yellow_bike/`, and `bike_primitive/` is now `primitive_bike/`. The viewer still accepts the
+old names (`real_bike`, `bike_scan`, `bike`, `sketchfab`, `bike_primitive`, `primitive`).
+
+**Considered:** One hard-coded pose for one bike (what we had).
+
 ## 2026-11-12: Top-level layout: models, experiments, logs, robot
 
 **Decision:** Every simulation model lives in `models/`: `k1/` (pointer to Booster's pinned
-K1 model), `bike/` (the bike we use, with its source USDZ in `source/`), `bike_scan/`
-(textured scan of the real bike, was `assets/bike/real_bike/`), `bike_primitive/` (old
+K1 model), `bike/` (the bike we used then, with its source USDZ in `source/`), `bike_scan/`
+(textured scan of the real bike, was `assets/bike/puky_bike/`), `primitive_bike/` (old
 placeholder, kept for comparison), `hand_clips/` (orange add-on clips; their code is
 `src/k1bike/hand_clips.py`) and `k1_on_bike/` (seated pose). Combined scenes are
 built in code (`src/k1bike/scene.py`), so they always use the current robot and bike. Skills
@@ -38,7 +61,7 @@ through each other, or through the frame, learns sitting and pushing motions the
 
 **Considered:** Training without self-collision for speed (mjlab's own humanoid tasks do;
 planned as walk run 3 and dropped). Collision geoms of the bike stay the measured primitives
-(capsules, cylinders) of `models/bike/`, not its visual mesh; they need
+(capsules, cylinders) of `models/yellow_bike/`, not its visual mesh; they need
 updating when the bike model changes.
 
 ## 2026-11-11: One folder per project phase

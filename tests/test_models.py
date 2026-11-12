@@ -7,7 +7,7 @@ import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, REPO_ROOT, SCAN_BIKE_XML, k1_xml
+from k1bike.paths import PRIMITIVE_BIKE_XML, PUKY_BIKE_XML, REPO_ROOT, YELLOW_BIKE_XML, k1_xml
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene
 
 
@@ -19,8 +19,8 @@ def _step(model: mujoco.MjModel, seconds: float, data: mujoco.MjData | None = No
 
 
 @pytest.fixture(
-    params=[BIKE_XML, PRIMITIVE_BIKE_XML, SCAN_BIKE_XML],
-    ids=["bike", "bike_primitive", "bike_scan"],
+    params=[YELLOW_BIKE_XML, PRIMITIVE_BIKE_XML, PUKY_BIKE_XML],
+    ids=["yellow_bike", "primitive_bike", "puky_bike"],
     scope="module",
 )
 def bike_path(request):
@@ -117,7 +117,7 @@ def test_k1_and_bike_scene_simulates(bike_path):
 
 @pytest.mark.parametrize(
     "bike_xml, expected_wheelbase, expected_mass",
-    [(BIKE_XML, 0.565, 1.5), (SCAN_BIKE_XML, 0.50, 3.7)],
+    [(YELLOW_BIKE_XML, 0.565, 1.5), (PUKY_BIKE_XML, 0.50, 3.7)],
 )
 def test_converted_wheelbase_and_configured_mass(bike_xml, expected_wheelbase, expected_mass):
     model = bike_scene(bike_xml).compile()
@@ -130,7 +130,9 @@ def test_converted_wheelbase_and_configured_mass(bike_xml, expected_wheelbase, e
     assert model.body_mass.sum() == pytest.approx(expected_mass)
 
 
-@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
+@pytest.mark.parametrize(
+    "bike_xml", [YELLOW_BIKE_XML, PUKY_BIKE_XML], ids=["yellow_bike", "puky_bike"]
+)
 def test_converted_steering_moves_front_assembly_without_moving_frame(bike_xml):
     model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
@@ -156,8 +158,8 @@ def test_converted_steering_moves_front_assembly_without_moving_frame(bike_xml):
             assert model.geom_conaffinity[geom] == 0
 
 
-def test_bike_raised_handlebars_keep_saddle_and_grip_spacing():
-    model = bike_scene(BIKE_XML).compile()
+def test_yellow_bike_raised_handlebars_keep_saddle_and_grip_spacing():
+    model = bike_scene(YELLOW_BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     left = data.site_xpos[model.site("left_grip").id]
@@ -170,8 +172,8 @@ def test_bike_raised_handlebars_keep_saddle_and_grip_spacing():
     assert model.site_bodyid[model.site("right_grip").id] == model.body("fork").id
 
 
-def test_bike_scan_visuals_keep_texture_and_all_source_triangles():
-    model = bike_scene(SCAN_BIKE_XML).compile()
+def test_puky_bike_visuals_keep_texture_and_all_source_triangles():
+    model = bike_scene(PUKY_BIKE_XML).compile()
     assert model.ntex == 1
     assert model.tex_width[0] > 0 and model.tex_height[0] > 0
     triangle_count = 0
@@ -193,8 +195,8 @@ def _mesh_world_vertices(model, data, geom_name):
     return vertices @ data.geom_xmat[geom.id].reshape(3, 3).T + data.geom_xpos[geom.id]
 
 
-def test_bike_scan_visual_and_collision_dimensions_match_owner_measurements():
-    model = bike_scene(SCAN_BIKE_XML).compile()
+def test_puky_bike_visual_and_collision_dimensions_match_owner_measurements():
+    model = bike_scene(PUKY_BIKE_XML).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     assert data.site_xpos[model.site("seat").id, 2] == pytest.approx(0.42, abs=1e-7)
@@ -218,11 +220,11 @@ def test_bike_scan_visual_and_collision_dimensions_match_owner_measurements():
         assert _mesh_world_vertices(model, data, name)[:, 2].min() == pytest.approx(0, abs=1e-6)
 
 
-def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path):
+def test_puky_bike_converter_supports_scaled_asset_in_another_directory(tmp_path):
     subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "scripts/convert_bike_scan.py"),
+            str(REPO_ROOT / "scripts/convert_puky_bike.py"),
             "--output",
             str(tmp_path),
             "--wheelbase",

@@ -1,7 +1,7 @@
 """Prepare this project's Sketchfab bike for MuJoCo with an adjustable stem.
 
 Linux and macOS, from the repository root (headless; no mjpython required):
-    uv run --with usd-core python scripts/convert_bike_usdz.py
+    uv run --with usd-core python scripts/convert_yellow_bike.py
 
 The source USDZ remains unchanged. usd-core is needed only for conversion.
 Mesh separation and bearing identification below are specific to this asset,
@@ -446,9 +446,9 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--source", type=Path, default=ROOT / "models/bike/source/Balance_bike.usdz"
+        "--source", type=Path, default=ROOT / "models/yellow_bike/source/Balance_bike.usdz"
     )
-    parser.add_argument("--output", type=Path, default=ROOT / "models/bike")
+    parser.add_argument("--output", type=Path, default=ROOT / "models/yellow_bike")
     parser.add_argument(
         "--wheelbase", type=float, default=DEFAULT_WHEELBASE, help="wheel-centre distance in metres"
     )

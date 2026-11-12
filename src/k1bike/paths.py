@@ -4,16 +4,39 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = REPO_ROOT / "models"
-# The balance bike we use (USDZ-derived, measured wheelbase); see models/bike/README.md.
-BIKE_XML = MODELS_DIR / "bike" / "bike.xml"
+
+# Bike models: models/<name>/bike.xml. Any bike with the standard part names (frame, fork,
+# saddle, seat, left_grip, right_grip, steer, root) works in every scene.
+# Textured scan of the real bike, calibrated to its measurements; see its README.
+PUKY_BIKE_XML = MODELS_DIR / "puky_bike" / "bike.xml"
+# The earlier bike (green in the viewer), from an internet USDZ model (56.5 cm wheelbase).
+YELLOW_BIKE_XML = MODELS_DIR / "yellow_bike" / "bike.xml"
 # The first placeholder bike made of simple shapes, kept for comparison.
-PRIMITIVE_BIKE_XML = MODELS_DIR / "bike_primitive" / "bike.xml"
-# Textured real-bike scan, calibrated to its reported dimensions; see its README.
-SCAN_BIKE_XML = MODELS_DIR / "bike_scan" / "bike.xml"
-# The K1's solved seated pose on BIKE_XML (written by scripts/solve_seated_pose.py).
-SEATED_POSE_JSON = MODELS_DIR / "k1_on_bike" / "seated_pose.json"
+PRIMITIVE_BIKE_XML = MODELS_DIR / "primitive_bike" / "bike.xml"
+BIKES = {
+    "puky_bike": PUKY_BIKE_XML,
+    "yellow_bike": YELLOW_BIKE_XML,
+    "primitive_bike": PRIMITIVE_BIKE_XML,
+}
+# The bike we use in real life: the default for every scene, the viewer and the seated K1.
+DEFAULT_BIKE = "puky_bike"
+DEFAULT_BIKE_XML = BIKES[DEFAULT_BIKE]
+
+# Solved seated poses, one per bike: models/k1_on_bike/<bike name>.json
+# (written by scripts/solve_seated_pose.py --bike <bike name>).
+SEATED_POSES_DIR = MODELS_DIR / "k1_on_bike"
 # Raw training output (gitignored): logs/<experiment>/<date>_<run-name>/.
 LOGS_DIR = REPO_ROOT / "logs"
+
+
+def bike_name(bike_xml: Path) -> str:
+    """Name of a bike model: its folder under models/ (models/puky_bike/bike.xml -> puky_bike)."""
+    return Path(bike_xml).resolve().parent.name
+
+
+def seated_pose_json(bike_xml: Path) -> Path:
+    """File holding the K1's solved seated pose on this bike."""
+    return SEATED_POSES_DIR / f"{bike_name(bike_xml)}.json"
 
 
 def booster_assets_dir() -> Path:

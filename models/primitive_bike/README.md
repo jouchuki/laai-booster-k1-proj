@@ -2,14 +2,16 @@
 
 `bike.xml` is the first bike model, made of simple shapes (blue in the viewer). Its numbers
 approximate a 12-inch kids' balance bike. It was replaced by the USDZ-derived
-[bike](../bike/README.md), which every scene uses by default, and is kept only for comparison:
+[yellow_bike](../yellow_bike/README.md) and then by the real bike, [puky_bike](../puky_bike/README.md), which
+every scene uses by default. It is kept only for comparison:
 
 ```bash
-uv run python scripts/view_model.py bike --model bike_primitive      # Linux host
-uv run mjpython scripts/view_model.py bike --model bike_primitive    # macOS host
+uv run python scripts/view_model.py bike --model primitive_bike      # Linux host
+uv run mjpython scripts/view_model.py bike --model primitive_bike    # macOS host
 ```
 
-The seated K1 scene does not support it (its seated pose is solved for `bike/`). Its
+It has no solved seated pose, so `k1_seated` refuses it (solve one with
+`scripts/solve_seated_pose.py --bike primitive_bike` if needed). Its
 flat-sided cylindrical tyres give it a finite support width, so an exactly upright pose can
 stay upright; see the [sanity checks](../README.md#sanity-checks-for-a-bike-model).
 
