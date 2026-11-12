@@ -2,12 +2,105 @@
 
 Teaching the Booster K1 humanoid to ride a balance bike: train in simulation, then run on the real robot.
 
+## Quick start: watch the bike scan roll and steer
+
+Run this on a **Linux or macOS desktop**. No GPU or robot is required. Open a
+terminal in the cloned repository's root: the folder containing `pyproject.toml`.
+All commands below run from that directory. The project uses **Python 3.12**;
+uv selects the project interpreter and manages the environment.
+
+### 1. Set up the local viewer
+
+**Linux and macOS**: install `uv` if you do not already have it, then restart
+your terminal so `uv` is on `PATH`.
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Linux and macOS**, from the repository root:
+
+```bash
+bash scripts/setup_booster.sh assets
+uv sync
+```
+
+This fetches the pinned robot assets required by the project and installs the
+local viewer dependencies. The generated bike meshes and textures are included
+in `models/bike_scan/`; you can view them without running the converter.
+
+### 2. Open the rolling and steering demo
+
+**Linux host**, from the repository root:
+
+```bash
+uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+```
+
+**macOS host**, from the repository root:
+
+```bash
+uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
+```
+
+The window opens **paused**, with the blue textured bike's front assembly turned
+12°. Click the viewer window to give it keyboard focus, then press **Space**.
+The bike starts rolling at **1.5 m/s**, with both wheels spinning. Watch the
+front wheel and handlebars steer together while the camera follows the bike.
+It can turn, slow down and topple as gravity and ground contact act on it.
+
+| Control | Action |
+|---|---|
+| **Space** | Pause or resume the simulation. |
+| **R** | Reset the pose, steering and initial push to replay the demo. If paused, press Space to release it again. |
+| Close the window | Stop the viewer before launching another example. |
+
+`--steer` sets the starting steering angle; the steering joint moves freely
+after release. `--push` gives an initial rolling speed. This is a passive physics
+demo; powered riding and automatic balance remain future work. A separate
+`k1_seated` scene holds the K1 seated on the green bike (`models/bike/`) with PD control.
+The scan's configured mass is **1.5 kg**, a provisional estimate.
+
+### 3. Try straight rolling or a fall
+
+Close the current viewer, then run **one command at a time**. The first gives a
+straight initial push. The second releases the bike from a 5° lean, raised 3 cm
+to avoid starting inside the floor. Press **Space** to release it and **R** to
+repeat.
+
+**Linux host**, from the repository root:
+
+```bash
+# Straight initial push, with no initial steering.
+uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --paused
+
+# Lean-and-fall test.
+uv run python scripts/view_model.py bike --model bike_scan --lean 5 --drop 0.03 --paused
+```
+
+**macOS host**, from the repository root:
+
+```bash
+# Straight initial push, with no initial steering.
+uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --paused
+
+# Lean-and-fall test.
+uv run mjpython scripts/view_model.py bike --model bike_scan --lean 5 --drop 0.03 --paused
+```
+
+Change `--steer 12` to `--steer -12` to try the opposite starting direction,
+or change `--push` to compare speeds. Omitting `--model bike_scan` loads the
+older green bike; `--model bike_primitive` selects the original simple blue shapes.
+See the [model notes](models/bike_scan/README.md) for scan and physics
+limitations, and [platform troubleshooting](docs/commands.md#platform-specific-troubleshooting)
+if the viewer does not open. On macOS, the native viewer requires `mjpython`.
+
 ## Plan and status
 
 | Phase | Goal | Status | Where |
 |---|---|---|---|
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [experiments/walk/](experiments/walk/README.md) |
-| 2 | Balance-bike model in simulation | Measured USDZ-derived model, provisional physics | [models/bike/](models/bike/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
+| 2 | Balance-bike model in simulation | USDZ-derived bike (measured size, used by every scene), textured scan of the real bike, primitive placeholder; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
 | 3 | Sit on a supported bike | Seated scene ready (hands welded to the grips, pelvis on the saddle by contact); no training task yet | [models/k1_on_bike/](models/k1_on_bike/README.md) |
 | 4 | Walk the bike, supported | Not started | |
 | 5 | Free bike, feet as support | Not started | |
@@ -28,7 +121,9 @@ Extra: stride and glide. Lift both feet and coast, balancing by steering only, t
 models/              everything the simulator loads
   k1/                the Booster K1 robot (Booster's model, pinned; settings in src/k1bike/robots/k1.py)
   bike/              the balance bike we use (USDZ-derived), with its source USDZ
+  bike_scan/         textured scan of the real bike (taller saddle and bars than measured)
   bike_primitive/    the old placeholder bike, kept for comparison
+  hand_clips/        the orange add-on hand clips (code in src/k1bike/hand_clips.py)
   k1_on_bike/        the K1 seated on the bike: solved pose
 experiments/         one folder per skill (walk, later sit, push, ride)
   walk/              training task, export, booster_deploy task files
@@ -46,11 +141,11 @@ legacy/              old, unvalidated experiments (ROS 2 Docker)
 
 | Folder | Contents |
 |---|---|
-| [models/](models/README.md) | `k1/README.md` (where the robot model comes from), `bike/` (`bike.xml`, `meshes/`, `measurements.json`, `source/`), `bike_primitive/bike.xml`, `k1_on_bike/seated_pose.json` |
+| [models/](models/README.md) | `k1/README.md` (where the robot model comes from), `bike/` (`bike.xml`, `meshes/`, `measurements.json`, `source/`), `bike_scan/` (`bike.xml`, `meshes/`, `source/` with textures), `bike_primitive/bike.xml`, `hand_clips/README.md`, `k1_on_bike/seated_pose.json` |
 | [experiments/](experiments/README.md) | `<experiment>/task.py` (mjlab task `LAAI-K1-<Experiment>-...`), `export.py`, `deploy/` (booster_deploy tasks `laai_<experiment>...`), `runs/runN/`, `README.md` (experiment report) |
 | `logs/` | Checkpoints, TensorBoard and videos from `scripts/train.py`; link the ones you keep from the run's `notes.md` |
-| `src/k1bike/` | `paths.py` (every model and log path), `robots/k1.py` (K1 model and booster_deploy settings), `scene.py` (bike, K1 + bike and seated scenes), `seat.py` (hand welds, seat contact) |
-| `scripts/` | `setup_booster.sh`, `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `train.py`, `play.py` (any experiment), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py` (makes `models/bike/`), `solve_seated_pose.py` (makes `models/k1_on_bike/`) |
+| `src/k1bike/` | `paths.py` (every model and log path), `robots/k1.py` (K1 model and booster_deploy settings), `scene.py` (bike, K1 + bike and seated scenes), `seat.py` (hand welds, seat contact), `hand_clips.py` (orange clip geometry and attachments) |
+| `scripts/` | `setup_booster.sh`, `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `train.py`, `play.py` (any experiment), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py` (makes `models/bike/`), `convert_bike_scan.py` (makes `models/bike_scan/`), `solve_seated_pose.py` (makes `models/k1_on_bike/`) |
 | [robot/](robot/README.md) | `install.sh <experiment>`, `setup_robot.sh`, `dry_run.py` (policy on live sensors, no motor commands), `robot_info.py` |
 | [cluster/](cluster/README.md) | `train.slurm` (cluster details still to fill in) |
 | `docs/` | [commands.md](docs/commands.md) (every command by platform), [decisions.md](docs/decisions.md), [bike-dimensions.md](docs/bike-dimensions.md), [handover/](docs/handover/README.md) (first setup, credentials template) |

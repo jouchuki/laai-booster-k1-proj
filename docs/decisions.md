@@ -5,8 +5,10 @@ Newest first. One entry per decision: what, why, what else was considered.
 ## 2026-11-12: Top-level layout: models, experiments, logs, robot
 
 **Decision:** Every simulation model lives in `models/`: `k1/` (pointer to Booster's pinned
-K1 model), `bike/` (the bike we use, with its source USDZ in `source/`), `bike_primitive/`
-(old placeholder, kept for comparison) and `k1_on_bike/` (seated pose). Combined scenes are
+K1 model), `bike/` (the bike we use, with its source USDZ in `source/`), `bike_scan/`
+(textured scan of the real bike, was `assets/bike/real_bike/`), `bike_primitive/` (old
+placeholder, kept for comparison), `hand_clips/` (orange add-on clips; their code is
+`src/k1bike/hand_clips.py`) and `k1_on_bike/` (seated pose). Combined scenes are
 built in code (`src/k1bike/scene.py`), so they always use the current robot and bike. Skills
 live in `experiments/<experiment>/` (was `phases/`), with the curated record of each training
 run in `runs/runN/`; raw training output goes to `logs/laai_<experiment>/<date>_<run-name>/`

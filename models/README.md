@@ -4,7 +4,9 @@
 |---|---|---|
 | [k1/](k1/README.md) | The Booster K1 robot (Booster's `K1_22dof.xml`, pinned, not copied here) | `k1bike.paths.k1_xml()`, `k1bike.robots.k1.k1_spec()` |
 | [bike/](bike/README.md) | **The balance bike we use**: USDZ-derived, measured 56.5 cm wheelbase, provisional physics | `k1bike.paths.BIKE_XML` |
+| [bike_scan/](bike_scan/README.md) | Textured scan of the real bike; its scanned saddle (50 cm) and bars (~59 cm) are taller than measured | `k1bike.paths.SCAN_BIKE_XML` |
 | [bike_primitive/](bike_primitive/README.md) | The first placeholder bike made of simple shapes, kept for comparison | `k1bike.paths.PRIMITIVE_BIKE_XML` |
+| [hand_clips/](hand_clips/README.md) | The orange add-on hand clips that attach the forearms to the grips; not used by the seated scene yet | `k1bike.hand_clips.add_orange_clips()` |
 | [k1_on_bike/](k1_on_bike/README.md) | The K1 seated on `bike/`: solved pose; scene built in code | `k1bike.scene.k1_seated_bike_scene()` |
 
 Combined scenes (robot + bike) are built in code, not stored as XML, so they always use the
@@ -12,7 +14,8 @@ current robot and bike: `src/k1bike/scene.py` (`bike_scene`, `k1_bike_scene`,
 `k1_seated_bike_scene`) and `src/k1bike/seat.py` (hand welds, seat contact).
 
 View any of them with [the viewer commands](../docs/commands.md#view-the-bike-or-the-k1-and-bike):
-`scripts/view_model.py bike | k1_bike | k1_seated`, and `--model bike_primitive` for the old bike.
+`scripts/view_model.py bike | k1_bike | k1_seated`, with `--model bike_scan` or `--model bike_primitive`
+for the other bikes.
 
 ## Rules
 
@@ -24,7 +27,7 @@ View any of them with [the viewer commands](../docs/commands.md#view-the-bike-or
   [docs/bike-dimensions.md](../docs/bike-dimensions.md). Change a model only against them,
   and re-solve the seated pose (`scripts/solve_seated_pose.py`) after changing `bike/`.
 - **Generated files are regenerated, not hand-edited**: `bike/` comes from
-  `scripts/convert_bike_usdz.py`, `k1_on_bike/seated_pose.json` from
+  `scripts/convert_bike_usdz.py`, `bike_scan/` from `scripts/convert_bike_scan.py`, `k1_on_bike/seated_pose.json` from
   `scripts/solve_seated_pose.py`.
 
 ## Sanity checks for a bike model
@@ -40,7 +43,7 @@ is absent. Check with controlled experiments instead:
 - Give it an initial rolling speed. The viewer sets the wheel speeds as well as the frame
   velocity, so it starts rolling instead of sliding on stationary wheels.
 
-`tests/test_models.py` runs these checks headless on both bikes. Passing them shows that the
+`tests/test_models.py` runs these checks headless on all three bikes. Passing them shows that the
 mechanism responds to gravity and contact; it does not validate the real bike's parameters.
 Whether an unpowered bike recovers while moving depends on speed, steering geometry, inertia,
 contacts and tyres, so self-righting is not an acceptance test. Tyre behaviour, mass

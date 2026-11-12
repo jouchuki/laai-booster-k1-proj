@@ -31,6 +31,21 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 Restart your terminal if `uv` is not yet on `PATH`.
 
+### Linux and macOS: local bike viewer only
+
+From the repository root, install the pinned asset checkout and base dependencies:
+
+```bash
+bash scripts/setup_booster.sh assets
+uv sync
+```
+
+This local desktop workflow uses Python 3.12 and needs no GPU or optional
+dependency group. The generated bike assets are included in the repository.
+Continue with the [viewer commands](#view-the-bike-or-the-k1-and-bike), or follow
+the [README walkthrough](../README.md#quick-start-watch-the-real-bike-roll-and-steer).
+The fuller setup below adds pretrained-policy and training dependencies.
+
 ### Linux host
 
 ```bash
@@ -63,6 +78,9 @@ wheel centres**, with its stem extended to **45 cm grip-centre height**.
 It loads `models/bike/bike.xml`, which contains
 the separated meshes and provisional physics; it does not load the USDZ directly.
 Use `--model bike_primitive` to compare with the original blue prototype.
+Use `--model bike_scan` for the textured scan of the real bike. Its uniformly
+scaled saddle and grip heights differ from the measured bike; see the
+[scan notes](../models/bike_scan/README.md). The default remains green.
 
 ### Linux host
 
@@ -70,10 +88,13 @@ Use `--model bike_primitive` to compare with the original blue prototype.
 uv run python scripts/view_model.py bike
 uv run python scripts/view_model.py bike --paused
 uv run python scripts/view_model.py bike --model bike_primitive
+uv run python scripts/view_model.py bike --model bike_scan --paused
+uv run python scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
 uv run python scripts/view_model.py bike --push 3
 uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
+uv run python scripts/view_model.py k1_bike --model bike_scan
 uv run python scripts/view_model.py k1_seated
 ```
 
@@ -83,10 +104,13 @@ uv run python scripts/view_model.py k1_seated
 uv run mjpython scripts/view_model.py bike
 uv run mjpython scripts/view_model.py bike --paused
 uv run mjpython scripts/view_model.py bike --model bike_primitive
+uv run mjpython scripts/view_model.py bike --model bike_scan --paused
+uv run mjpython scripts/view_model.py bike --model bike_scan --push 1.5 --steer 12 --paused
 uv run mjpython scripts/view_model.py bike --push 3
 uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
+uv run mjpython scripts/view_model.py k1_bike --model bike_scan
 uv run mjpython scripts/view_model.py k1_seated
 ```
 
@@ -94,9 +118,15 @@ Run one viewer command at a time. `--push 3` sets an initial rolling speed of
 3 m/s, including wheel rotation. `--lean` sets the initial roll angle in degrees;
 `--drop` raises the bike by the specified metres before release. A 5° lean
 demonstrates toppling, and a 0.3 m drop demonstrates gravity. These options only
-change the bike's initial state, including in the combined scene; `k1_seated`
-rejects them because they would move the bike out from under the seated K1.
+change the bike's initial state in the bike-only and unattached combined scenes.
+`--steer 12` starts with 12° steering and leaves it passive after release; it
+does not hold the angle or add a controller. `k1_seated` rejects `--push`,
+`--steer`, `--lean` and `--drop` changes because its pose and hand attachments
+are solved for the nominal bike state.
 Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulation.
+**R** restores the requested initial state, including the seated keyframe and
+pose-holding target in `k1_seated`. The camera follows the bike, and the viewer
+prints the bike's configured mass at startup.
 
 `k1_bike` places the K1 next to the bike, unattached. `k1_seated` starts the K1
 sitting on the USDZ-derived bike with both hands welded to the grips, and holds
@@ -130,6 +160,22 @@ the stem along the steering axis. Optional flags override these defaults.
 Regeneration also prints the derived dimensions; check them against
 [docs/bike-dimensions.md](bike-dimensions.md). The extra `usd-core` package is
 not needed for normal viewing or tests.
+
+### Linux and macOS: regenerate the bike scan
+
+From the repository root, headless with ordinary Python on both platforms:
+
+```bash
+uv run python scripts/convert_bike_scan.py
+```
+
+This reads the exports in `models/bike_scan/source/` and writes the derivative
+under `models/bike_scan/`. It uses the source colour texture through a
+relative path; keep the source folder with the generated asset. No extra dependency
+group is needed. Defaults are 0.565 m axle spacing and a provisional 1.5 kg mass;
+`--wheelbase` and `--mass` override them. The scan's saddle and handlebars retain
+their uniformly scaled geometry. Conversion details and limitations are in the
+[scan notes](../models/bike_scan/README.md).
 
 ## Run Booster's pretrained policy
 

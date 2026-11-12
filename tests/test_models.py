@@ -1,10 +1,13 @@
 """Quick checks that the models load and simulate. Run before any long training job."""
 
+import subprocess
+import sys
+
 import mujoco
 import numpy as np
 import pytest
 
-from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, k1_xml
+from k1bike.paths import BIKE_XML, PRIMITIVE_BIKE_XML, REPO_ROOT, SCAN_BIKE_XML, k1_xml
 from k1bike.scene import bike_scene, initialize_bike_state, k1_bike_scene
 
 
@@ -16,7 +19,9 @@ def _step(model: mujoco.MjModel, seconds: float, data: mujoco.MjData | None = No
 
 
 @pytest.fixture(
-    params=[BIKE_XML, PRIMITIVE_BIKE_XML], ids=["bike", "bike_primitive"], scope="module"
+    params=[BIKE_XML, PRIMITIVE_BIKE_XML, SCAN_BIKE_XML],
+    ids=["bike", "bike_primitive", "bike_scan"],
+    scope="module",
 )
 def bike_path(request):
     return request.param
@@ -87,7 +92,7 @@ def test_initial_push_is_rolling_instead_of_sliding(bike_model):
         body = int(model.geom_bodyid[geom.id])
         velocity = np.zeros(6)
         mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_BODY, body, velocity, 0)
-        # Both models start with their wheel axles above a z=0 floor. This
+        # All models start with their wheel axles above a z=0 floor. This
         # checks contact-point velocity, independently of the launcher's radius
         # calculation and of the collider's cylinder/mesh representation.
         contact_point = data.xanchor[model.joint(name).id].copy()
@@ -110,8 +115,9 @@ def test_k1_and_bike_scene_simulates(bike_path):
     assert np.isfinite(data.qpos).all()
 
 
-def test_bike_wheelbase_matches_reported_measurement():
-    model = bike_scene(BIKE_XML).compile()
+@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
+def test_converted_wheelbase_matches_reported_measurement(bike_xml):
+    model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     front = data.xanchor[model.joint("front_wheel").id]
@@ -123,8 +129,9 @@ def test_bike_wheelbase_matches_reported_measurement():
     )
 
 
-def test_bike_steering_moves_front_assembly_without_moving_frame():
-    model = bike_scene(BIKE_XML).compile()
+@pytest.mark.parametrize("bike_xml", [BIKE_XML, SCAN_BIKE_XML], ids=["bike", "bike_scan"])
+def test_converted_steering_moves_front_assembly_without_moving_frame(bike_xml):
+    model = bike_scene(bike_xml).compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     front = model.body("front_wheel").id
@@ -143,7 +150,7 @@ def test_bike_steering_moves_front_assembly_without_moving_frame():
     np.testing.assert_allclose(data.xpos[rear], rear_before)
     np.testing.assert_allclose(data.xmat[frame], frame_before)
     for geom in range(model.ngeom):
-        if "_visual_" in (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom) or ""):
+        if "_visual" in (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom) or ""):
             assert model.geom_contype[geom] == 0
             assert model.geom_conaffinity[geom] == 0
 
@@ -160,3 +167,46 @@ def test_bike_raised_handlebars_keep_saddle_and_grip_spacing():
     assert data.site_xpos[model.site("seat").id, 2] == pytest.approx(0.358265822, abs=1e-7)
     assert model.site_bodyid[model.site("left_grip").id] == model.body("fork").id
     assert model.site_bodyid[model.site("right_grip").id] == model.body("fork").id
+
+
+def test_bike_scan_visuals_keep_texture_and_all_source_triangles():
+    model = bike_scene(SCAN_BIKE_XML).compile()
+    assert model.ntex == 1
+    assert model.tex_width[0] > 0 and model.tex_height[0] > 0
+    triangle_count = 0
+    for body in ("frame", "fork", "rear_wheel", "front_wheel"):
+        geom = model.geom(f"{body}_visual")
+        assert model.geom_bodyid[geom.id] == model.body(body).id
+        assert model.geom_matid[geom.id] >= 0
+        mesh = int(model.geom_dataid[geom.id])
+        assert model.mesh_texcoordnum[mesh] > 0
+        triangle_count += int(model.mesh_facenum[mesh])
+    assert triangle_count == 25000
+
+
+def test_bike_scan_converter_supports_scaled_asset_in_another_directory(tmp_path):
+    subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts/convert_bike_scan.py"),
+            "--output",
+            str(tmp_path),
+            "--wheelbase",
+            "0.452",
+            "--mass",
+            "2.0",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    model = bike_scene(tmp_path / "bike.xml").compile()
+    data = mujoco.MjData(model)
+    initialize_bike_state(model, data, forward_speed=1.0)
+    front = data.xanchor[model.joint("front_wheel").id]
+    rear = data.xanchor[model.joint("rear_wheel").id]
+    assert np.linalg.norm(front - rear) == pytest.approx(0.452, abs=1e-7)
+    assert model.body_mass.sum() == pytest.approx(2.0)
+    assert model.ntex == 1
+    assert _step(model, 0.5, data).qpos[0] > 0.3

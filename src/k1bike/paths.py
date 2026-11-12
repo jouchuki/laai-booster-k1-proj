@@ -8,6 +8,8 @@ MODELS_DIR = REPO_ROOT / "models"
 BIKE_XML = MODELS_DIR / "bike" / "bike.xml"
 # The first placeholder bike made of simple shapes, kept for comparison.
 PRIMITIVE_BIKE_XML = MODELS_DIR / "bike_primitive" / "bike.xml"
+# Textured scan of the real bike (taller saddle and bars than measured); see its README.
+SCAN_BIKE_XML = MODELS_DIR / "bike_scan" / "bike.xml"
 # The K1's solved seated pose on BIKE_XML (written by scripts/solve_seated_pose.py).
 SEATED_POSE_JSON = MODELS_DIR / "k1_on_bike" / "seated_pose.json"
 # Raw training output (gitignored): logs/<experiment>/<date>_<run-name>/.
