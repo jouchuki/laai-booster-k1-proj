@@ -31,6 +31,21 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 Restart your terminal if `uv` is not yet on `PATH`.
 
+### Linux and macOS: local bike viewer only
+
+From the repository root, install the pinned asset checkout and base dependencies:
+
+```bash
+bash scripts/setup_booster.sh assets
+uv sync
+```
+
+This local desktop workflow uses Python 3.12 and needs no GPU or optional
+dependency group. The generated bike assets are included in the repository.
+Continue with the [viewer commands](#view-the-bike-or-the-k1-and-bike), or follow
+the [README walkthrough](../README.md#quick-start-watch-the-real-bike-roll-and-steer).
+The fuller setup below adds pretrained-policy and training dependencies.
+
 ### Linux host
 
 ```bash

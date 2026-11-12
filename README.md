@@ -1,25 +1,103 @@
-LAAI Humanoid Cycling project
+# LAAI Humanoid Cycling project
 
 Teaching the Booster K1 humanoid to ride a balance bike: train in MuJoCo on a GPU cluster, then transfer to the real robot.
 
-Robot login (IP, user, password): see `handover docs/credentials.md` (gitignored, ask a teammate), described under "Robot access and credentials" below.
+## Quick start: watch the real bike roll and steer
 
-### Commands by platform
+Run this on a **Linux or macOS desktop**. No GPU or robot is required. Open a
+terminal in the cloned repository's root: the folder containing `pyproject.toml`.
+All commands below run from that directory. The project uses **Python 3.12**;
+uv selects the project interpreter and manages the environment.
 
-Use [docs/commands.md](docs/commands.md) for separate Linux host, macOS host,
-Linux GPU cluster, and robot commands. Run commands from the repository root
-unless an example explicitly changes directory.
+### 1. Set up the local viewer
 
-### Setup
-
-Install `uv` on **Linux or macOS**:
+**Linux and macOS**: install `uv` if you do not already have it, then restart
+your terminal so `uv` is on `PATH`.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-The project uses **Python 3.12**. Get Booster's code at the pinned versions,
-install the simulation and training groups, and run the checks.
+**Linux and macOS**, from the repository root:
+
+```bash
+bash scripts/setup_booster.sh assets
+uv sync
+```
+
+This fetches the pinned robot assets required by the project and installs the
+local viewer dependencies. The generated bike meshes and textures are included
+in `assets/bike/real_bike/`; you can view them without running the converter.
+
+### 2. Open the rolling and steering demo
+
+**Linux host**, from the repository root:
+
+```bash
+uv run python scripts/view_model.py bike --model real_bike --push 1.5 --steer 12 --paused
+```
+
+**macOS host**, from the repository root:
+
+```bash
+uv run mjpython scripts/view_model.py bike --model real_bike --push 1.5 --steer 12 --paused
+```
+
+The window opens **paused**, with the blue textured bike's front assembly turned
+12°. Click the viewer window to give it keyboard focus, then press **Space**.
+The bike starts rolling at **1.5 m/s**, with both wheels spinning. Watch the
+front wheel and handlebars steer together while the camera follows the bike.
+It can turn, slow down and topple as gravity and ground contact act on it.
+
+| Control | Action |
+|---|---|
+| **Space** | Pause or resume the simulation. |
+| **R** | Reset the pose, steering and initial push to replay the demo. If paused, press Space to release it again. |
+| Close the window | Stop the viewer before launching another example. |
+
+`--steer` sets the starting steering angle; the steering joint moves freely
+after release. `--push` gives an initial rolling speed. This is a passive physics
+demo; powered riding, automatic balance and a seated K1 controller are still to
+be implemented. The bike's configured mass is **1.5 kg**, a provisional estimate.
+
+### 3. Try straight rolling or a fall
+
+Close the current viewer, then run **one command at a time**. The first gives a
+straight initial push. The second releases the bike from a 5° lean, raised 3 cm
+to avoid starting inside the floor. Press **Space** to release it and **R** to
+repeat.
+
+**Linux host**, from the repository root:
+
+```bash
+# Straight initial push, with no initial steering.
+uv run python scripts/view_model.py bike --model real_bike --push 1.5 --paused
+
+# Lean-and-fall test.
+uv run python scripts/view_model.py bike --model real_bike --lean 5 --drop 0.03 --paused
+```
+
+**macOS host**, from the repository root:
+
+```bash
+# Straight initial push, with no initial steering.
+uv run mjpython scripts/view_model.py bike --model real_bike --push 1.5 --paused
+
+# Lean-and-fall test.
+uv run mjpython scripts/view_model.py bike --model real_bike --lean 5 --drop 0.03 --paused
+```
+
+Change `--steer 12` to `--steer -12` to try the opposite starting direction,
+or change `--push` to compare speeds. Omitting `--model real_bike` loads the
+older green bike; `--model primitive` selects the original simple blue shapes.
+See the [model notes](assets/bike/real_bike/README.md) for scan and physics
+limitations, and [platform troubleshooting](docs/commands.md#platform-specific-troubleshooting)
+if the viewer does not open. On macOS, the native viewer requires `mjpython`.
+
+## Development and training setup
+
+For Booster's pretrained policies and our training pipeline, fetch both Booster
+checkouts and install the additional dependency groups. From the repository root:
 
 #### Linux host
 
@@ -87,7 +165,8 @@ directory is named `booster`.
 ### Project layout
 
 ```
-assets/bike/          original USDZ, scaled MuJoCo derivative, primitive baseline and model notes
+assets/bike/          primitive, Sketchfab and real_bike MuJoCo bikes, plus model notes
+assets/bike/real_bike/source/ uploaded bike exports (OBJ, textures and USDZ)
 src/k1bike/           our code: paths, scene builder (K1 + bike), robots/k1.py, tasks/ per phase
 configs/              how to configure runs and W&B conventions
 scripts/              setup_booster.sh, view_model.py, train.py, play.py
@@ -103,6 +182,10 @@ handover docs/        handover notes; credentials.md and PDFs are gitignored
 View the models with the [Linux or macOS viewer commands](docs/commands.md#view-the-bike-or-the-k1-and-bike).
 The viewer defaults to the green USDZ-derived bike at 56.5 cm wheelbase; its
 physical parameters remain provisional (see [dimensions](docs/bike-dimensions.md)).
+Use `--model real_bike` for the uploaded textured blue bike, or `--model primitive`
+for the original shapes. All three support rolling wheels and steering. The
+[scan notes](assets/bike/real_bike/README.md) explain its approximate part
+boundaries and its saddle/handlebar height differences from the measured bike.
 The `k1_bike` scene places the robot next to the bike; seated interaction is not implemented yet.
 
 ### Decisions
