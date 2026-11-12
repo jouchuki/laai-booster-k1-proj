@@ -2,6 +2,24 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: Sit task: bike fixed upright, walk policy interface
+
+**Decision:** Phase 3's training task `LAAI-K1-Sit-Puky` (`experiments/sit/task.py`) fixes the
+Puky to the world (its free joint removed; steering and wheels still turn), welds the hands to
+the grips and starts the K1 in the solved seated pose. The policy has exactly the walk
+policy's interface (690 inputs, 20 actions around a default pose, k1_walk gains), with the
+seated pose as its default pose and the velocity command always zero. Rewards: weight on the
+saddle, feet on the floor, seated trunk orientation, posture, little arm effort, smoothness.
+
+**Why:** Phase 3 of the plan holds the bike upright, and a fixed bike is the simplest exact
+way to do that in parallel simulation (every environment shares one origin). The walk
+interface means the same export and booster_deploy path as the robot-tested walk policy; the
+command input is ready for phase 4, where it can ask the robot to push the bike along.
+
+**Considered:** A free bike propped by a world weld or roll springs (needed from phase 4 on,
+not to learn to sit); a new observation layout with saddle force (the robot has no saddle
+sensor; the critic gets it instead).
+
 ## 2026-11-12: First seated robot test holds the solved pose
 
 **Decision:** The first real-robot test of phase 3 runs `laai_sit_hold`

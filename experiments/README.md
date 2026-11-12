@@ -33,7 +33,7 @@ project root and stays out of git; link the checkpoint you used from `notes.md`.
 |---|---|---|
 | 1. Walking | [walk/](walk/README.md) | Walks and turns on the robot (run 2) |
 | 2. Bike model | none: a model, see [models/](../models/README.md) | Measured model, provisional physics |
-| 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Robot task `laai_sit_hold` holds the seated pose (no balance); no training task yet |
+| 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Training task `LAAI-K1-Sit-Puky` ready, not trained; robot task `laai_sit_hold` holds the seated pose (no balance) |
 | 4-5. Push, ride | not created yet | Not started |
 
 ## Names

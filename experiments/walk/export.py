@@ -70,8 +70,8 @@ def build_index_maps(mjlab_joints: list[str]):
     return torch.tensor(in_index, dtype=torch.long), torch.tensor(out_index, dtype=torch.long)
 
 
-def make_env(play: bool, render: bool, device: str):
-    cfg = load_env_cfg(K.TASK_ID, play=play) if play else load_env_cfg(K.TASK_ID)
+def make_env(task_id: str, play: bool, render: bool, device: str):
+    cfg = load_env_cfg(task_id, play=play) if play else load_env_cfg(task_id)
     cfg.scene.num_envs = 1
     cfg.observations["actor"].enable_corruption = False
     return ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array" if render else None)
@@ -87,13 +87,17 @@ def deploy_frame(env, mjlab_joints, last_action_mjlab):
     q0 = robot.data.default_joint_pos[0, ids]
     ang = env.scene["robot/imu_ang_vel"].data[0]
     grav = robot.data.projected_gravity_b[0]
-    cmd = env.command_manager.get_command("twist")[0]
+    if "twist" in env.cfg.commands:
+        cmd = env.command_manager.get_command("twist")[0]
+    else:  # tasks without a velocity command (sit) always observe zero, as booster_deploy sends
+        cmd = torch.zeros(3, device=grav.device)
     mj_pos = {n: k for k, n in enumerate(mjlab_joints)}
     act = last_action_mjlab[[mj_pos[n] for n in K.POLICY_JOINTS]]
     return torch.cat([ang, grav, cmd, q - q0, qd * K.JOINT_VEL_SCALE, act])
 
 
-def main():
+def main(task_id: str = K.TASK_ID):
+    """Export a checkpoint of `task_id` (any task with the walk policy's interface)."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", required=True)
     ap.add_argument("--out", default="policy.pt")
@@ -102,10 +106,10 @@ def main():
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
-    env = make_env(play=True, render=args.video is not None, device=args.device)
-    agent_cfg = load_rl_cfg(K.TASK_ID)
+    env = make_env(task_id, play=True, render=args.video is not None, device=args.device)
+    agent_cfg = load_rl_cfg(task_id)
     wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
-    runner_cls = load_runner_cls(K.TASK_ID) or MjlabOnPolicyRunner
+    runner_cls = load_runner_cls(task_id) or MjlabOnPolicyRunner
     runner = runner_cls(wrapped, asdict(agent_cfg), device=args.device)
     runner.load(args.checkpoint, load_cfg={"actor": True}, strict=True, map_location=args.device)
 
@@ -119,7 +123,7 @@ def main():
     # --- Run the policy, check the deploy-format model gives the same actions, record video ---
     policy = runner.get_inference_policy(device=args.device)
     obs = wrapped.get_observations()
-    cmd_term = env.command_manager.get_term("twist")
+    cmd_term = env.command_manager.get_term("twist") if "twist" in env.cfg.commands else None
     history: deque = deque(maxlen=K.HISTORY)
     last_action = torch.zeros(20, device=args.device)
     frames, max_diff, fell = [], 0.0, False
@@ -127,6 +131,8 @@ def main():
 
     def set_command(t):
         # Scripted commands for the test: stand, walk forward, curve, walk back, stand.
+        if cmd_term is None:
+            return
         phase = t * env.step_dt / args.seconds
         vx, wz = (
             (0.0, 0.0)
