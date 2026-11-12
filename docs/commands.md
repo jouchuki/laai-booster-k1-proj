@@ -8,7 +8,7 @@ its name is arbitrary. Booster checkouts normally live directly inside it as
 `booster_assets/` and `booster_deploy/`. Setup also reuses the older
 `booster/booster_assets/` and `booster/booster_deploy/` layout, creating top-level
 relative symlinks for uv and the examples below. It does not move or duplicate
-existing clones. Run setup before `uv sync` or `uv run pre-commit install` if
+existing clones. Run setup before `uv sync` if
 `booster_assets/` is absent.
 
 | Execution target | Native MuJoCo viewer | Headless Python | Intended use |
@@ -51,7 +51,6 @@ The fuller setup below adds pretrained-policy and training dependencies.
 ```bash
 bash scripts/setup_booster.sh
 uv sync --group sim --group train
-uv run pre-commit install
 uv run pytest
 ```
 
@@ -60,7 +59,6 @@ uv run pytest
 ```bash
 bash scripts/setup_booster.sh
 uv sync --group sim --group train
-uv run pre-commit install
 uv run pytest
 ```
 
@@ -97,6 +95,7 @@ uv run python scripts/view_model.py bike --lean 5 --drop 0.03
 uv run python scripts/view_model.py bike --drop 0.3
 uv run python scripts/view_model.py k1_bike
 uv run python scripts/view_model.py k1_bike --model real_bike
+uv run python scripts/view_model.py k1_seated
 ```
 
 ### macOS host
@@ -112,22 +111,37 @@ uv run mjpython scripts/view_model.py bike --lean 5 --drop 0.03
 uv run mjpython scripts/view_model.py bike --drop 0.3
 uv run mjpython scripts/view_model.py k1_bike
 uv run mjpython scripts/view_model.py k1_bike --model real_bike
+uv run mjpython scripts/view_model.py k1_seated
 ```
 
 Run one viewer command at a time. `--push 3` sets an initial rolling speed of
 3 m/s, including wheel rotation. `--lean` sets the initial roll angle in degrees;
 `--drop` raises the bike by the specified metres before release. A 5° lean
 demonstrates toppling, and a 0.3 m drop demonstrates gravity. These options only
-change the bike's initial state, including in the combined scene.
+change the bike's initial state in the bike-only and unattached combined scenes.
 `--steer 12` starts with 12° steering and leaves it passive after release; it
-does not hold the angle or add a controller. Use `--paused` to inspect the
-initial pose; **Space** pauses or resumes simulation. **R** resets the bike to
-the requested initial state so you can repeat the push or drop. The camera
-follows the bike, and the viewer prints the bike's configured mass at startup.
+does not hold the angle or add a controller. `k1_seated` rejects `--push`,
+`--steer`, `--lean` and `--drop` changes because its pose and hand attachments
+are solved for the nominal bike state.
+Use `--paused` to inspect the initial pose; **Space** pauses or resumes simulation.
+**R** restores the requested initial state, including the seated keyframe and
+pose-holding target in `k1_seated`. The camera follows the bike, and the viewer
+prints the bike's configured mass at startup.
 
-`k1_bike` places the K1 next to the bike; it does not seat or attach it. See the
+`k1_bike` places the K1 next to the bike, unattached. `k1_seated` starts the K1
+sitting on the USDZ-derived bike with both hands welded to the grips, and holds
+that pose with the k1_walk PD gains (see `src/k1bike/seat.py`). See the
 [bike model notes](../assets/bike/README.md) for physics limitations and the
 [physical measurements](bike-dimensions.md) before changing its parameters.
+
+### Linux and macOS: re-solve the K1's seated pose
+
+Rerun after changing the bike model or the clip geometry in `src/k1bike/seat.py`
+(headless; needs the `sim` group for scipy):
+
+```bash
+uv run --group sim python scripts/solve_seated_pose.py
+```
 
 ### Linux and macOS: regenerate the converted bike
 
@@ -190,22 +204,16 @@ bash scripts/run_sample_task.sh k1_walk
 
 ## Train our mjlab task
 
-### Linux GPU cluster
+New runs train with `scripts/train.py` on the Linux GPU cluster. Walk runs 1 and 2 were
+trained on Google Colab; their notebooks are kept as records in `phases/walk/runs/runN/`.
+To submit a training job with SLURM, see [cluster/README.md](../cluster/README.md).
 
-After completing [cluster setup](../cluster/README.md) and filling in the SLURM
-settings, submit from the repository root on the cluster login node:
+### Linux GPU cluster node or NVIDIA host
 
-```bash
-mkdir -p logs
-sbatch cluster/train.slurm K1Bike-Walk-Flat --agent.run-name walk-baseline-ep
-```
-
-### Linux NVIDIA host or allocated GPU node
-
-Run directly only on a machine where you are allowed to use the GPU:
+Run on an allocated GPU node (or a machine where you are allowed to use the GPU):
 
 ```bash
-uv run --group train python scripts/train.py K1Bike-Walk-Flat \
+uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
   --env.scene.num-envs 4096 --agent.run-name walk-baseline-ep
 ```
 
@@ -215,7 +223,7 @@ This small run checks the training pipeline; use the Linux GPU workflow for full
 training. It is headless, so macOS also uses ordinary Python:
 
 ```bash
-uv run --group train python scripts/train.py K1Bike-Walk-Flat \
+uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
   --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 \
   --agent.logger tensorboard
 ```
@@ -228,21 +236,120 @@ one environment on CPU and explicitly select the native viewer.
 ### Linux host
 
 ```bash
-uv run --group train python scripts/play.py K1Bike-Walk-Flat \
-  --checkpoint-file logs/rsl_rl/k1_walk/YOUR_RUN/model_1000.pt \
+uv run --group train python scripts/play.py LAAI-K1-Walk-Flat \
+  --checkpoint-file logs/rsl_rl/laai_walk/YOUR_RUN/model_1000.pt \
   --device cpu --num-envs 1 --viewer native
 ```
 
 ### macOS host
 
 ```bash
-uv run --group train mjpython scripts/play.py K1Bike-Walk-Flat \
-  --checkpoint-file logs/rsl_rl/k1_walk/YOUR_RUN/model_1000.pt \
+uv run --group train mjpython scripts/play.py LAAI-K1-Walk-Flat \
+  --checkpoint-file logs/rsl_rl/laai_walk/YOUR_RUN/model_1000.pt \
   --device cpu --num-envs 1 --viewer native
 ```
 
 For mjlab's browser viewer, both platforms use `uv run --group train python`
 with `--viewer viser` instead. This is separate from Booster's `deploy.py` viewer.
+
+## Export our walk policy for booster_deploy
+
+### Linux GPU cluster or NVIDIA host
+
+Writes `policy.pt`, checks it against mjlab's own actions (must print `OK`) and
+optionally records a video. `MUJOCO_GL=egl` is for headless Linux NVIDIA rendering:
+
+```bash
+MUJOCO_GL=egl uv run --group train python -m phases.walk.export \
+  --checkpoint logs/rsl_rl/laai_walk/YOUR_RUN/model_3999.pt --video walk.mp4
+```
+
+Keep the result as `phases/walk/runs/runN/policy.pt` (see [phases/README.md](../phases/README.md)).
+
+## Run our walk policy in Booster's MuJoCo
+
+Install the walk phase's task file, the dry-run script and a policy into the `booster_deploy`
+checkout (see [deploy/README.md](../deploy/README.md)), then use Booster's `deploy.py`
+with task `laai_walk` or `laai_walk_ankle_kd15`. Type speed commands in the
+terminal as `x y yaw`, for example `0.3 0 0`.
+
+### Linux and macOS
+
+```bash
+bash deploy/install.sh walk                                    # policy of the newest walk run
+bash deploy/install.sh walk phases/walk/runs/run1/policy.pt    # a specific policy
+```
+
+### Linux host
+
+```bash
+cd booster_deploy
+uv run --group sim python scripts/deploy.py --task laai_walk_ankle_kd15 --mujoco
+```
+
+### macOS host
+
+```bash
+cd booster_deploy
+uv run --group sim mjpython scripts/deploy.py --task laai_walk_ankle_kd15 --mujoco
+```
+
+Rehearse the robot dry run without a robot (headless, Linux and macOS):
+
+```bash
+cd booster_deploy
+uv run --group sim python scripts/dry_run.py --task laai_walk_ankle_kd15 --source mujoco --noise
+```
+
+## Robot test
+
+### Linux and macOS host: copy to the robot
+
+Installs our files into booster_deploy, copies it to the robot and installs its Python
+packages there. You type the robot password once. On macOS, use the Terminal app: editors
+without Local Network permission cannot reach the robot.
+
+```bash
+bash deploy/setup_robot.sh ROBOT_IP walk
+```
+
+### Robot (Linux): dry run, then the policy
+
+After `ssh booster@ROBOT_IP`, these commands run on the robot's Linux system. First a dry
+run (no motor commands; robot standing in Booster's walking mode):
+
+```bash
+cd ~/booster_deploy && source .venv/bin/activate
+source /opt/booster/BoosterRos2Interface/install/setup.bash
+python3 scripts/dry_run.py --task laai_walk_ankle_kd15 --seconds 20 | tee logs/dry_run_report_$(date +%Y%m%d_%H%M%S).txt
+```
+
+Then the policy, with someone ready to catch the robot. Add `--exit-mode damping` only
+with a harness (the robot goes limp after a stop):
+
+```bash
+python3 scripts/deploy.py --task laai_walk_ankle_kd15
+```
+
+| Key / remote | Action |
+|---|---|
+| `x` / X | Custom mode: Booster's own policy stands the robot |
+| `r` / A | Start our policy (0.5 s handover) |
+| `w` `s` / left stick | Forward / back (`w`: +0.05 m/s per press) |
+| `a` `d` / left stick | Sideways (+0.02 m/s per press) |
+| `q` `e` / right stick | Turn (+0.06 rad/s per press) |
+| Space | Speeds to zero; the policy keeps running |
+| Ctrl+C | Stop; the robot enters the exit mode |
+
+Each safety stop prints the joint and saves the last 5 s to `logs/stop_<robot time>.npz`.
+The robot clock runs 7 hours ahead of Amsterdam time.
+
+### Linux and macOS host: keep the robot logs with the run
+
+```bash
+scp 'booster@ROBOT_IP:~/booster_deploy/logs/stop_*' phases/walk/runs/runN/robot_logs/
+scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' phases/walk/runs/runN/dry_run/
+```
 
 ## Development checks
 
@@ -266,7 +373,7 @@ uv run --group robot python scripts/robot_info.py
 
 ### Linux and macOS: SSH client
 
-Use the credentials in the gitignored `handover docs/credentials.md`:
+Ask a teammate for the robot user, IP and password; never commit them:
 
 ```bash
 ssh ROBOT_USER@ROBOT_IP
@@ -287,10 +394,10 @@ for that invocation only:
 GDK_BACKEND=x11 uv run python scripts/view_model.py bike
 ```
 
-### Linux NVIDIA cluster: headless rendering
+### Linux NVIDIA machine: headless rendering
 
-`cluster/train.slurm` sets `MUJOCO_GL=egl` for rollout videos. This setting is for
-headless rendering on the GPU node, not for launching a local native viewer.
+Set `MUJOCO_GL=egl` for rollout videos on a headless Linux NVIDIA machine or
+cluster node. This setting is not for launching a local native viewer.
 
 ### macOS: hidden environment files
 

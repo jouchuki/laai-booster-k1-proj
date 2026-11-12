@@ -10,7 +10,8 @@ the original blue prototype described below.
 A third option, `--model real_bike`, loads the uploaded textured blue bike scan
 with moving wheels and steering. See its [conversion notes](real_bike/README.md)
 for approximate mesh cuts, provisional physics and the taller scanned saddle
-and handlebars. Both viewer scenes accept all three models.
+and handlebars. The `bike` and unattached `k1_bike` scenes accept all three
+models. The `k1_seated` pose is solved for the green Sketchfab model only.
 
 ## Original primitive model
 
@@ -44,7 +45,8 @@ steering joints.
 | Wheel mass | 0.6 kg each | | wheel geom `mass` |
 
 The K1's leg is roughly 0.45 m long, so check that it can sit with both feet flat on the
-ground. That is what the early training phases assume.
+ground. That is what the early training phases assume. On the USDZ-derived bike it can: the
+solved seated pose has both feet flat (see [Seated K1](../../docs/bike-dimensions.md#seated-k1)).
 
 ## Sanity check
 

@@ -33,7 +33,10 @@ group 3 contains collision proxies, hidden by default in the native viewer.
 The rounded tyre proxy is a convex hull; filling the central hub opening is
 intentional. The frame's concavity is approximated by several primitives rather
 than a single solid convex hull. Friction, damping and steering limits remain
-unmeasured. No robot, clip connections or balancing controller is added here.
+unmeasured. This file has no robot, clip connections or balancing controller; the seated
+scene adds the robot and the hand-clip welds (`src/k1bike/seat.py`, see
+[Seated K1](../../../docs/bike-dimensions.md#seated-k1)). The collision proxies are what the
+robot touches, so update them whenever the bike geometry changes.
 
 ## Reproduction
 

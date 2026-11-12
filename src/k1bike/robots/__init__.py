@@ -1,1 +1,1 @@
-"""Robot models prepared for training."""
+"""Robot models and settings shared by every phase."""

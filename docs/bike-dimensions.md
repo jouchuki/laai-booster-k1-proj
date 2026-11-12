@@ -139,7 +139,8 @@ The four moving bodies are the frame, fork/handlebars, rear wheel and front
 wheel. The visual meshes are massless and non-colliding. Compound primitives
 approximate frame/fork contact, and rounded convex tyre proxies approximate
 wheel contact. The model has gravity, passive wheel/steering joints and a free
-root; the hand clips and seated robot are not attached yet. Friction, component
+root. The asset itself has no robot attachments; `k1bike.seat` adds the hand-clip
+welds and seated pose in the combined scene (see "Seated K1" below). Friction, component
 mass distribution, tyre behaviour and steering resistance are still provisional.
 
 A better-looking mesh does not establish correct physical properties. Keep its
@@ -163,3 +164,39 @@ or handlebar settings. Its 1.5 kg mass and all contact/steering properties remai
 provisional. Spatial mesh cuts approximate the joints and can show seams during
 motion. See the [scan notes](../assets/bike/real_bike/README.md) and generated
 [manifest](../assets/bike/real_bike/measurements.json).
+
+## Seated K1
+
+`k1_seated_bike_scene()` (`src/k1bike/scene.py`, built by `src/k1bike/seat.py`)
+seats the K1 on the USDZ-derived bike:
+
+- **Hand clips: weld constraints.** Each clip is a MuJoCo weld between a site on
+  the K1's forearm (`<side>_hand_clip`) and a site on the fork/handlebar body
+  (`bike/<side>_grip_clip`). It fixes all six relative degrees of freedom, as
+  specified above. Steering stays a free joint, turned by the arms through the welds.
+  Forearm-to-fork contacts are excluded because the clipped forearm overlaps the
+  bar's collision capsule.
+- **Seat: contact only, no constraint.** The pelvis (trunk bottom cylinder) rests on
+  the saddle box under gravity. The robot can rise, slide or lift off, so a policy
+  can push with its feet; `seat_contact()` returns the saddle's normal force for a
+  "stay seated" reward or termination.
+- **Collisions: no passing through.** The K1 keeps all 174 self-collision pairs and
+  collides with all 12 bike collision geoms (frame tubes, saddle, fork legs, stem,
+  handlebar, wheels). The only exclusion is each forearm against the fork, above; it
+  goes once the hand model is attached. In the seated pose only the pelvis touches
+  the bike. `tests/test_seat.py` checks this.
+- **Assumed clip frame.** The K1 has no hands; the forearm ends 0.228 m along the
+  elbow-yaw link. The clip is taken as collinear with the forearm: hand centre
+  2 cm in from the tip (s = 6 cm), bar centre 4 cm further along (s = 2 cm), so the
+  bar sits 2 cm beyond the forearm tip. The top/bottom offsets and orientation
+  above are still unmeasured; update `seat.py` and re-solve once they are.
+- **Seated pose.** `scripts/solve_seated_pose.py` fits pelvis-on-saddle, feet flat
+  on the floor (centres at +-0.13 m), clip points on the bike's grip sites and
+  horizontal forearms. Current fit: pelvis 1 mm into the saddle, clips within
+  0.03 mm of the grips, trunk pitched about 22 deg forward. Each weld's bike-side
+  site is placed at the robot's clip site in that pose, so the welds start at zero error.
+
+Holding the pose with the k1_walk PD gains, about 80 N of the K1's 193 N weight
+rests on the saddle and the rest on its feet. The soft arm gains (kp = 20) mean a
+fixed joint target can also settle with the pelvis just above the saddle: staying
+seated has to be rewarded, not assumed.

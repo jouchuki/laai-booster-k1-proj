@@ -6,7 +6,8 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from k1bike.paths import BIKE_XML, k1_xml
+from k1bike.paths import BIKE_XML, SKETCHFAB_BIKE_XML, k1_xml
+from k1bike.seat import add_hand_clip_sites, clip_hands_to_bike
 
 
 def _add_floor(spec: mujoco.MjSpec) -> None:
@@ -87,12 +88,28 @@ def k1_bike_scene(bike_pos=(-0.6, 0.0, 0.0), bike_xml: Path = BIKE_XML) -> mujoc
     """K1 (from booster_assets) plus the bike, on a floor.
 
     The K1 model is the base so its physics options and mesh paths are kept.
-    Bike names get a "bike/" prefix. The robot is not yet attached to the bike;
-    hand-to-grip and seat constraints are the next step (phase 3 of the plan).
+    Bike names get a "bike/" prefix. The robot stands next to the bike, unattached;
+    use `k1_seated_bike_scene` for the robot clipped on and sitting.
     """
     spec = mujoco.MjSpec.from_file(str(k1_xml()))
     bike = mujoco.MjSpec.from_file(str(bike_xml))
     frame = spec.worldbody.add_frame(pos=list(bike_pos))
     frame.attach_body(bike.worldbody.first_body(), "bike/", "")
     _add_floor(spec)
+    return spec
+
+
+def k1_seated_bike_scene(bike_pos=(0.0, 0.0, 0.0), bike_xml: Path = SKETCHFAB_BIKE_XML):
+    """K1 sitting on the USDZ-derived bike, hands welded to the grips (phase 3+).
+
+    The seated pose is solved for the USDZ-derived bike only, so `bike_xml` must be
+    that model. The model's keyframe "seated" holds the starting state; reset to it
+    with `mujoco.mj_resetDataKeyframe(model, data, model.key("seated").id)`.
+    See k1bike/seat.py for how the welds and the (contact-only) seat work.
+    """
+    if Path(bike_xml).resolve() != SKETCHFAB_BIKE_XML.resolve():
+        raise ValueError("The seated pose is solved for the USDZ-derived bike only")
+    spec = k1_bike_scene(bike_pos=bike_pos, bike_xml=bike_xml)
+    add_hand_clip_sites(spec)
+    clip_hands_to_bike(spec)
     return spec
