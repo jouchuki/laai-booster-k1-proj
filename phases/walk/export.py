@@ -3,8 +3,6 @@
 Linux GPU cluster node or NVIDIA host (from the repository root):
     uv run --group train python -m phases.walk.export --checkpoint logs/rsl_rl/laai_walk/<run>/model_3999.pt
     MUJOCO_GL=egl uv run --group train python -m phases.walk.export --checkpoint ... --video walk.mp4
-    uv run --group train python -m phases.walk.export --task LAAI-K1-Walk-Flat-NoSelfCollision \
-        --checkpoint ...   # run 3; same policy interface, its own simulation settings
 
 Then keep policy.pt as phases/walk/runs/runN/policy.pt and install it with deploy/install.sh walk.
 
@@ -72,8 +70,8 @@ def build_index_maps(mjlab_joints: list[str]):
     return torch.tensor(in_index, dtype=torch.long), torch.tensor(out_index, dtype=torch.long)
 
 
-def make_env(task: str, play: bool, render: bool, device: str):
-    cfg = load_env_cfg(task, play=play) if play else load_env_cfg(task)
+def make_env(play: bool, render: bool, device: str):
+    cfg = load_env_cfg(K.TASK_ID, play=play) if play else load_env_cfg(K.TASK_ID)
     cfg.scene.num_envs = 1
     cfg.observations["actor"].enable_corruption = False
     return ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array" if render else None)
@@ -98,22 +96,16 @@ def deploy_frame(env, mjlab_joints, last_action_mjlab):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", required=True)
-    ap.add_argument(
-        "--task",
-        default=K.TASK_ID,
-        choices=(K.TASK_ID, K.RUN3_TASK_ID),
-        help="walk task the checkpoint was trained with",
-    )
     ap.add_argument("--out", default="policy.pt")
     ap.add_argument("--video", default=None, help="optional mp4 file to record the policy walking")
     ap.add_argument("--seconds", type=float, default=10.0)
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
-    env = make_env(args.task, play=True, render=args.video is not None, device=args.device)
-    agent_cfg = load_rl_cfg(args.task)
+    env = make_env(play=True, render=args.video is not None, device=args.device)
+    agent_cfg = load_rl_cfg(K.TASK_ID)
     wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
-    runner_cls = load_runner_cls(args.task) or MjlabOnPolicyRunner
+    runner_cls = load_runner_cls(K.TASK_ID) or MjlabOnPolicyRunner
     runner = runner_cls(wrapped, asdict(agent_cfg), device=args.device)
     runner.load(args.checkpoint, load_cfg={"actor": True}, strict=True, map_location=args.device)
 

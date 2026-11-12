@@ -2,6 +2,22 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-12: The K1 collides with itself and with the bike
+
+**Decision:** Every task keeps the K1's self-collision as in Booster's model (174 geom
+pairs) and lets the robot collide with every bike collision geom. The only exception is
+each forearm against the fork, because the welded hand sits inside the handlebar's collision
+capsule; it goes once Vlad's hand model is attached and the hands touch the bar through their
+own geoms. Tests: `test_walk_task_keeps_self_collision`, `test_robot_collides_with_itself_and_the_bike`.
+
+**Why:** The policy must learn the physics the real robot has. A robot whose legs pass
+through each other, or through the frame, learns sitting and pushing motions the K1 cannot do.
+
+**Considered:** Training without self-collision for speed (mjlab's own humanoid tasks do;
+planned as walk run 3 and dropped). Collision geoms of the bike stay the measured primitives
+(capsules, cylinders) of `assets/bike/sketchfab_mujoco/`, not its visual mesh; they need
+updating when the bike model changes.
+
 ## 2026-11-11: One folder per project phase
 
 **Decision:** Everything that belongs to one phase of the plan lives in `phases/<phase>/`:

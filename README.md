@@ -8,7 +8,7 @@ Teaching the Booster K1 humanoid to ride a balance bike: train in simulation, th
 |---|---|---|---|
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [phases/walk/](phases/walk/README.md) |
 | 2 | Balance-bike model in simulation | Measured Sketchfab model, provisional physics | [assets/bike/](assets/bike/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
-| 3 | Sit on a supported bike | Not started | |
+| 3 | Sit on a supported bike | Seated scene ready (hands welded to the grips, pelvis on the saddle by contact); no training task yet | [src/k1bike/seat.py](src/k1bike/seat.py), [docs/bike-dimensions.md](docs/bike-dimensions.md#seated-k1) |
 | 4 | Walk the bike, supported | Not started | |
 | 5 | Free bike, feet as support | Not started | |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [deploy/](deploy/README.md) |
@@ -42,11 +42,12 @@ extra things: Stride and glide. Lift both feet and coast, balancing by steering 
 | Path | What |
 |---|---|
 | `scripts/train.py`, `scripts/play.py` | Train any phase's task (GPU cluster) and watch a checkpoint |
+| `cluster/` | SLURM job template for training on the GPU cluster (cluster details still to fill in) |
 | `deploy/` | `install.sh <phase>` (into booster_deploy), `setup_robot.sh` (copy to the robot), `dry_run.py` (policy on live sensors, no motor commands) |
 | `docs/commands.md` | Every command, separated by Linux host, macOS host, cluster and robot |
 | `src/k1bike/` | Shared Python code: model paths, the K1 model and booster_deploy settings (`robots/k1.py`), bike and K1 + bike scenes, seating the K1 on the bike (`seat.py`) |
 | `assets/bike/` | Bike model: original USDZ, scaled MuJoCo derivative, primitive baseline and notes |
-| `scripts/` (other) | `setup_booster.sh` and `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py`, `robot_info.py`, legacy scripts |
+| `scripts/` (other) | `setup_booster.sh` and `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `solve_seated_pose.py` (fits the K1's seated pose), `run_sample_task.sh` (Booster's pretrained policies), `convert_bike_usdz.py`, `robot_info.py`, legacy scripts |
 | `tests/` | Quick checks that the models load and the tasks build (run in CI) |
 | `docs/decisions.md` | What we chose and why |
 | `docs/bike-dimensions.md` | Physical bike measurements and estimates |
@@ -122,6 +123,10 @@ The viewer defaults to the green USDZ-derived bike at 56.5 cm wheelbase; its
 physical parameters remain provisional (see [dimensions](docs/bike-dimensions.md)).
 The `k1_bike` scene places the robot next to the bike; `k1_seated` seats it with both hands welded to the grips and the pelvis resting on the saddle by contact only (see [dimensions: Seated K1](docs/bike-dimensions.md#seated-k1)).
 
+The robot never passes through itself or the bike: every task keeps the K1's self-collision,
+and the robot collides with every part of the bike except where its welded forearms meet the
+fork (see [decisions](docs/decisions.md)). Tests check both.
+
 ### Robot access
 
 Ask a teammate for the robot login (user, IP, password). Never commit it.
@@ -131,7 +136,7 @@ The robot firmware must be v1.7.2 or newer before it can run our own policies
 See [robot access commands](docs/commands.md#robot-access) for the distinction
 between Linux-only SDK commands and SSH from either host OS.
 
-### Team scripts (from PR #5)
+### Other team scripts
 
 - `scripts/robot_info.py`: connects to the real K1 with `boosteros` and prints its model, mode and joint count. Run from a Linux environment on the robot's network; see the command reference.
 - `scripts/run_sample_task.sh`: Linux/macOS wrapper for Booster's pretrained MuJoCo tasks; defaults to `k1_fight` and accepts a task name plus deployment options.

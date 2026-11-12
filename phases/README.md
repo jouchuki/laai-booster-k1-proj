@@ -25,7 +25,8 @@ phases/
 |---|---|---|
 | 1. Walking | [walk/](walk/README.md) | Walks and turns on the robot |
 | 2. Bike model | `assets/bike/` (a model, not a policy) | Measured model, provisional physics |
-| 3-5. Sit, push, ride | not created yet | Not started |
+| 3. Sit | not created yet; the seated scene is in `src/k1bike/seat.py` | Seated scene and constraints ready, no training task |
+| 4-5. Push, ride | not created yet | Not started |
 
 ## Names
 
@@ -39,6 +40,9 @@ own tasks: mjlab task `LAAI-K1-<Phase>-...`, log folder and booster_deploy task
    (copy the structure of `walk/`).
 2. Import its task in `phases/__init__.py`.
 3. Add a test in `tests/` and a row to the table above and to the plan in the root README.
+
+Every phase uses the K1 from `src/k1bike/robots/k1.py` with its self-collision on, and a bike
+the robot collides with (`k1_seated_bike_scene`); see [decisions](../docs/decisions.md).
 
 ## New training run
 

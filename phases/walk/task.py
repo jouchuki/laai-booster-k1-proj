@@ -49,7 +49,6 @@ from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
-from mjlab.utils.spec_config import CollisionCfg
 
 # Robot model and booster_deploy settings, shared with the other phases. Re-exported here
 # because export.py and the tests read them from this module.
@@ -70,12 +69,9 @@ from k1bike.robots.k1 import (  # noqa: F401
     POLICY_JOINTS,
     STIFFNESS,
     k1_spec,
-    name_collision_geoms,
 )
 
 TASK_ID = "LAAI-K1-Walk-Flat"
-# Run 3 ablation (runs/run3/notes.md): run 2 with the K1's self-collisions turned off.
-RUN3_TASK_ID = "LAAI-K1-Walk-Flat-NoSelfCollision"
 
 
 def get_k1_robot_cfg() -> EntityCfg:
@@ -359,46 +355,10 @@ def k1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     )
 
 
-# --- Run 3: no self-collision (ablation of run 2; see runs/run3/notes.md) -----------------------
-# Booster's model leaves every collision geom colliding with every other one (174 geom pairs
-# on the K1 are checked each step, e.g. knee-knee, forearm-trunk). This keeps each geom's
-# contact parameters exactly as in run 2 and changes one thing: robot geoms only collide
-# with the terrain (contype 0 never initiates a contact; conaffinity 1 accepts the
-# terrain's). The same rule lets the bike collide with the robot in later phases.
-NO_SELF_COLLISION = CollisionCfg(
-    geom_names_expr=(r".*_collision.*",),
-    contype=0,
-    conaffinity=1,
-    condim=3,  # run 2 value (MuJoCo default) for every K1 geom
-    priority=0,  # run 2 value
-)
-
-
-def k1_spec_named_collisions():
-    """`k1_spec` with every collision geom named, so a CollisionCfg can select it."""
-    return name_collision_geoms(k1_spec())
-
-
-def k1_no_self_collision_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-    """Run 2's walk task with self-collision off; everything else identical."""
-    cfg = k1_flat_env_cfg(play=play)
-    robot = cfg.scene.entities["robot"]
-    robot.spec_fn = k1_spec_named_collisions
-    robot.collisions = (NO_SELF_COLLISION,)
-    return cfg
-
-
 register_mjlab_task(
     task_id=TASK_ID,
     env_cfg=k1_flat_env_cfg(),
     play_env_cfg=k1_flat_env_cfg(play=True),
-    rl_cfg=k1_ppo_runner_cfg(),
-    runner_cls=VelocityOnPolicyRunner,
-)
-register_mjlab_task(
-    task_id=RUN3_TASK_ID,
-    env_cfg=k1_no_self_collision_env_cfg(),
-    play_env_cfg=k1_no_self_collision_env_cfg(play=True),
     rl_cfg=k1_ppo_runner_cfg(),
     runner_cls=VelocityOnPolicyRunner,
 )

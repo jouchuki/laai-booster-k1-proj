@@ -69,10 +69,8 @@ def _collision_pairs(task_id):
     return self_pairs, ground_pairs
 
 
-def test_run3_turns_off_only_self_collision():
-    assert walk.RUN3_TASK_ID in list_tasks()
-    run2_self, run2_ground = _collision_pairs(walk.TASK_ID)
-    run3_self, run3_ground = _collision_pairs(walk.RUN3_TASK_ID)
-    assert run2_self > 100, "run 2 (Booster's model as is) has self-collision"
-    assert run3_self == 0
-    assert run3_ground == run2_ground == 20, "every robot collision geom still touches the ground"
+def test_walk_task_keeps_self_collision():
+    # The robot must not pass through itself (docs/decisions.md): Booster's model as is.
+    self_pairs, ground_pairs = _collision_pairs(walk.TASK_ID)
+    assert self_pairs == 174, "every K1 collision geom touches every non-adjacent one"
+    assert ground_pairs == 20, "every robot collision geom touches the ground"

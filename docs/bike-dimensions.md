@@ -162,6 +162,11 @@ seats the K1 on the USDZ-derived bike:
   the saddle box under gravity. The robot can rise, slide or lift off, so a policy
   can push with its feet; `seat_contact()` returns the saddle's normal force for a
   "stay seated" reward or termination.
+- **Collisions: no passing through.** The K1 keeps all 174 self-collision pairs and
+  collides with all 12 bike collision geoms (frame tubes, saddle, fork legs, stem,
+  handlebar, wheels). The only exclusion is each forearm against the fork, above; it
+  goes once the hand model is attached. In the seated pose only the pelvis touches
+  the bike. `tests/test_seat.py` checks this.
 - **Assumed clip frame.** The K1 has no hands; the forearm ends 0.228 m along the
   elbow-yaw link. The clip is taken as collinear with the forearm: hand centre
   2 cm in from the tip (s = 6 cm), bar centre 4 cm further along (s = 2 cm), so the

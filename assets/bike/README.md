@@ -37,7 +37,8 @@ steering joints.
 | Wheel mass | 0.6 kg each | | wheel geom `mass` |
 
 The K1's leg is roughly 0.45 m long, so check that it can sit with both feet flat on the
-ground. That is what the early training phases assume.
+ground. That is what the early training phases assume. On the USDZ-derived bike it can: the
+solved seated pose has both feet flat (see [Seated K1](../../docs/bike-dimensions.md#seated-k1)).
 
 ## Sanity check
 

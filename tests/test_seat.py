@@ -7,7 +7,7 @@ import pytest
 from k1bike.paths import BIKE_XML
 from k1bike.robots.k1 import hold_pose_torques
 from k1bike.scene import k1_seated_bike_scene
-from k1bike.seat import SADDLE_GEOM, SEAT_BODY, SIDES, seat_contact
+from k1bike.seat import FORK_BODY, HAND_LINKS, SADDLE_GEOM, SEAT_BODY, SIDES, seat_contact
 
 
 @pytest.fixture(scope="module")
@@ -76,6 +76,57 @@ def test_seated_keyframe_is_consistent(model):
         grip = data.site_xpos[model.site(f"bike/{side}_grip").id]
         assert np.linalg.norm(clip - grip) < 1e-3, "clip sits on the bike's grip site"
     assert -0.002 < _pelvis_saddle_distance(model, data) < 0.0005, "pelvis touches the saddle"
+
+
+def _blocked_bike_bodies(model):
+    """Robot-bike collision geom pairs that cannot touch, as (robot body, bike body) names,
+    and the number of robot-robot pairs that can."""
+    excluded = set()
+    for i in range(model.nexclude):
+        a, b = divmod(int(model.exclude_signature[i]), 1 << 16)
+        excluded.add(frozenset((a, b)))
+
+    def can_touch(a, b):
+        ba, bb = model.geom_bodyid[a], model.geom_bodyid[b]
+        if ba == bb or model.body_parentid[ba] == bb or model.body_parentid[bb] == ba:
+            return False
+        if frozenset((ba, bb)) in excluded:
+            return False
+        return bool(
+            model.geom_contype[a] & model.geom_conaffinity[b]
+            or model.geom_contype[b] & model.geom_conaffinity[a]
+        )
+
+    def name(g):
+        return model.body(model.geom_bodyid[g]).name
+
+    colliding = [
+        g for g in range(model.ngeom) if model.geom_contype[g] or model.geom_conaffinity[g]
+    ]
+    bike = [g for g in colliding if name(g).startswith("bike/")]
+    robot = [g for g in colliding if g not in bike and model.geom_bodyid[g] != 0]
+    blocked = {(name(r), name(b)) for r in robot for b in bike if not can_touch(r, b)}
+    self_pairs = sum(can_touch(a, b) for i, a in enumerate(robot) for b in robot[i + 1 :])
+    return blocked, self_pairs, len(bike)
+
+
+def test_robot_collides_with_itself_and_the_bike(model):
+    """No passing through: the K1 keeps all its self-collisions and touches every bike
+    collision geom, except each welded forearm and the fork (its hand overlaps the bar)."""
+    blocked, self_pairs, bike_geoms = _blocked_bike_bodies(model)
+    assert self_pairs == 174, "same self-collision as the walk task"
+    assert bike_geoms == 12
+    assert blocked == {(HAND_LINKS[side], f"bike/{FORK_BODY}") for side in SIDES}
+
+    data = _seated(model)
+    saddle = model.geom(f"bike/{SADDLE_GEOM}").id
+    trunk = model.body(SEAT_BODY).id
+    for c in data.contact[: data.ncon]:
+        bodies = {model.geom_bodyid[c.geom1], model.geom_bodyid[c.geom2]}
+        if any(model.body(b).name.startswith("bike/") for b in bodies) and 0 not in bodies:
+            assert {c.geom1, c.geom2} & {saddle} and trunk in bodies, (
+                "in the seated pose only the pelvis touches the bike (on the saddle)"
+            )
 
 
 def test_k1_stays_seated_holding_its_pose(model):

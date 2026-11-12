@@ -160,6 +160,7 @@ bash scripts/run_sample_task.sh k1_walk
 
 New runs train with `scripts/train.py` on the Linux GPU cluster. Walk runs 1 and 2 were
 trained on Google Colab; their notebooks are kept as records in `phases/walk/runs/runN/`.
+To submit a training job with SLURM, see [cluster/README.md](../cluster/README.md).
 
 ### Linux GPU cluster node or NVIDIA host
 
