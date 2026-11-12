@@ -9,8 +9,8 @@ the original blue prototype described below.
 
 A third option, `--model real_bike`, loads the uploaded textured blue bike scan
 with moving wheels and steering. See its [conversion notes](real_bike/README.md)
-for approximate mesh cuts, provisional physics and the taller scanned saddle
-and handlebars. The `bike` and unattached `k1_bike` scenes accept all three
+for its measured dimensions, post adjustments, approximate mesh cuts and
+provisional physics. The `bike` and unattached `k1_bike` scenes accept all three
 models. The `k1_seated` pose is solved for the green Sketchfab model only.
 
 ## Original primitive model

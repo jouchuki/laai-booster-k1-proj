@@ -78,8 +78,8 @@ wheel centres**, with its stem extended to **45 cm grip-centre height**.
 It loads `assets/bike/sketchfab_mujoco/bike.xml`, which contains
 the separated meshes and provisional physics; it does not load the USDZ directly.
 Use `--model primitive` to compare with the original blue prototype.
-Use `--model real_bike` for the uploaded textured blue bike scan. Its uniformly
-scaled saddle and grip heights differ from the measured bike; see the
+Use `--model real_bike` for the uploaded textured blue bike scan, rescaled to
+50 cm wheelbase, 22 cm tyre diameter, 42 cm saddle top and 53 cm grip centres. See the
 [scan notes](../assets/bike/real_bike/README.md). The default remains green.
 
 ### Linux host
@@ -171,9 +171,14 @@ uv run python scripts/convert_real_bike.py
 This reads the exports in `assets/bike/real_bike/source/` and writes the derivative
 under `assets/bike/real_bike/`. It uses the source colour texture through a
 relative path; keep the source folder with the generated asset. No extra dependency
-group is needed. Defaults are 0.565 m axle spacing and a provisional 1.5 kg mass;
-`--wheelbase` and `--mass` override them. The scan's saddle and handlebars retain
-their uniformly scaled geometry. Conversion details and limitations are in the
+group is needed. Defaults are 0.50 m axle spacing, 0.22 m tyre diameter,
+0.42 m saddle-top height, 0.53 m grip-centre height and 3.7 kg mass (the midpoint
+of the owner's reported 3.5–3.9 kg range for `real_bike`). Optional `--wheelbase`,
+`--tyre-diameter`, `--saddle-height` and `--handlebar-height` set dimensions
+independently in metres; `--mass` sets kilograms. Wheelbase determines the
+uniform scale; radial wheel sizing and local post adjustments fit the other
+targets. See [the measurements](bike-dimensions.md#measurements-for-real_bike-only-2026-11-12).
+The rescaling process and limitations are in the
 [scan notes](../assets/bike/real_bike/README.md).
 
 ## Run Booster's pretrained policy

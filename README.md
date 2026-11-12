@@ -59,7 +59,9 @@ It can turn, slow down and topple as gravity and ground contact act on it.
 after release. `--push` gives an initial rolling speed. This is a passive physics
 demo; powered riding and automatic balance remain future work. A separate
 `k1_seated` scene holds the K1 seated on the green Sketchfab bike with PD control.
-The real bike's configured mass is **1.5 kg**, a provisional estimate.
+The real bike's configured mass is **3.7 kg**, the midpoint of the owner's
+reported 3.5–3.9 kg range. Its model matches the reported **50 cm wheelbase,
+22 cm tyre diameter, 42 cm saddle top and 53 cm grip-centre height**.
 
 ### 3. Try straight rolling or a fall
 
@@ -205,7 +207,7 @@ physical parameters remain provisional (see [dimensions](docs/bike-dimensions.md
 Use `--model real_bike` for the uploaded textured blue bike, or `--model primitive`
 for the original shapes. All three support rolling wheels and steering. The
 [scan notes](assets/bike/real_bike/README.md) explain its approximate part
-boundaries and its saddle/handlebar height differences from the measured bike.
+boundaries, the measured dimensions and the rescaling process.
 The `k1_bike` scene places the robot next to the bike; `k1_seated` seats it with both hands welded to the grips and the pelvis resting on the saddle by contact only (see [dimensions: Seated K1](docs/bike-dimensions.md#seated-k1)).
 The seated pose is currently solved for the green Sketchfab bike only.
 

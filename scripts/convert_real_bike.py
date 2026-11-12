@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets/bike/real_bike/source/real_bike.obj"
 SOURCE_HASH = "27e141881121c985eb9fae675a54c84a53008e722f8bbbe0de93ca475cc2d741"
 TEXTURE = "textures/base_color.png"
+DEFAULT_MASS = 3.7  # Midpoint of the owner's reported 3.5–3.9 kg real-bike range.
+DEFAULT_WHEELBASE = 0.50
+DEFAULT_TYRE_DIAMETER = 0.22
+DEFAULT_SADDLE_HEIGHT = 0.42
+DEFAULT_HANDLEBAR_HEIGHT = 0.53
+REFERENCE_WHEELBASE = 0.565  # Inspected scan regions below use this reference scale.
+REFERENCE_RADIUS = 0.125
 
 
 def numbers(values):
@@ -76,7 +83,7 @@ def align(vertices, wheelbase, radius):
 def assign_faces(points, faces, wheelbase, radius, scale):
     """Cut fused scan triangles by inspected wheel and headset regions."""
     centres = points[faces].mean(1)
-    # The fitted annuli and the following cuts use the default 0.565 m scale.
+    # The fitted annuli and the following cuts use the inspected 0.565 m scale.
     reference = centres / scale
     reference[:, 2] += 0.125 - radius / scale
     labels = np.full(len(faces), "frame", dtype="U11")
@@ -90,6 +97,58 @@ def assign_faces(points, faces, wheelbase, radius, scale):
         radial = np.linalg.norm(reference[:, [0, 2]] - [x, 0.125], axis=1)
         labels[(radial < 0.13) & (np.abs(reference[:, 1]) < 0.037)] = name
     return labels
+
+
+def fit_heights(
+    points,
+    reference,
+    saddle_mask,
+    grips,
+    transform,
+    axis,
+    saddle_height,
+    handlebar_height,
+    dimension_scale,
+):
+    """Adjust exposed posts and level the complete bar; keep the lower frame fixed."""
+    seat_lo, seat_hi = points[saddle_mask].min(0), points[saddle_mask].max(0)
+    seat_centre = (seat_lo + seat_hi) / 2
+    seat_centre[1] = 0
+    # The seat-post clamp is at z=0.28 in the inspected reference. Translate the
+    # saddle along that post, blending the adjustment through the exposed tube.
+    post_axis = seat_centre - transform(np.array([0.14, 0, 0.28]))
+    post_axis /= np.linalg.norm(post_axis)
+    seat_shift = post_axis * ((saddle_height - seat_hi[2]) / post_axis[2])
+    if seat_shift[2] <= -0.13 * dimension_scale:
+        raise ValueError("Saddle target would collapse the exposed seat post")
+    seat_weight = np.clip((reference[:, 2] - 0.29) / 0.13, 0, 1)
+    seat_weight *= reference[:, 0] < 0.24
+    points = points + seat_weight[:, None] * seat_shift
+
+    # Remove the scan's bar roll with a rigid rotation about its forward axis.
+    # Preserve grip spacing, then extend the stem along the steering axis.
+    left, right = grips
+    delta = left - right
+    roll = -math.atan2(delta[2], delta[1])
+    c, s = math.cos(roll), math.sin(roll)
+    bar_rotation = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+    pivot = np.mean(grips, axis=0)
+    extension = axis * ((handlebar_height - pivot[2]) / axis[2])
+    if handlebar_height <= transform(np.array([0.445, 0, 0.43]))[2] + 0.02 * dimension_scale:
+        raise ValueError("Handlebar target must remain above the headset")
+    bar_weight = np.clip((reference[:, 2] - 0.46) / 0.08, 0, 1)
+    bar_weight *= reference[:, 0] > 0.30
+    adjusted = (points - pivot) @ bar_rotation.T + pivot + extension
+    points += bar_weight[:, None] * (adjusted - points)
+    fitted_grips = (grips - pivot) @ bar_rotation.T + pivot + extension
+    adjustments = {
+        "saddle_translation_m": seat_shift.tolist(),
+        "saddle_height_before_adjustment_m": float(seat_hi[2]),
+        "handlebar_roll_removed_rad": -roll,
+        "handlebar_stem_translation_m": extension.tolist(),
+        "grip_centres_before_adjustment_m": grips.tolist(),
+    }
+    return points, fitted_grips, adjustments
 
 
 def write_visual(path, points, texcoords, faces, uv_faces):
@@ -123,7 +182,15 @@ def write_tyre(path, radius, half_width):
                 stream.write(f"f {a + 1} {c + 1} {b + 1}\nf {a + 1} {d + 1} {c + 1}\n")
 
 
-def convert(source, output, wheelbase=0.565, mass=1.5):
+def convert(
+    source,
+    output,
+    wheelbase=DEFAULT_WHEELBASE,
+    mass=DEFAULT_MASS,
+    tyre_diameter=DEFAULT_TYRE_DIAMETER,
+    saddle_height=DEFAULT_SADDLE_HEIGHT,
+    handlebar_height=DEFAULT_HANDLEBAR_HEIGHT,
+):
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     if digest != SOURCE_HASH:
         raise ValueError("Source differs from the inspected bike scan; inspect its geometry first")
@@ -131,22 +198,42 @@ def convert(source, output, wheelbase=0.565, mass=1.5):
     if not texture.is_file():
         raise ValueError(f"Missing source colour texture: {texture}")
     vertices, texcoords, faces, uv_faces = read_obj(source)
-    dimension_scale = wheelbase / 0.565
-    radius, half_width = 0.125 * dimension_scale, 0.028 * dimension_scale
-    points, rotation, scale, centres = align(vertices, wheelbase, radius)
-    labels = assign_faces(points, faces, wheelbase, radius, dimension_scale)
-    lower = np.array([0.485, 0, 0.31]) * dimension_scale
-    upper = np.array([0.445, 0, 0.43]) * dimension_scale
+    dimension_scale = wheelbase / REFERENCE_WHEELBASE
+    radius, half_width = tyre_diameter / 2, 0.028 * dimension_scale
+    if half_width >= radius:
+        raise ValueError("Tyre radius must exceed its inferred half-width")
+    reference, rotation, reference_scale, centres = align(
+        vertices, REFERENCE_WHEELBASE, REFERENCE_RADIUS
+    )
+    # Separate the original scan before deforming it: the spatial cuts must not
+    # move when the requested dimensions or tyre radius change.
+    labels = assign_faces(reference, faces, REFERENCE_WHEELBASE, REFERENCE_RADIUS, 1.0)
+
+    def transform(values):
+        return values * dimension_scale + [0, 0, radius - REFERENCE_RADIUS * dimension_scale]
+
+    points = transform(reference)
+    scale = reference_scale * dimension_scale
+    lower = transform(np.array([0.485, 0, 0.31]))
+    upper = transform(np.array([0.445, 0, 0.43]))
     axis = (upper - lower) / np.linalg.norm(upper - lower)
     grips = []
     for side in (1, -1):
-        region = points[
-            (points[:, 2] > 0.55 * dimension_scale) & (side * points[:, 1] > 0.13 * dimension_scale)
-        ]
+        region = points[(reference[:, 2] > 0.55) & (side * reference[:, 1] > 0.13)]
         grips.append((region.min(0) + region.max(0)) / 2)
-    seat_points = points[
-        (points[:, 0] < 0.21 * dimension_scale) & (points[:, 2] > 0.45 * dimension_scale)
-    ]
+    saddle_mask = (reference[:, 0] < 0.21) & (reference[:, 2] > 0.45)
+    points, grips, adjustments = fit_heights(
+        points,
+        reference,
+        saddle_mask,
+        np.asarray(grips),
+        transform,
+        axis,
+        saddle_height,
+        handlebar_height,
+        dimension_scale,
+    )
+    seat_points = points[saddle_mask]
     seat_lo, seat_hi = seat_points.min(0), seat_points.max(0)
     seat_centre = (seat_lo + seat_hi) / 2
     seat_centre[1] = 0
@@ -200,14 +287,20 @@ def convert(source, output, wheelbase=0.565, mass=1.5):
         offset = origins[name] - (np.zeros(3) if name == "rear_wheel" else lower)
         bodies[name] = ET.SubElement(parent, "body", name=name, pos=numbers(offset))
         ET.SubElement(bodies[name], "joint", name=name, type="hinge", axis="0 1 0", damping="0.002")
+    visual_wheel_scales = {}
     for name, body in bodies.items():
         mask = labels == name
         if not mask.any():
             raise ValueError(f"Spatial cut produced no triangles for {name}")
         visual = f"{name}_visual"
-        write_visual(
-            meshes / f"{visual}.obj", points - origins[name], texcoords, faces[mask], uv_faces[mask]
-        )
+        local_points = points - origins[name]
+        if name.endswith("_wheel"):
+            used = np.unique(faces[mask])
+            raw_radius = np.linalg.norm(local_points[used][:, [0, 2]], axis=1).max()
+            radial_scale = radius / raw_radius
+            local_points[:, [0, 2]] *= radial_scale
+            visual_wheel_scales[name] = float(radial_scale)
+        write_visual(meshes / f"{visual}.obj", local_points, texcoords, faces[mask], uv_faces[mask])
         ET.SubElement(asset, "mesh", name=visual, file=f"{visual}.obj")
         ET.SubElement(
             body,
@@ -262,8 +355,8 @@ def convert(source, output, wheelbase=0.565, mass=1.5):
         )
 
     frame_mass, fork_mass = mass * 1.8 / 3.7, mass * 0.7 / 3.7
-    seat_base = np.array([0.16, 0, 0.16]) * dimension_scale
-    bend = np.array([0.36, 0, 0.15]) * dimension_scale
+    seat_base = transform(np.array([0.16, 0, 0.16]))
+    bend = transform(np.array([0.36, 0, 0.15]))
     for side in (-1, 1):
         offset = np.array([0, side * (half_width + 0.02 * dimension_scale), 0])
         capsule(
@@ -326,22 +419,31 @@ def convert(source, output, wheelbase=0.565, mass=1.5):
         "source_axle_centres": [centre.tolist() for centre in centres],
         "source_to_bike_rotation": rotation.tolist(),
         "uniform_scale": scale,
+        "scale_relative_to_initial_56_5cm_model": dimension_scale,
         "wheelbase_m": wheelbase,
+        "tyre_diameter_target_m": tyre_diameter,
         "collision_tyre_radius_m": radius,
         "collision_tyre_width_m": 2 * half_width,
         "saddle_top_m": float(seat[2]),
+        "saddle_height_target_m": saddle_height,
+        "handlebar_height_target_m": handlebar_height,
         "grip_centres_m": [point.tolist() for point in grips],
+        "visual_wheel_radial_scales_after_uniform_scaling": visual_wheel_scales,
+        "height_adjustments": adjustments,
         "steering_axis": axis.tolist(),
         "estimated_total_mass_kg": mass,
+        "owner_reported_mass_range_kg": [3.5, 3.9],
         "source_triangle_count": len(faces),
         "triangles_per_body": {name: int((labels == name).sum()) for name in bodies},
         "physics_assumptions": [
-            "Uniform scale uses the approximate measured 0.565 m wheelbase by default.",
-            "Scan saddle and handlebar heights are preserved, not fitted to measurements.",
+            "Default dimensions apply only to real_bike: wheelbase 0.50 m and tyre diameter 0.22 m.",
+            "Saddle top is fitted to 0.42 m and both grip centres to 0.53 m by default.",
+            "The exposed seat post and stem are deformed locally; the complete bar is levelled.",
             "Fused scan is cut spatially; seams and misassigned boundary triangles are possible.",
             "Steering axis and collision primitives are manually approximated from the scan.",
-            "Default tyre collider radius is the approximate measured 0.125 m; width is inferred.",
-            "Default 1.5 kg mass is provisional; component ratios follow the original prototype.",
+            "Visual wheels are sized radially; tyre width is inferred, not measured.",
+            "Default 3.7 kg mass is the midpoint of the owner's reported 3.5-3.9 kg range.",
+            "Component mass ratios follow the original prototype and remain provisional.",
             "Wheel inertias assume a uniform torus; contact uses a rounded convex hull.",
             "Friction, damping and steering limits are unmeasured; no clips or controller.",
             "Only the colour texture is used; source AO and normal maps remain in the upload.",
@@ -355,12 +457,47 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", type=Path, default=SOURCE)
     parser.add_argument("--output", type=Path, default=ROOT / "assets/bike/real_bike")
-    parser.add_argument("--wheelbase", type=float, default=0.565, help="wheel-centre distance (m)")
-    parser.add_argument("--mass", type=float, default=1.5, help="provisional total mass (kg)")
+    parser.add_argument(
+        "--wheelbase", type=float, default=DEFAULT_WHEELBASE, help="wheel-centre distance (m)"
+    )
+    parser.add_argument(
+        "--tyre-diameter", type=float, default=DEFAULT_TYRE_DIAMETER, help="outer tyre diameter (m)"
+    )
+    parser.add_argument(
+        "--saddle-height",
+        type=float,
+        default=DEFAULT_SADDLE_HEIGHT,
+        help="saddle top above the ground (m)",
+    )
+    parser.add_argument(
+        "--handlebar-height",
+        type=float,
+        default=DEFAULT_HANDLEBAR_HEIGHT,
+        help="both grip centres above the ground (m)",
+    )
+    parser.add_argument("--mass", type=float, default=DEFAULT_MASS, help="total mass (kg)")
     args = parser.parse_args()
-    if not all(math.isfinite(x) and x > 0 for x in (args.wheelbase, args.mass)):
-        parser.error("--wheelbase and --mass must be positive finite numbers")
-    convert(args.source.resolve(), args.output.resolve(), args.wheelbase, args.mass)
+    dimensions = (
+        args.wheelbase,
+        args.tyre_diameter,
+        args.saddle_height,
+        args.handlebar_height,
+        args.mass,
+    )
+    if not all(math.isfinite(x) and x > 0 for x in dimensions):
+        parser.error("Dimensions and mass must be positive finite numbers")
+    try:
+        convert(
+            args.source.resolve(),
+            args.output.resolve(),
+            args.wheelbase,
+            args.mass,
+            args.tyre_diameter,
+            args.saddle_height,
+            args.handlebar_height,
+        )
+    except ValueError as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":
