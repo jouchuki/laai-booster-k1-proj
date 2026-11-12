@@ -53,6 +53,11 @@ packages = ["src/k1bike"]
 line-length = 100
 extend-exclude = ["booster", "booster_assets", "booster_deploy", "booster_train", "runs"]
 
+[tool.ruff.lint.isort]
+# Booster's checkouts may sit at the repository root (CI, setup_booster.sh) or under
+# booster/; without this, ruff sorts their imports differently in the two layouts.
+known-third-party = ["booster_assets", "booster_deploy"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]

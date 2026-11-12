@@ -33,3 +33,14 @@ MUJOCO_LOG.TXT
 
 
 .ruff_cache
+uv run ruff check . && uv run ruff format --check && uv run pytest
+# graphify knowledge graph output (rebuild locally with `graphify update .`)
+graphify-out/
+# Personal Claude Code settings (graphify hooks point to each person's own install)
+.claude/settings.local.json
+
+# Local secrets (robot password etc.): never commit them
+credentials*.md
+!credentials.example.md
+# Handover PDF contains the robot password; share it directly, not via git
+handover docs/*.pdf
