@@ -1,7 +1,7 @@
 # Phase 3: sit on the bike
 
-Status 2026-11-12: training task `LAAI-K1-Sit-Puky` set up and smoke-tested on CPU, not
-trained yet. The seated K1 is modelled on the Puky
+Status 2026-11-16: training tasks for stage 0 (`LAAI-K1-Sit-Puky`) and stage 1
+(`LAAI-K1-Sit-Puky-Lean`) set up and smoke-tested on CPU, not trained yet. The seated K1 is modelled on the Puky
 ([models/k1_on_bike](../../models/k1_on_bike/README.md)), and a robot task holds the solved
 seated pose for the first real-robot tests.
 
@@ -26,7 +26,29 @@ seated pose for the first real-robot tests.
 
 Holding the seated pose with zero actions already sits (about 85% of the weight on the saddle,
 feet on the floor): the policy learns to keep it so when pushed and when the robot differs from
-the model. Phase 4 builds on this task: free the bike's roll and use the velocity command.
+the model.
+
+## Stage 1 `LAAI-K1-Sit-Puky-Lean`: keep a standing bike upright
+
+Still no forward motion: the bike stands on a virtual stand that lets it **lean left and
+right on its tyres** (a hinge along the line where both tyres touch the floor), held towards
+upright by a spring. Everything else is stage 0, plus:
+
+| Item | Setting |
+|---|---|
+| Stand spring | 400 Nm/rad at the start (almost rigid; robot + bike tip with about 100 Nm/rad), softened to 0 by the curriculum; damping 10 Nms/rad |
+| Sideways pushes | 0.3 m/s at the start, strengthened to 2 m/s by the curriculum (speed given to the robot every 2-4 s) |
+| Curriculum | After as many finished episodes as there are environments: one step softer and stronger (level +0.1) if at least 85% ran to the time limit, one step back below 50%. One world in five keeps at least 100 Nm/rad. Logged as `Curriculum/lean/*` |
+| Extra rewards | Bike upright (full reward within about 5 deg of lean), small penalty on lean rate |
+| Ends early | Bike leans more than 20 deg, or trunk 35 deg from seated |
+| Critic | Also gets the bike's lean and lean rate (zero in stage 0, so both stages have the same inputs) |
+| Start | From a stage 0 checkpoint: `scripts/train.py LAAI-K1-Sit-Puky-Lean --init-from logs/laai_sit/<run>/model_<N>.pt` |
+| Watching (`play`) | No spring, no pushes: the finished case |
+
+Why the pushes grow: with both feet planted the seated K1 does not fall over even with no
+spring at all. Holding the pose with zero actions, a 2.5 m/s sideways shove only sways the bike
+to 19 deg and back. So the skill here is staying upright (keeping the lean small against real
+pushes), not avoiding a fall. Forward motion comes next (phase 4), on the same stand.
 
 Train, watch and export: [docs/commands.md](../../docs/commands.md#train-the-sit-task-phase-3).
 

@@ -2,6 +2,25 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-16: Sit stage 1: a softening lean stand and growing pushes, no forward motion
+
+**Decision:** Phase 3 trains in stages that share all inputs and outputs. Stage 1
+(`LAAI-K1-Sit-Puky-Lean`) puts the Puky on a virtual stand that only lets it lean on its tyres,
+held by a spring. A performance-based curriculum softens the spring (400 Nm/rad to 0) and at
+the same time strengthens sideways pushes (0.3 to 2 m/s); one world in five keeps at least
+100 Nm/rad. Rewards add a bike-upright term (lean within about 5 deg). It starts from a stage 0
+checkpoint with `scripts/train.py --init-from`.
+
+**Why:** Curriculum learning: build on the sitting skill instead of starting over. Testing
+showed that with both feet planted the seated K1 cannot really fall over: holding the pose
+with zero actions and no spring, a 2.5 m/s sideways shove sways the bike to 19 deg and back.
+So softening the spring alone would teach nothing; the pushes have to grow with it, and the
+reward asks for staying upright, not just not falling.
+
+**Considered:** Softening the spring with fixed small pushes (trivial, shown above); starting
+forward motion in stage 1 (the user chose to keep stage 1 stationary); a separate log folder
+per stage (mjlab resumes only within one experiment folder).
+
 ## 2026-11-12: Sit task: bike fixed upright, walk policy interface
 
 **Decision:** Phase 3's training task `LAAI-K1-Sit-Puky` (`experiments/sit/task.py`) fixes the

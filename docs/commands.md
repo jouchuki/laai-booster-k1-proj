@@ -382,6 +382,15 @@ uv run --group train python scripts/train.py LAAI-K1-Sit-Puky \
   --env.scene.num-envs 4096 --agent.run-name run1
 ```
 
+Stage 1 (bike leans on a softening stand), started from a stage 0 checkpoint. `--init-from`
+continues from that checkpoint's weights in a new run folder; it must be in `logs/laai_sit/`:
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Sit-Puky-Lean \
+  --init-from logs/laai_sit/YOUR_STAGE0_RUN/model_1499.pt \
+  --env.scene.num-envs 4096 --agent.run-name stage1
+```
+
 ### Linux and macOS: CPU smoke run
 
 ```bash
