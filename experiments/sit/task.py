@@ -38,6 +38,7 @@ from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg, requires_model_fields
+from mjlab.managers.metrics_manager import MetricsTermCfg
 from mjlab.managers.observation_manager import ObservationGroupCfg, ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -264,6 +265,47 @@ def bike_lean_rate_l2(env) -> torch.Tensor:
 def bike_fell(env, limit: float) -> torch.Tensor:
     lean, _ = bike_lean(env)
     return lean.abs() > limit
+
+
+# --- Metrics: physical quantities, logged as Episode_Metrics/<name> -----------------------------
+# Rewards change whenever their weights or shapes change; these stay comparable across runs.
+def trunk_tilt_deg(env) -> torch.Tensor:
+    return torch.rad2deg(trunk_tilt_from_seated(env))
+
+
+def posture_error_deg(env, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Mean absolute joint deviation (deg) from the seated pose, over the policy's joints."""
+    robot = env.scene[asset_cfg.name]
+    ids = asset_cfg.joint_ids
+    error = robot.data.joint_pos[:, ids] - robot.data.default_joint_pos[:, ids]
+    return torch.rad2deg(error.abs().mean(-1))
+
+
+def action_change(env) -> torch.Tensor:
+    """Size of the step-to-step action change (L2): high values mean a shaking policy."""
+    return (env.action_manager.action - env.action_manager.prev_action).norm(dim=-1)
+
+
+def bike_lean_deg(env) -> torch.Tensor:
+    lean, _ = bike_lean(env)
+    return torch.rad2deg(lean.abs())
+
+
+def sit_metrics(policy_joints: SceneEntityCfg, stage: int) -> dict[str, MetricsTermCfg]:
+    metrics = {
+        "saddle_load": MetricsTermCfg(func=saddle_load_fraction),  # share of body weight
+        "feet_on_floor": MetricsTermCfg(func=feet_on_floor),  # share of feet in contact
+        "trunk_tilt_deg": MetricsTermCfg(func=trunk_tilt_deg),
+        "trunk_tilt_deg_max": MetricsTermCfg(func=trunk_tilt_deg, reduce="max"),
+        "posture_error_deg": MetricsTermCfg(
+            func=posture_error_deg, params={"asset_cfg": policy_joints}
+        ),
+        "action_change": MetricsTermCfg(func=action_change),
+    }
+    if stage == 1:
+        metrics["bike_lean_deg"] = MetricsTermCfg(func=bike_lean_deg)
+        metrics["bike_lean_deg_max"] = MetricsTermCfg(func=bike_lean_deg, reduce="max")
+    return metrics
 
 
 def _stand_joint_id(env) -> int:
@@ -507,6 +549,7 @@ def k1_sit_env_cfg(play: bool = False, stage: int = 0) -> ManagerBasedRlEnvCfg:
                 func=fell_off_seat, params={"limit": math.radians(35.0)}
             ),
         },
+        metrics=sit_metrics(policy_joints, stage),
     )
     if stage == 1:
         cfg.events["stand_stiffness"] = EventTermCfg(

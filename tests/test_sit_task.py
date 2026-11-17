@@ -114,3 +114,33 @@ def test_lean_curriculum_softens_the_stand_and_pushes_harder():
     curriculum(env, torch.arange(5), **term.params)
     assert curriculum.level == pytest.approx(0.9), "failing episodes make it easier again"
     env.close()
+
+
+@pytest.mark.parametrize("stage", [0, 1])
+def test_metrics_report_the_seated_pose_in_physical_units(stage):
+    """Episode_Metrics/* hold the quantities runs are compared on, in fractions and degrees."""
+    from mjlab.envs import ManagerBasedRlEnv
+
+    cfg = sit.k1_sit_env_cfg(stage=stage)
+    cfg.scene.num_envs = 2
+    cfg.events["push_robot"].interval_range_s = (100.0, 100.0)  # no push within the test
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    env.reset()
+    zero = torch.zeros(env.num_envs, env.action_manager.total_action_dim)
+    for _ in range(50):  # 1 s holding the seated pose
+        env.step(zero)
+    log = {
+        k.removeprefix("Episode_Metrics/"): float(v) for k, v in env.metrics_manager.reset().items()
+    }
+    expected = {"saddle_load", "feet_on_floor", "trunk_tilt_deg", "trunk_tilt_deg_max"}
+    expected |= {"posture_error_deg", "action_change"}
+    if stage == 1:
+        expected |= {"bike_lean_deg", "bike_lean_deg_max"}
+    assert set(log) == expected
+    assert 0.6 < log["saddle_load"] < 1.2
+    assert log["feet_on_floor"] > 0.7  # the feet settle onto the floor after the reset
+    assert log["trunk_tilt_deg"] <= log["trunk_tilt_deg_max"] < 8.0
+    assert log["posture_error_deg"] < 5.0
+    assert log["action_change"] == 0.0
+    if stage == 1:
+        assert log["bike_lean_deg"] <= log["bike_lean_deg_max"] < 5.0
