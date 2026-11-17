@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 
+# Training dependencies (`--group train`): CI installs only the dev group, so these skip there.
+pytest.importorskip("mjlab")
+pytest.importorskip("tensorboard")
+
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
