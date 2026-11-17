@@ -348,7 +348,10 @@ def k1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
             max_grad_norm=1.0,
         ),
         experiment_name="laai_walk",
-        logger="tensorboard",
+        # W&B (also writes TensorBoard files locally); scripts/train.py groups runs by
+        # experiment and falls back to offline mode when not logged in.
+        logger="wandb",
+        wandb_project="laai-k1",
         save_interval=100,
         num_steps_per_env=24,
         max_iterations=3_000,

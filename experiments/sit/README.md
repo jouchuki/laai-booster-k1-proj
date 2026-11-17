@@ -12,6 +12,18 @@ seated pose for the first real-robot tests.
 | `deploy/laai_sit.py` | booster_deploy task `laai_sit_hold`: holds the seated pose on the Puky, no policy, with safety stops |
 | `check_hold.py` | Rehearses that task in simulation on the bike, in the same order as on the robot |
 
+## Runs
+
+None trained yet. Add one row per run from `scripts/run_summary.py`, with numbers averaged
+over the last 50 iterations (see
+[Tracking and comparing runs](../README.md#tracking-and-comparing-runs)). Stage 1 runs
+started with `--init-from` name their parent run in "Main change". The task metric is the
+balance or pose error the task logs under `Metrics/` or `Episode_Metrics/`.
+
+| Run | Date | Stage | Main change | Iterations | Mean reward | Episode length | Task metric | Booster MuJoCo | Robot | W&B |
+|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | |
+
 ## Training task `LAAI-K1-Sit-Puky`
 
 | Item | Setting |

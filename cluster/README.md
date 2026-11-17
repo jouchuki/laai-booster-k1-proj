@@ -46,5 +46,14 @@ sbatch cluster/train.slurm LAAI-K1-Walk-Flat --agent.run-name walk-baseline-ep
 
 Any registered task works (the first argument). Checkpoints and the exported ONNX policy land in `logs/laai_walk/<date>_<run-name>/`.
 
+Runs log to Weights & Biases (project `laai-k1`, grouped by experiment) once `wandb login`
+has stored an API key on the cluster. Without a key, or with `WANDB_MODE=offline` set in
+`train.slurm` because compute nodes have no internet, runs are logged to `logs/wandb/`. Upload
+them afterwards from the Linux cluster login node:
+
+```bash
+uv run --group train wandb sync logs/wandb/offline-run-*
+```
+
 Headless rendering (for rollout videos) needs `MUJOCO_GL=egl`, which `train.slurm` sets.
 The headless job uses ordinary Python, not the macOS `mjpython` viewer launcher.
