@@ -17,12 +17,26 @@ seated pose for the first real-robot tests.
 None trained yet. Add one row per run from `scripts/run_summary.py`, with numbers averaged
 over the last 50 iterations (see
 [Tracking and comparing runs](../README.md#tracking-and-comparing-runs)). Stage 1 runs
-started with `--init-from` name their parent run in "Main change". The task metric is the
-balance or pose error the task logs under `Metrics/` or `Episode_Metrics/`.
+started with `--init-from` name their parent run in "Main change". Compare runs on the
+metrics below, not on the reward: they keep their meaning when reward weights change.
 
-| Run | Date | Stage | Main change | Iterations | Mean reward | Episode length | Task metric | Booster MuJoCo | Robot | W&B |
-|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | |
+| Run | Date | Stage | Main change | Iterations | Mean reward | Episode length (of 500) | Saddle load | Trunk tilt mean / max (deg) | Bike lean max (deg) | Action change | Booster MuJoCo | Robot | W&B |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | | | | |
+
+### Metrics (`Episode_Metrics/*` in W&B)
+
+Per-episode values in physical units. They are averaged over each episode's steps, except
+`_max`, which is the episode's peak.
+
+| Metric | Meaning | Good |
+|---|---|---|
+| `saddle_load` | Share of the K1's weight on the saddle | About 0.85 when holding the pose; at least 0.6 |
+| `feet_on_floor` | Share of the time each foot touches the floor | Near 1 |
+| `trunk_tilt_deg`, `trunk_tilt_deg_max` | Trunk angle from its seated orientation (35 deg ends the episode) | Small; the max shows how far pushes move it |
+| `posture_error_deg` | Mean joint deviation from the seated pose | A few degrees |
+| `action_change` | Step-to-step change of the action (L2); high means shaking | Low and steady |
+| `bike_lean_deg`, `bike_lean_deg_max` | Stage 1: bike lean on the stand (20 deg ends the episode) | Within about 5 deg; the max shows the worst push |
 
 ## Training task `LAAI-K1-Sit-Puky`
 
