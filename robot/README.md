@@ -6,6 +6,8 @@ policies in MuJoCo and on the robot. Each experiment keeps its own booster_deplo
 
 Commands for every step (install, Booster's MuJoCo, copy to the robot, dry run, robot test,
 controls, logs) are in [docs/commands.md](../docs/commands.md).
+For university lab equipment and arena access, follow the
+[Hex equipment-booking rules](../cluster/README.md#equipment-bookings).
 
 | File | What |
 |---|---|

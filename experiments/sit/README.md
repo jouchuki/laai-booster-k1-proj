@@ -56,6 +56,9 @@ the model.
 
 ## Stage 1 `LAAI-K1-Sit-Puky-Lean`: keep a standing bike upright
 
+For the separate experiment with a completely free bike and no stand spring, see
+[sit_free/](../sit_free/README.md). Its pretrained/scratch runs log to `logs/laai_sit_free/`.
+
 Still no forward motion: the bike stands on a virtual stand that lets it **lean left and
 right on its tyres** (a hinge along the line where both tyres touch the floor), held towards
 upright by a spring. Everything else is stage 0, plus:
@@ -77,6 +80,10 @@ to 19 deg and back. So the skill here is staying upright (keeping the lean small
 pushes), not avoiding a fall. Forward motion comes next (phase 4), on the same stand.
 
 Train, watch and export: [docs/commands.md](../../docs/commands.md#train-the-sit-task-phase-3).
+For Hex, use [cluster/train.slurm](../../cluster/train.slurm) for GPU training or
+[cluster/train_cpu.slurm](../../cluster/train_cpu.slurm) for CPU-only training, for either
+stage. The [cluster guide](../../cluster/README.md#submit-cpu-sit-training) includes CPU and
+GPU smoke jobs, stage 0 submission and stage 1 submission from a stage 0 checkpoint.
 
 ## What `laai_sit_hold` does, and does not do
 

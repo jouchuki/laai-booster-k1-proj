@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "mujoco>=3.3",
-    "numpy",
+    "numpy>=1.26,<3",
     "pyyaml",
     # K1 robot model; cloned by scripts/setup_booster.sh at a pinned commit.
     # Installed editable because it locates its files relative to its source folder.
@@ -20,10 +20,11 @@ sim = [
     "scipy",
     "onnxruntime",
 ]
-# Training with mjlab (Isaac Lab API on MuJoCo Warp). Real training needs Linux + NVIDIA
-# (the cluster); on a Mac it installs too and runs on CPU, for tests and smoke runs only.
+# Training with mjlab (Isaac Lab API on MuJoCo Warp). GPU training needs Linux + NVIDIA;
+# CPU training also works with fewer environments (including headless CPU runs on macOS).
 train = [
     "mjlab>=1.6",
+    "numpy>=2,<3",
     "wandb",
 ]
 # Booster's robot SDK (Python wrapper). Code that runs on the robot uses the robot's own runtime.
@@ -38,6 +39,11 @@ dev = [
 
 [tool.uv]
 default-groups = ["dev"]
+# Booster's robot SDK requires NumPy <2; training uses NumPy 2.
+# Install these workflows in separate environments.
+conflicts = [
+    [{ group = "train" }, { group = "robot" }],
+]
 
 [tool.uv.sources]
 booster-assets = { path = "booster_assets", editable = true }

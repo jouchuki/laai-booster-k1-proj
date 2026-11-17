@@ -63,5 +63,5 @@ fi
 
 echo "Done. Next, from the repository root:"
 echo "  Linux/macOS local setup: uv sync --group sim --group train"
-echo "  Linux GPU cluster:      uv sync --group train"
+echo "  Linux GPU cluster:      follow cluster/README.md for Hex's environment and quotas"
 echo "See docs/commands.md for platform-specific viewer and training commands."
