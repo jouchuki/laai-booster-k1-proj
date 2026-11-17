@@ -23,6 +23,9 @@ export MUJOCO_GL=egl            # headless rendering for rollout videos
 # W&B: run `wandb login` once on the login node (see cluster/README.md). Without an API key,
 # scripts/train.py logs offline to logs/wandb/. If compute nodes have no internet, uncomment:
 # export WANDB_MODE=offline     # then on the login node: uv run --group train wandb sync logs/wandb/offline-run-*
+# Runs go to our W&B team, not a personal account. Use the name as it appears in the team's
+# URL (wandb.ai/<name>); a WANDB_ENTITY already set in the environment wins.
+export WANDB_ENTITY="${WANDB_ENTITY:-K1Booster}"
 
 nvidia-smi
 uv run --group train python scripts/train.py "$TASK" --env.scene.num-envs 4096 "$@"
