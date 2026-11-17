@@ -15,11 +15,21 @@ existing clones. Run setup before `uv sync` if
 |---|---|---|---|
 | Linux host | `uv run python` | `uv run python` | Local viewing, tests, CPU smoke runs; GPU training with NVIDIA hardware |
 | macOS host | `uv run mjpython` | `uv run python` | Local viewing, tests, CPU smoke runs |
-| Linux GPU cluster | Use headless jobs | `uv run python` | NVIDIA GPU training through SLURM |
+| Linux GPU cluster | Use headless jobs | `uv run python` | CPU or NVIDIA GPU training through SLURM |
 | Robot (Linux) | Not needed for deployment | Robot's configured Python environment | Hardware access and deployment |
 
 `mjpython` is installed with MuJoCo. It is needed on macOS for the native passive
 viewer, not for every Python command. See the [MuJoCo viewer documentation](https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer).
+
+On **Hex (Linux GPU cluster)**, run simulation, training, playback, export and tests in
+SLURM allocations, including CPU smoke runs. Use the login node for setup, submission,
+monitoring and file transfers. Follow [Hex setup and rules](../cluster/README.md) for the
+Miniconda Python 3.12 interpreter, locked uv dependencies, storage quotas and interactive
+allocations. Desktop viewer examples below are for local hosts.
+
+Training uses NumPy 2; Booster's robot SDK requires NumPy below 2. The `train` and `robot`
+dependency groups are declared incompatible in uv and must use separate environments.
+Install the groups needed for the workflow rather than using `--all-groups`.
 
 ## Setup
 
@@ -237,10 +247,22 @@ git diff, checkpoints and videos. Log in once per machine:
 uv run --group train wandb login
 ```
 
+Alternatively, keep `WANDB_API_KEY` in the repository root's gitignored `.env`. Hex's batch
+script loads that file automatically when present in the **Hex checkout**; it is not copied
+by Git. For a direct training command on a **Linux NVIDIA host or allocated GPU node**, from
+the repository root, add uv's `--env-file .env` option:
+
+```bash
+uv run --env-file .env --group train python scripts/train.py LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 4096 --agent.run-name stage0
+```
+
+uv reads the file as environment data; do not source it as a shell script or commit it.
+
 Without an API key, `scripts/train.py` logs offline to `logs/wandb/` and prints the
 `wandb sync` command that uploads the run later. Add `--agent.logger tensorboard` to skip W&B.
 
-### Linux GPU cluster node or NVIDIA host
+### Linux GPU cluster allocated node or NVIDIA host
 
 Run on an allocated GPU node (or a machine where you are allowed to use the GPU):
 
@@ -251,8 +273,9 @@ uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
 
 ### Linux and macOS: CPU smoke run
 
-This small run checks the training pipeline; use the Linux GPU workflow for full
-training. It is headless, so macOS also uses ordinary Python:
+This small run checks the training pipeline. CPU training with more environments is also
+possible; GPUs improve parallel simulation throughput. This is headless, so macOS also uses
+ordinary Python:
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
@@ -297,7 +320,7 @@ with `--viewer viser` instead. This is separate from Booster's `deploy.py` viewe
 
 ## Export our walk policy for booster_deploy
 
-### Linux GPU cluster or NVIDIA host
+### Linux GPU cluster allocated node or NVIDIA host
 
 Writes `policy.pt`, checks it against mjlab's own actions (must print `OK`) and
 optionally records a video. `MUJOCO_GL=egl` is for headless Linux NVIDIA rendering:
@@ -399,7 +422,61 @@ scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' experiments/walk/runs/run
 `LAAI-K1-Sit-Puky`: the K1 seated on the Puky, bike held upright (see
 [experiments/sit/README.md](../experiments/sit/README.md)). Logs go to `logs/laai_sit/`.
 
-### Linux GPU cluster node or NVIDIA host
+### Linux GPU cluster: submit on Hex
+
+From the repository root on the login node after the
+[cluster setup](../cluster/README.md#first-time-setup-on-the-cluster), submit a short GPU
+smoke job first:
+
+```bash
+mkdir -p logs
+sbatch --job-name=sit-smoke --time=00:30:00 cluster/train.slurm LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 32 --agent.max-iterations 3 --agent.run-name smoke \
+  --agent.logger tensorboard
+```
+
+After the smoke job completes successfully, submit stage 0:
+
+```bash
+sbatch --job-name=sit-stage0 cluster/train.slurm LAAI-K1-Sit-Puky \
+  --agent.run-name stage0
+```
+
+After stage 0 finishes, replace the checkpoint path with its actual file and submit stage 1:
+
+```bash
+sbatch --job-name=sit-stage1 cluster/train.slurm LAAI-K1-Sit-Puky-Lean \
+  --init-from logs/laai_sit/YOUR_STAGE0_RUN/model_1499.pt --agent.run-name stage1
+```
+
+The shared script requests the student `batch-gpu` partition, one RTX 4500 GPU, five CPUs,
+32 GB RAM and eight hours. See [cluster/README.md](../cluster/README.md) for monitoring and
+GPU/driver requirements. Training dependencies must be installed before submission.
+
+### Linux GPU cluster: CPU-only training on Hex
+
+From the repository root on the login node, after the same Miniconda and uv setup, submit
+a CPU smoke test:
+
+```bash
+mkdir -p logs
+sbatch --job-name=sit-cpu-smoke --time=00:15:00 cluster/train_cpu.slurm LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 8 --agent.max-iterations 3 --agent.run-name cpu-smoke \
+  --agent.logger wandb
+```
+
+After it passes, train stage 0 with 256 environments and 1,500 iterations:
+
+```bash
+sbatch --job-name=sit-cpu-stage0 cluster/train_cpu.slurm LAAI-K1-Sit-Puky \
+  --agent.run-name cpu-stage0
+```
+
+The CPU launcher requests `batch`, 4 CPUs, 4 GB RAM and 8 hours, forces `--gpu-ids None`,
+and accepts the same checkpoint and training options as the GPU launcher. See the
+[CPU cluster guide](../cluster/README.md#submit-cpu-sit-training) for stage 1 and timing limits.
+
+### Linux GPU cluster allocated node or NVIDIA host
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Sit-Puky \
@@ -436,7 +513,7 @@ uv run --group train mjpython scripts/play.py LAAI-K1-Sit-Puky \
   --checkpoint-file logs/laai_sit/YOUR_RUN/model_1499.pt --device cpu --num-envs 1 --viewer native
 ```
 
-### Linux GPU cluster or NVIDIA host: export for booster_deploy
+### Linux GPU cluster allocated node or NVIDIA host: export for booster_deploy
 
 ```bash
 MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
@@ -445,6 +522,38 @@ MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
 
 Keep the result as `experiments/sit/runs/runN/policy.pt`. A booster_deploy task that runs it on
 the robot (seated pose as default pose, like `laai_sit_hold`) follows once a policy is trained.
+
+## Compare free-bike training on Hex
+
+Task `LAAI-K1-Sit-Puky-Free` removes the fixed root and spring stand. Its separate experiment
+is [experiments/sit_free/](../experiments/sit_free/README.md), with raw output under
+`logs/laai_sit_free/`. Both comparison jobs use W&B, 256 environments, seed 42 and 1,500 new
+iterations. One imports only the pretrained actor; both reset the critic, optimizer and
+counters. Do not use full-state `--init-from` for this comparison.
+
+**Linux GPU cluster (Hex login node)**, from the repository root after the documented
+Miniconda/uv setup. Replace the checkpoint with a completed snapshot from the fixed-bike run.
+Check storage usage first. Validate both scheduler requests without submitting jobs:
+
+```bash
+uv run --no-sync --group train python scripts/submit_sit_free.py \
+  logs/laai_sit/YOUR_STAGE0_RUN/model_900.pt --test-only
+```
+
+Submit both CPU jobs:
+
+```bash
+uv run --no-sync --group train python scripts/submit_sit_free.py \
+  logs/laai_sit/YOUR_STAGE0_RUN/model_900.pt
+```
+
+The helper requests the student `batch` CPU partition through `cluster/train_cpu.slurm`:
+4 CPUs and 4 GB RAM per job, no GPU, and a 12-hour limit to allow for the free-body physics.
+It freezes the checkpoint and source in `logs/laai_sit_free/comparisons/<comparison>/`,
+records job IDs in `manifest.json`, and gives both runs one W&B comparison group.
+Each final checkpoint triggers the same held-out evaluation inside its allocation;
+results appear in `evaluation.json` and W&B `Evaluation/*`. Compare these along with
+episode duration, fall causes, bike tilt and saddle support. The original run stays separate.
 
 ## Robot test: hold the seated pose (phase 3)
 

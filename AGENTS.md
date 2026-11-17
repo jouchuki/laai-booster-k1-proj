@@ -44,6 +44,25 @@
   Update the lockfile when changing that source path. Do not move, reset, or
   duplicate a teammate's checkouts to impose a layout.
 
+## Hex cluster
+
+- Follow `cluster/README.md` and the linked CI group rules for Hex changes. Keep
+  `docs/commands.md`, examples, script defaults and `tests/test_hex_cluster.py` consistent.
+- Student GPU jobs use `batch-gpu`, at most five CPUs per GPU and at most two days.
+  The GPU launcher supports one node, one task and one GPU. CPU jobs use `train_cpu.slurm`
+  in a student CPU partition, with no GPU allocation and `--gpu-ids None`. Do not add staff-only
+  partitions or scheduling exceptions without confirmed authorization from cluster staff.
+- Run simulation, training, playback, export and tests inside SLURM allocations on Hex.
+  The login node is for setup, submission, monitoring and file transfers. Preserve
+  SLURM's GPU visibility and keep numerical-library threads within the CPU allocation.
+- Use the documented Miniconda module for the cluster's Python 3.12 interpreter and uv
+  for this project's locked dependencies. Install dependencies before submitting jobs.
+- Keep environments, caches, checkpoints and logs within personal shared-storage quotas.
+  Check current usage; `/tmp` is temporary and retained results must be copied out before
+  the job ends. Never automatically delete or move another user's data.
+- Equipment bookings are separate from SLURM and follow the linked booking guide.
+  Distinguish documented limits, live scheduler observations and actual GPU validation.
+
 ## Code navigation
 
 Prefer the configured CodeGraph tools for structural questions (definitions,

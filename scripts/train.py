@@ -5,6 +5,9 @@ Linux NVIDIA host or allocated GPU node (from the repository root):
     uv run --group train python scripts/train.py LAAI-K1-Walk-Flat --env.scene.num-envs 4096
     uv run --group train python scripts/train.py LAAI-K1-Walk-Flat --agent.run-name walk-baseline-ep
 
+On Hex, submit cluster/train.slurm (GPU) or cluster/train_cpu.slurm (CPU) from the login
+node, or use an interactive SLURM allocation. See cluster/README.md for resource limits.
+
 Start from an earlier checkpoint instead of from scratch (the next curriculum stage, for
 example sit stage 1 from a stage 0 policy). Both tasks must log into the same experiment
 folder and have the same inputs and outputs; training continues from that checkpoint's
@@ -21,11 +24,13 @@ TensorBoard files in the run folder. Not logged in (`wandb login` or WANDB_API_K
 is logged offline under logs/wandb/ and can be uploaded later with `wandb sync`. Opt out with
 `--agent.logger tensorboard`. Summarize a finished run for its notes with
 scripts/run_summary.py.
+For a key stored in the repository root's ignored .env, add `--env-file .env` to `uv run`;
+Both cluster launchers do this automatically when that file exists in the cluster checkout.
 
 See docs/commands.md for CPU smoke runs.
 
-Needs Linux + an NVIDIA GPU for real training (`uv sync --group train`). Without a GPU,
-mjlab falls back to CPU, which is only useful for a quick smoke test with a few envs.
+GPU training needs Linux + NVIDIA (`uv sync --group train`). CPU training also works with
+--gpu-ids None; use fewer environments and measure throughput before choosing a run budget.
 Checkpoints and logs go to logs/<experiment>/<date>_<run-name>/ (gitignored).
 Multi-GPU runs are not supported yet: our tasks are registered in this process only.
 """
