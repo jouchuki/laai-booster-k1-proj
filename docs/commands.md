@@ -227,6 +227,19 @@ To submit a training job with SLURM, see [cluster/README.md](../cluster/README.m
 Checkpoints, TensorBoard files and videos go to `logs/<experiment>/<date>_<run-name>/`
 (gitignored), for example `logs/laai_walk/2026-11-12_10-15-00_walk-baseline-ep/`.
 
+Runs are tracked in Weights & Biases, project `laai-k1`. Each experiment is a group
+(`laai_walk`, `laai_sit`) and each run is tagged with its task id. W&B records the curves, every
+reward term (`Episode_Reward/*`), termination causes, tracking metrics, the full config, the
+git diff, checkpoints and videos. Log in once per machine:
+
+```bash
+# Linux and macOS
+uv run --group train wandb login
+```
+
+Without an API key, `scripts/train.py` logs offline to `logs/wandb/` and prints the
+`wandb sync` command that uploads the run later. Add `--agent.logger tensorboard` to skip W&B.
+
 ### Linux GPU cluster node or NVIDIA host
 
 Run on an allocated GPU node (or a machine where you are allowed to use the GPU):
@@ -245,6 +258,17 @@ training. It is headless, so macOS also uses ordinary Python:
 uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
   --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 \
   --agent.logger tensorboard
+```
+
+### Linux and macOS: summarize a finished run
+
+Prints the "Simulation results" block for the run's `notes.md` and a row for the experiment's
+Runs table. Each number is the mean over the last 50 iterations (`--last N` changes this). It
+also prints the W&B link, or the `wandb sync` command for an offline run. It reads the run's
+TensorBoard files, so it works offline:
+
+```bash
+uv run --group train python scripts/run_summary.py logs/laai_walk/YOUR_RUN
 ```
 
 ## Watch our trained policy

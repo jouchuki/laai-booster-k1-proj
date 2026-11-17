@@ -27,7 +27,8 @@ logs/laai_<experiment>/<date>_<run-name>/   raw training output (gitignored, pro
 
 **Run record vs. training logs.** `runs/runN/` is the curated record that stays in git. The
 raw training output (checkpoints, TensorBoard, videos) goes to `logs/laai_<experiment>/` at the
-project root and stays out of git; link the checkpoint you used from `notes.md`.
+project root and stays out of git; link the checkpoint you used from `notes.md`. Curves and
+configs are also in W&B; see [Tracking and comparing runs](#tracking-and-comparing-runs).
 
 | Plan phase | Experiment | Status |
 |---|---|---|
@@ -58,6 +59,28 @@ bike the robot collides with (`k1_seated_bike_scene`); see [decisions](../docs/d
 2. Change `<experiment>/task.py`, commit it, and copy it to `<experiment>/runs/runN/task.py`.
 3. Train (`scripts/train.py ... --agent.run-name runN`), export
    (`python -m experiments.<experiment>.export`), test in Booster's MuJoCo and on the robot.
+4. Run `scripts/run_summary.py` on the log folder. Paste its block into `notes.md` and its row
+   into the experiment README's Runs table, then fill in the change, sim-to-sim and robot cells.
+
+## Tracking and comparing runs
+
+Each layer has one job:
+
+| Layer | Holds | Where |
+|---|---|---|
+| Raw output | Checkpoints, TensorBoard files, videos | `logs/laai_<experiment>/<date>_<run-name>/` (gitignored) |
+| Live tracking | Curves, every reward term, terminations, task metrics, config, git diff, videos | W&B project `laai-k1`, one group per experiment, tagged with the task id |
+| Curated record | Hypothesis, changes, sim-to-sim and robot results, conclusion | `<experiment>/runs/runN/notes.md` and the Runs table in `<experiment>/README.md` (in git) |
+
+Use one name for a run everywhere: `--agent.run-name runN` names the log folder, the W&B
+run and `runs/runN/`. To compare runs, select them in W&B (filter by group) and open the
+`Episode_Reward/*` panels to see which reward terms moved. The config diff shows what
+changed. Each Runs table holds the same headline numbers for every run. From now on they
+come from `scripts/run_summary.py` (mean over the last 50 iterations), so runs can be
+compared row by row.
+
+If a run fails on the robot but looks fine in simulation, record it in `notes.md`: W&B only
+sees training.
    Commands: [docs/commands.md](../docs/commands.md).
 4. Add `policy.pt` and the robot logs to the run folder, fill in `notes.md`, and add a row to
    the runs table in `<experiment>/README.md`.

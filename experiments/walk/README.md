@@ -70,10 +70,19 @@ Matched to Booster's `k1_walk` task, so booster_deploy runs the policy unchanged
 
 ## Runs
 
-| Run | Date | Main change | Training | Booster MuJoCo | Robot |
-|---|---|---|---|---|---|
-| [1](runs/run1/notes.md) | 2026-11-09 | Baseline | Reward ~101, no falls | Walks | Violent shaking at handover |
-| [2](runs/run2/notes.md) | 2026-11-11 | Actuator delay, dynamics randomization, smoothness penalties | Reward ~110, no falls | Walks; survives 60 ms delay | Walks and turns; ankle-roll oscillation, 94 s of walking with ankle kd 1.5 |
+Comparable numbers come from `scripts/run_summary.py`: the mean over the last 50 iterations,
+with tracking error from `Metrics/twist/error_vel_xy` / `error_vel_yaw`. Add one row per run
+(see [Tracking and comparing runs](../README.md#tracking-and-comparing-runs)).
+
+| Run | Date | Main change | Iterations | Mean reward | Episode length (of 1000) | Tracking error lin / yaw | Booster MuJoCo | Robot | W&B |
+|---|---|---|---|---|---|---|---|---|---|
+| [1](runs/run1/notes.md) | 2026-11-09 | Baseline | 3000 | ~101* | 1000* | 0.12 / 0.2* | Walks | Violent shaking at handover | none (Colab, TensorBoard) |
+| [2](runs/run2/notes.md) | 2026-11-11 | Actuator delay, dynamics randomization, smoothness penalties | 4000 | ~110* | 990-1000* | 0.36 / 0.50* | Walks; survives 60 ms delay | Walks and turns; ankle-roll oscillation, 94 s of walking with ankle kd 1.5 | none (Colab, TensorBoard) |
+
+\* Read by hand from the Colab output, before `run_summary.py` existed. Their logs are not in
+this repository, so these values are not strictly comparable with later rows. The tracking
+errors of runs 1 and 2 may come from different measurements (run 2 notes call it the training
+metric).
 ## Robot-side features (`deploy/laai_walk.py`, 2026-11-11)
 
 What `laai_walk` adds to Booster's `k1_walk` settings:
