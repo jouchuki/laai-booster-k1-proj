@@ -46,7 +46,8 @@ sbatch cluster/train.slurm LAAI-K1-Walk-Flat --agent.run-name walk-baseline-ep
 
 Any registered task works (the first argument). Checkpoints and the exported ONNX policy land in `logs/laai_walk/<date>_<run-name>/`.
 
-Runs log to Weights & Biases (project `laai-k1`, grouped by experiment) once `wandb login`
+Runs log to Weights & Biases (team `K1Booster`, set as `WANDB_ENTITY` in `train.slurm`;
+project `laai-k1`, grouped by experiment) once `wandb login`
 has stored an API key on the cluster. Without a key, or with `WANDB_MODE=offline` set in
 `train.slurm` because compute nodes have no internet, runs are logged to `logs/wandb/`. Upload
 them afterwards from the Linux cluster login node:
