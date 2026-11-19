@@ -1,0 +1,58 @@
+{
+  "group": "free-bike-20261117T211126Z",
+  "experiment": "laai_sit_free",
+  "source_checkpoint": "/scratch/laoa/laai-booster-k1-proj/logs/laai_sit/2026-11-17_17-32-52_cpu-stage0/model_900.pt",
+  "frozen_checkpoint": "/scratch/laoa/laai-booster-k1-proj/logs/laai_sit_free/comparisons/free-bike-20261117T211126Z/model_900.pt",
+  "checkpoint_sha256": "42e0ff4f8d08e1e40cba032d8ac05f4a27c4296007b107053bf25d00318444c1",
+  "git_revision": "7ade19e171a6cf575df9364e6ea8088aa2096bf6",
+  "source_snapshot": "source.tar.gz",
+  "num_envs": 256,
+  "iterations_per_run": 1500,
+  "seed": 42,
+  "commands": {
+    "pretrained": [
+      "sbatch",
+      "--parsable",
+      "--time=12:00:00",
+      "--job-name=sit-free-pretrained",
+      "--export=ALL,WANDB_RUN_GROUP=free-bike-20261117T211126Z,WANDB_TAGS=pretrained",
+      "cluster/train_cpu.slurm",
+      "LAAI-K1-Sit-Puky-Free",
+      "--env.scene.num-envs",
+      "256",
+      "--agent.max-iterations",
+      "1500",
+      "--agent.seed",
+      "42",
+      "--agent.logger",
+      "wandb",
+      "--agent.run-name",
+      "free-bike-20261117T211126Z-pretrained",
+      "--agent.init-policy-from",
+      "/scratch/laoa/laai-booster-k1-proj/logs/laai_sit_free/comparisons/free-bike-20261117T211126Z/model_900.pt"
+    ],
+    "scratch": [
+      "sbatch",
+      "--parsable",
+      "--time=12:00:00",
+      "--job-name=sit-free-scratch",
+      "--export=ALL,WANDB_RUN_GROUP=free-bike-20261117T211126Z,WANDB_TAGS=scratch",
+      "cluster/train_cpu.slurm",
+      "LAAI-K1-Sit-Puky-Free",
+      "--env.scene.num-envs",
+      "256",
+      "--agent.max-iterations",
+      "1500",
+      "--agent.seed",
+      "42",
+      "--agent.logger",
+      "wandb",
+      "--agent.run-name",
+      "free-bike-20261117T211126Z-scratch"
+    ]
+  },
+  "jobs": {
+    "pretrained": "54645",
+    "scratch": "54646"
+  }
+}

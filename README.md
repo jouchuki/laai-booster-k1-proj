@@ -110,7 +110,7 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 | 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
 | 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis in the saddle dip by contact); robot task `laai_sit_hold` holds the pose for a first real test (no balance); training task `LAAI-K1-Sit-Puky` ready, not trained yet | [experiments/sit/](experiments/sit/README.md), [models/k1_on_bike/](models/k1_on_bike/README.md) |
 | 4 | Walk the bike, supported | Not started | |
-| 5 | Free bike, feet as support | Not started | |
+| 5 | Free bike, feet as support | Unsupported seated-balance comparison completed: pretrained and scratch policies both passed 32/32 ten-second evaluation episodes; forward riding not started | [experiments/sit_free/](experiments/sit_free/README.md) |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
 
 1. Prove sim-to-real with walking. Train a standard walking policy for our robot and run it on the real one. This tests the whole pipeline (model, simulator, training, deployment), and walking is also the base skill for riding a balance bike.
@@ -136,11 +136,12 @@ experiments/         one folder per skill (walk, sit, later push, ride)
   walk/              training task, export, booster_deploy task files
   sit/               training task (K1 on the held-up Puky), robot task holding the seated pose
     runs/runN/       record of each training run: notes, task snapshot, policy, robot logs
+  sit_free/          unsupported bike, matched pretrained/scratch comparison and run notes
 logs/                raw training output, gitignored: logs/laai_<experiment>/<date>_<run-name>/
 src/k1bike/          shared Python code: model paths, K1 settings, scenes, seating
 scripts/             tools: setup, viewer, train/play, model generators
 robot/               tools for the real robot: install into booster_deploy, copy, dry run, info
-cluster/             SLURM job template for the GPU cluster
+cluster/             Hex SLURM training job, setup and resource rules
 docs/                commands, decisions, bike measurements, handover notes
 tests/               quick checks that the models load and the tasks build (run in CI)
 examples/            practice scripts (Stable-Baselines3), not part of the pipeline
@@ -155,7 +156,7 @@ legacy/              old, unvalidated experiments (ROS 2 Docker)
 | `src/k1bike/` | `paths.py` (every model and log path), `robots/k1.py` (K1 model and booster_deploy settings), `scene.py` (bike, K1 + bike and seated scenes), `seat.py` (hand welds, seat contact), `hand_clips.py` (orange clip geometry and attachments) |
 | `scripts/` | `setup_booster.sh`, `booster_paths.sh` (Booster checkouts), `view_model.py` (viewer), `train.py`, `play.py` (any experiment), `run_sample_task.sh` (Booster's pretrained policies), `convert_yellow_bike.py` (makes `models/yellow_bike/`), `convert_puky_bike.py` (makes `models/puky_bike/`), `solve_seated_pose.py --bike <bike>` (makes `models/k1_on_bike/<bike>.json`) |
 | [robot/](robot/README.md) | `install.sh <experiment>`, `setup_robot.sh`, `dry_run.py` (policy on live sensors, no motor commands), `robot_info.py` |
-| [cluster/](cluster/README.md) | `train.slurm` (cluster details still to fill in) |
+| [cluster/](cluster/README.md) | Hex setup, limits, GPU `train.slurm` and CPU `train_cpu.slurm` for walk, supported sit and free-bike tasks |
 | `docs/` | [commands.md](docs/commands.md) (every command by platform), [decisions.md](docs/decisions.md), [bike-dimensions.md](docs/bike-dimensions.md), [handover/](docs/handover/README.md) (first setup, credentials template) |
 | `booster_assets/`, `booster_deploy/` | Booster's code, cloned by `scripts/setup_booster.sh` (gitignored) |
 | `AGENTS.md`, `CLAUDE.md` | Shared instructions for coding agents |
@@ -172,6 +173,9 @@ forearms meet the fork (see [decisions](docs/decisions.md)). Tests check both.
 Use [docs/commands.md](docs/commands.md) for separate Linux host, macOS host,
 Linux GPU cluster, and robot commands. Run commands from the repository root
 unless an example explicitly changes directory.
+On Hex, follow the [cluster rules and setup](cluster/README.md): run compute work inside
+SLURM allocations, use a student CPU or GPU partition, and check storage usage before installing
+dependencies or starting runs.
 
 ## Setup
 

@@ -15,11 +15,21 @@ existing clones. Run setup before `uv sync` if
 |---|---|---|---|
 | Linux host | `uv run python` | `uv run python` | Local viewing, tests, CPU smoke runs; GPU training with NVIDIA hardware |
 | macOS host | `uv run mjpython` | `uv run python` | Local viewing, tests, CPU smoke runs |
-| Linux GPU cluster | Use headless jobs | `uv run python` | NVIDIA GPU training through SLURM |
+| Linux GPU cluster | Use headless jobs | `uv run python` | CPU or NVIDIA GPU training through SLURM |
 | Robot (Linux) | Not needed for deployment | Robot's configured Python environment | Hardware access and deployment |
 
 `mjpython` is installed with MuJoCo. It is needed on macOS for the native passive
 viewer, not for every Python command. See the [MuJoCo viewer documentation](https://mujoco.readthedocs.io/en/stable/python.html#passive-viewer).
+
+On **Hex (Linux GPU cluster)**, run simulation, training, playback, export and tests in
+SLURM allocations, including CPU smoke runs. Use the login node for setup, submission,
+monitoring and file transfers. Follow [Hex setup and rules](../cluster/README.md) for the
+Miniconda Python 3.12 interpreter, locked uv dependencies, storage quotas and interactive
+allocations. Desktop viewer examples below are for local hosts.
+
+Training uses NumPy 2; Booster's robot SDK requires NumPy below 2. The `train` and `robot`
+dependency groups are declared incompatible in uv and must use separate environments.
+Install the groups needed for the workflow rather than using `--all-groups`.
 
 ## Setup
 
@@ -237,10 +247,22 @@ git diff, checkpoints and videos. Log in once per machine:
 uv run --group train wandb login
 ```
 
+Alternatively, keep `WANDB_API_KEY` in the repository root's gitignored `.env`. Hex's batch
+script loads that file automatically when present in the **Hex checkout**; it is not copied
+by Git. For a direct training command on a **Linux NVIDIA host or allocated GPU node**, from
+the repository root, add uv's `--env-file .env` option:
+
+```bash
+uv run --env-file .env --group train python scripts/train.py LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 4096 --agent.run-name stage0
+```
+
+uv reads the file as environment data; do not source it as a shell script or commit it.
+
 Without an API key, `scripts/train.py` logs offline to `logs/wandb/` and prints the
 `wandb sync` command that uploads the run later. Add `--agent.logger tensorboard` to skip W&B.
 
-### Linux GPU cluster node or NVIDIA host
+### Linux GPU cluster allocated node or NVIDIA host
 
 Run on an allocated GPU node (or a machine where you are allowed to use the GPU):
 
@@ -251,8 +273,9 @@ uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
 
 ### Linux and macOS: CPU smoke run
 
-This small run checks the training pipeline; use the Linux GPU workflow for full
-training. It is headless, so macOS also uses ordinary Python:
+This small run checks the training pipeline. CPU training with more environments is also
+possible; GPUs improve parallel simulation throughput. This is headless, so macOS also uses
+ordinary Python:
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Walk-Flat \
@@ -297,7 +320,7 @@ with `--viewer viser` instead. This is separate from Booster's `deploy.py` viewe
 
 ## Export our walk policy for booster_deploy
 
-### Linux GPU cluster or NVIDIA host
+### Linux GPU cluster allocated node or NVIDIA host
 
 Writes `policy.pt`, checks it against mjlab's own actions (must print `OK`) and
 optionally records a video. `MUJOCO_GL=egl` is for headless Linux NVIDIA rendering:
@@ -399,7 +422,61 @@ scp 'booster@ROBOT_IP:~/booster_deploy/logs/dry_run_*' experiments/walk/runs/run
 `LAAI-K1-Sit-Puky`: the K1 seated on the Puky, bike held upright (see
 [experiments/sit/README.md](../experiments/sit/README.md)). Logs go to `logs/laai_sit/`.
 
-### Linux GPU cluster node or NVIDIA host
+### Linux GPU cluster: submit on Hex
+
+From the repository root on the login node after the
+[cluster setup](../cluster/README.md#first-time-setup-on-the-cluster), submit a short GPU
+smoke job first:
+
+```bash
+mkdir -p logs
+sbatch --job-name=sit-smoke --time=00:30:00 cluster/train.slurm LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 32 --agent.max-iterations 3 --agent.run-name smoke \
+  --agent.logger tensorboard
+```
+
+After the smoke job completes successfully, submit stage 0:
+
+```bash
+sbatch --job-name=sit-stage0 cluster/train.slurm LAAI-K1-Sit-Puky \
+  --agent.run-name stage0
+```
+
+After stage 0 finishes, replace the checkpoint path with its actual file and submit stage 1:
+
+```bash
+sbatch --job-name=sit-stage1 cluster/train.slurm LAAI-K1-Sit-Puky-Lean \
+  --init-from logs/laai_sit/YOUR_STAGE0_RUN/model_1499.pt --agent.run-name stage1
+```
+
+The shared script requests the student `batch-gpu` partition, one RTX 4500 GPU, five CPUs,
+32 GB RAM and eight hours. See [cluster/README.md](../cluster/README.md) for monitoring and
+GPU/driver requirements. Training dependencies must be installed before submission.
+
+### Linux GPU cluster: CPU-only training on Hex
+
+From the repository root on the login node, after the same Miniconda and uv setup, submit
+a CPU smoke test:
+
+```bash
+mkdir -p logs
+sbatch --job-name=sit-cpu-smoke --time=00:15:00 cluster/train_cpu.slurm LAAI-K1-Sit-Puky \
+  --env.scene.num-envs 8 --agent.max-iterations 3 --agent.run-name cpu-smoke \
+  --agent.logger wandb
+```
+
+After it passes, train stage 0 with 256 environments and 1,500 iterations:
+
+```bash
+sbatch --job-name=sit-cpu-stage0 cluster/train_cpu.slurm LAAI-K1-Sit-Puky \
+  --agent.run-name cpu-stage0
+```
+
+The CPU launcher requests `batch`, 4 CPUs, 4 GB RAM and 8 hours, forces `--gpu-ids None`,
+and accepts the same checkpoint and training options as the GPU launcher. See the
+[CPU cluster guide](../cluster/README.md#submit-cpu-sit-training) for stage 1 and timing limits.
+
+### Linux GPU cluster allocated node or NVIDIA host
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Sit-Puky \
@@ -436,7 +513,7 @@ uv run --group train mjpython scripts/play.py LAAI-K1-Sit-Puky \
   --checkpoint-file logs/laai_sit/YOUR_RUN/model_1499.pt --device cpu --num-envs 1 --viewer native
 ```
 
-### Linux GPU cluster or NVIDIA host: export for booster_deploy
+### Linux GPU cluster allocated node or NVIDIA host: export for booster_deploy
 
 ```bash
 MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
@@ -445,19 +522,31 @@ MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
 
 The export must print `Deploy-format check: ... (OK)`. Keep the result as
 `experiments/sit/runs/runN/policy.pt`; the booster_deploy task `laai_sit` runs it on the robot
-(next section but one).
+([next section](#robot-test-the-trained-sit-policy-phase-3)).
 
 ## Robot test: the trained sit policy (phase 3)
 
-`laai_sit` runs the trained policy around the seated pose, with the same safety stops as
-`laai_sit_hold` plus the walk task's shake watchdog. Same placement, people and keys as the
-hold (next section); set the saddle as in
-[the 2026-11-19 robot test](../experiments/sit/robot_tests/2026-11-19/notes.md). The bike stays
-held: stage 0 (`LAAI-K1-Sit-Puky`) trains with the bike fixed to the world.
+`laai_sit` runs a trained policy around the seated pose, with the same safety stops as
+`laai_sit_hold` plus the walk task's shake watchdog. Same placement, people and keys as
+[the hold](#robot-test-hold-the-seated-pose-phase-3); set the saddle as in
+[the 2026-11-19 robot test](../experiments/sit/robot_tests/2026-11-19/notes.md). Keep the bike
+held for the first tests.
+
+It runs any policy exported in this format: a stage 0 run (`experiments/sit/runs/runN/policy.pt`,
+the default) or a free-bike run (`experiments/sit_free/runs/runN/policy.pt`, given with
+`--policy` and after `sit`). There is no stage 0 run in the repository yet. Of the free-bike
+runs, **run 2** sits calmly in the rehearsal (no stop up to a 40 N push); run 1 trips the
+hip-roll torque stop within a second, so do not take it to the robot.
 
 ### Linux and macOS: rehearse it in simulation on the bike
 
-The newest run's `policy.pt`, with the bike held (as on the robot), then released:
+Free-bike run 2, with the bike held (as on the robot):
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit --bike-held --policy experiments/sit_free/runs/run2/policy.pt
+```
+
+The newest stage 0 run's `policy.pt`, with the bike held, then released:
 
 ```bash
 uv run --group sim python experiments/sit/check_hold.py --task laai_sit --bike-held
@@ -475,7 +564,11 @@ uv run --group sim python experiments/sit/check_hold.py --task laai_sit --policy
 
 ### Linux and macOS host: copy to the robot
 
-Installs the newest sit run's `policy.pt` as `models/laai_sit.pt` (or give a policy file after `sit`):
+Installs the given policy as `models/laai_sit.pt`; without one, the newest stage 0 run's `policy.pt`:
+
+```bash
+bash robot/setup_robot.sh ROBOT_IP sit experiments/sit_free/runs/run2/policy.pt
+```
 
 ```bash
 bash robot/setup_robot.sh ROBOT_IP sit
@@ -496,6 +589,78 @@ python3 scripts/deploy.py --task laai_sit
 X slides the joints to the seated pose in 1 s, then press `r` (A) within a few seconds: the
 safety stops run only from there. Ctrl+C stops into damping (limp) mode. Never add
 `--exit-mode walking`.
+
+## Compare free-bike training on Hex
+
+Task `LAAI-K1-Sit-Puky-Free` removes the fixed root and spring stand. Its separate experiment
+is [experiments/sit_free/](../experiments/sit_free/README.md), with raw output under
+`logs/laai_sit_free/`. Both comparison jobs use W&B, 256 environments, seed 42 and 1,500 new
+iterations. One imports only the pretrained actor; both reset the critic, optimizer and
+counters. Do not use full-state `--init-from` for this comparison.
+
+**Linux GPU cluster (Hex login node)**, from the repository root after the documented
+Miniconda/uv setup. Replace the checkpoint with a completed snapshot from the fixed-bike run.
+Check storage usage first. Validate both scheduler requests without submitting jobs:
+
+```bash
+uv run --no-sync --group train python scripts/submit_sit_free.py \
+  logs/laai_sit/YOUR_STAGE0_RUN/model_900.pt --test-only
+```
+
+Submit both CPU jobs:
+
+```bash
+uv run --no-sync --group train python scripts/submit_sit_free.py \
+  logs/laai_sit/YOUR_STAGE0_RUN/model_900.pt
+```
+
+The helper requests the student `batch` CPU partition through `cluster/train_cpu.slurm`:
+4 CPUs and 4 GB RAM per job, no GPU, and a 12-hour limit to allow for the free-body physics.
+It freezes the checkpoint and source in `logs/laai_sit_free/comparisons/<comparison>/`,
+records job IDs in `manifest.json`, and gives both runs one W&B comparison group.
+Each final checkpoint triggers the same held-out evaluation inside its allocation;
+results appear in `evaluation.json` and W&B `Evaluation/*`. Compare these along with
+episode duration, fall causes, bike tilt and saddle support. The original run stays separate.
+
+## Compare the trained free-bike policies locally
+
+The completed comparison is archived in `experiments/sit_free/runs/`: both runs include
+full training scalar histories, compressed console logs, configs, evaluation reports,
+exported policies and compact actor checkpoints. See the
+[artifact index and recording](../experiments/sit_free/runs/comparison/README.md).
+The original full checkpoints remain in the Hex run folders and in the local
+`logs/laai_sit_free/` download. The compact checkpoints contain the same actor tensors
+and support playback without downloading optimizer or critic state.
+
+**Linux host**, repository root: open one split-screen window with synchronized clocks,
+camera angles, initial seed and pushes. The pretrained policy is on the left, scratch on
+the right. Each side stops at its first failure or after 10 seconds.
+
+```bash
+uv run --group train python scripts/compare_sit_free.py \
+  --pretrained experiments/sit_free/runs/run1/actor_checkpoint.pt \
+  --scratch experiments/sit_free/runs/run2/actor_checkpoint.pt
+```
+
+Space pauses/resumes; Enter replays both; N selects the next shared seed; Escape closes.
+Drag to rotate both cameras and use the wheel to zoom. Add `--paused` to start paused.
+Add `--once --record logs/laai_sit_free/comparison-final.mp4` to record a paired trial
+and close afterwards. This one-world visual trial is separate from the 32-world evaluation.
+For the Linux GTK schema error described below, prefix this invocation with
+`GDK_BACKEND=x11`; keep that workaround local to the command.
+
+**Linux and macOS**, repository root, headless: export either checkpoint into the existing
+Booster deployment observation/action layout. Replace `YOUR_RUN` with the actual run name.
+
+```bash
+uv run --group train python -m experiments.sit_free.export \
+  --checkpoint logs/laai_sit_free/YOUR_RUN/model_1499.pt \
+  --out logs/laai_sit_free/YOUR_RUN/policy.pt --device cpu
+```
+
+The export checks its actions against the checkpoint and prints `OK` when they match.
+Export verification does not validate deployment on the real robot. The split-screen
+viewer has been validated on Linux only.
 
 ## Robot test: hold the seated pose (phase 3)
 

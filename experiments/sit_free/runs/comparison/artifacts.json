@@ -1,0 +1,125 @@
+{
+  "comparison": "free-bike-20261117T211126Z",
+  "files": [
+    {
+      "path": "run1/training_summary.json",
+      "size_bytes": 1284,
+      "sha256": "5b404b571c00f6155610b4922c414a83e96f2ae4385d0eff15f5e680395dc689"
+    },
+    {
+      "path": "run1/evaluation.json",
+      "size_bytes": 219,
+      "sha256": "93f5f60b37a8f12b85f63a895681ed08424bb9e16a3b8aac5f5dd0be592f563f"
+    },
+    {
+      "path": "run1/policy.pt",
+      "size_bytes": 2114130,
+      "sha256": "45c88494eec37097f7145c4ef3ecbc692feb567a4f251efa2cca77d9c26a9597"
+    },
+    {
+      "path": "run1/params/initialization.json",
+      "size_bytes": 458,
+      "sha256": "888bb18f7e15db83c6ff8570a5eae4517741d03e9a56ce66894c30f0d308cc9d"
+    },
+    {
+      "path": "run1/params/agent.yaml",
+      "size_bytes": 1441,
+      "sha256": "fa4baabcb84b3467dfdce6b1ec6ac18533303a96dca3843e746481594b9155b0"
+    },
+    {
+      "path": "run1/params/env.yaml",
+      "size_bytes": 57045,
+      "sha256": "24d7f30752cfb3a51d98c7d12c0c271e6e66dfd86d6adc238c17197f9eeb968c"
+    },
+    {
+      "path": "run1/training/events.out.tfevents.1794949924.node03.4122186.0",
+      "size_bytes": 3353051,
+      "sha256": "2d24f6f548c485410613471ad9442783a4353fd1f539c44a318cacc6e45a6375"
+    },
+    {
+      "path": "run1/training/slurm-54645.out.gz",
+      "size_bytes": 196068,
+      "sha256": "f1e3cef300545da3dfc7c3d1350ed75b79cad9088ffbdd58515964edaddcb90a"
+    },
+    {
+      "path": "run1/training/laai-booster-k1-proj.diff.gz",
+      "size_bytes": 27100,
+      "sha256": "78e741bd84c08dc4d00ffcc231705afcabe2c1dce458b9b98ac544fd556aea53"
+    },
+    {
+      "path": "run2/training_summary.json",
+      "size_bytes": 1222,
+      "sha256": "611a0735bd998d2d82ee0d4deeb726ca2b3a53fe5befaccbffa551092e1faa52"
+    },
+    {
+      "path": "run2/evaluation.json",
+      "size_bytes": 219,
+      "sha256": "b1ec049850b143145af1b423f6504180fe0bd3d9668e5ad327d4f9dc36b35dfd"
+    },
+    {
+      "path": "run2/policy.pt",
+      "size_bytes": 2114130,
+      "sha256": "10e969399a0ed01f2a2928638c9bbf5ee188d82b8682ebf65b42c6b14f21b671"
+    },
+    {
+      "path": "run2/params/initialization.json",
+      "size_bytes": 24,
+      "sha256": "da938d614c3a4fb93869ea1bf6e0b830f4ef8fd5a74a7249d3611e33fe945cc5"
+    },
+    {
+      "path": "run2/params/agent.yaml",
+      "size_bytes": 1337,
+      "sha256": "4f4eba325c22ee7e8292e03197d65c032f7b4c079fd2b17844e9edf0a9ed7a88"
+    },
+    {
+      "path": "run2/params/env.yaml",
+      "size_bytes": 57045,
+      "sha256": "24d7f30752cfb3a51d98c7d12c0c271e6e66dfd86d6adc238c17197f9eeb968c"
+    },
+    {
+      "path": "run2/training/events.out.tfevents.1794949923.node03.4121804.0",
+      "size_bytes": 3353051,
+      "sha256": "55faad386803e8227defde76b0a877d55c37c4feb9f03cc1e07f11b703aa575e"
+    },
+    {
+      "path": "run2/training/slurm-54646.out.gz",
+      "size_bytes": 188274,
+      "sha256": "44c0bb6da38db385baf7ecb874278272769b6bb1ca15979aab8570fda4c63045"
+    },
+    {
+      "path": "run2/training/laai-booster-k1-proj.diff.gz",
+      "size_bytes": 27100,
+      "sha256": "78e741bd84c08dc4d00ffcc231705afcabe2c1dce458b9b98ac544fd556aea53"
+    },
+    {
+      "path": "comparison/manifest.json",
+      "size_bytes": 1832,
+      "sha256": "9818a504be6f9eb97bd5e2b98ccf20dac8cd0307c829c93ecc3c89425d6a10b0"
+    },
+    {
+      "path": "comparison/source.tar.gz",
+      "size_bytes": 108073,
+      "sha256": "7ce99da7a4fbe612e3fb27bb95bc9103f0036a51c1856bb64348f22ec573cb04"
+    },
+    {
+      "path": "comparison/comparison-final.mp4",
+      "size_bytes": 623508,
+      "sha256": "b7ab1014812ceb03652c43c23abf1e05e5daf07fab680ebca1e851d45ab8338e"
+    },
+    {
+      "path": "comparison/comparison-final.png",
+      "size_bytes": 180802,
+      "sha256": "b862c0f9715041899b59cb627e07eb67c7b94feba88a53cd4aade30f9e1c129d"
+    },
+    {
+      "path": "run1/actor_checkpoint.pt",
+      "size_bytes": 2096103,
+      "sha256": "ffe2e3557438f36faf10b82fd29ab8d4e39fcdd93eb85f6ddaeb31cade25904a"
+    },
+    {
+      "path": "run2/actor_checkpoint.pt",
+      "size_bytes": 2096103,
+      "sha256": "d56287b064791781b5efaa719ce6ef24f9e30676113a24f61d8960d0fd383301"
+    }
+  ]
+}

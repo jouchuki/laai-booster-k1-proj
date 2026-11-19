@@ -1,0 +1,10 @@
+{
+  "seed": 12345,
+  "episodes": 32,
+  "completed_episodes": 32,
+  "success_fraction": 1.0,
+  "bike_fall_fraction": 0.0,
+  "seat_fall_fraction": 0.0,
+  "mean_episode_seconds": 10.0,
+  "mean_return": 54.32048416137695
+}

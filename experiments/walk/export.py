@@ -1,6 +1,6 @@
 """Export a trained K1 walking policy for Booster's deploy tool, check it, and record a video.
 
-Linux GPU cluster node or NVIDIA host (from the repository root):
+Linux GPU cluster allocated node or NVIDIA host (from the repository root):
     uv run --group train python -m experiments.walk.export --checkpoint logs/laai_walk/<run>/model_3999.pt
     MUJOCO_GL=egl uv run --group train python -m experiments.walk.export --checkpoint ... --video walk.mp4
 

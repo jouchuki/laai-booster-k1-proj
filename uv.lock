@@ -1,12 +1,18 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = "==3.12.*"
 resolution-markers = [
-    "sys_platform == 'darwin'",
-    "platform_machine == 'aarch64' and sys_platform == 'linux'",
-    "sys_platform == 'win32'",
-    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')",
+    "extra != 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train'",
+    "sys_platform == 'darwin' and extra == 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train'",
+    "sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train')",
+    "extra != 'group-20-laai-booster-k1-proj-robot' and extra != 'group-20-laai-booster-k1-proj-train'",
 ]
+conflicts = [[
+    { package = "laai-booster-k1-proj", group = "robot" },
+    { package = "laai-booster-k1-proj", group = "train" },
+]]
 
 [[package]]
 name = "absl-py"
@@ -31,8 +37,8 @@ name = "anyio"
 version = "4.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "idna" },
-    { name = "typing-extensions" },
+    { name = "idna", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "typing-extensions", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a1/98/7e457a3b014976887a050561955c0b76e1e7e2d6e27b78ecef2ef80518f2/anyio-4.16.0.tar.gz", hash = "sha256:59bb03251907983d1603d27c3087ddb1e93299ea2163adcdba37899a4fb12ffb", size = 310971, upload-time = "2026-11-01T11:20:07.282Z" }
 wheels = [
@@ -106,7 +112,7 @@ version = "1.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "booster-robotics-sdk-python" },
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
     { name = "opencv-python" },
     { name = "pillow" },
     { name = "scipy" },
@@ -239,7 +245,8 @@ name = "contourpy"
 version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/01/1253e6698a07380cd31a736d248a3f2a50a7c88779a1813da27503cadc2a/contourpy-1.3.3.tar.gz", hash = "sha256:083e12155b210502d0bca491432bb04d56dc3432f95a979b429f2848c3dbe880", size = 13466174, upload-time = "2025-07-26T12:03:12.549Z" }
 wheels = [
@@ -316,6 +323,8 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/a6/13d14600381bdbfe55dfc35564e4bf4a208f169ee9f6cbeb356564268aff/cuda_bindings-13.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:40eadfad6ae1554f8c1aa456620a85a49a275fc902f2c6dd93ee8c488b2c5e9f", size = 7354398, upload-time = "2026-11-05T12:06:03.542Z" },
     { url = "https://files.pythonhosted.org/packages/27/68/14bf44f386672b03fcc0799be8d18df3e1c45847ee23b95721f6022abbaf/cuda_bindings-13.5.0-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a46a8cc84112d769d0f57bf3ae3fedc115cf09348f14da85a1a8200968b6f262", size = 8378158, upload-time = "2026-11-05T12:06:05.253Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/ea/87bd4fa1e1e70d3895b4e46606902fa7974111a81002dbd0418b68fb5b74/cuda_bindings-13.5.0-cp312-cp312-win_amd64.whl", hash = "sha256:2e8d562f928fe0bb254b1ade02133f9f6bc5e395efd2f1fbdb8533d64bf16e1f", size = 8423332, upload-time = "2026-11-05T12:06:07.32Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/b5/caabd4780b999bc7c8ae70c76eae6eed07ad966abfa7a0fb1e7af708e8b6/cuda_bindings-13.5.0-cp312-cp312-win_arm64.whl", hash = "sha256:64d9c337209736eadc807a36925f11528a4815fed9869df77f259bc9341bc1e1", size = 7302369, upload-time = "2026-11-05T12:06:09.65Z" },
 ]
 
 [[package]]
@@ -336,40 +345,40 @@ wheels = [
 
 [package.optional-dependencies]
 cublas = [
-    { name = "nvidia-cublas", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-cuda-nvrtc", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cudart = [
-    { name = "nvidia-cuda-runtime", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cuda-runtime", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cufft = [
-    { name = "nvidia-cufft", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-nvjitlink", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cufft", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cufile = [
-    { name = "nvidia-cufile", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cufile", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (sys_platform != 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cupti = [
-    { name = "nvidia-cuda-cupti", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cuda-cupti", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cusolver = [
-    { name = "nvidia-cublas", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-cusolver", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-cusparse", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-nvjitlink", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cublas", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-cusolver", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 cusparse = [
-    { name = "nvidia-cusparse", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-    { name = "nvidia-nvjitlink", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cusparse", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 nvjitlink = [
-    { name = "nvidia-nvjitlink", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-nvjitlink", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 nvrtc = [
-    { name = "nvidia-cuda-nvrtc", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-cuda-nvrtc", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 nvtx = [
-    { name = "nvidia-nvtx", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
+    { name = "nvidia-nvtx", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'linux' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train') or (sys_platform == 'win32' and extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
 ]
 
 [[package]]
@@ -618,8 +627,8 @@ name = "httpcore"
 version = "1.0.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "certifi" },
-    { name = "h11" },
+    { name = "certifi", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "h11", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
 wheels = [
@@ -631,10 +640,10 @@ name = "httpx"
 version = "0.28.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio" },
-    { name = "certifi" },
-    { name = "httpcore" },
-    { name = "idna" },
+    { name = "anyio", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "certifi", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "httpcore", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "idna", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
 wheels = [
@@ -664,7 +673,7 @@ name = "imageio"
 version = "2.38.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "pillow" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/cd/69e4ac55b6dafdd2b5f32075236841a3945dea7323d0232d80f28c37cea8/imageio-2.38.1.tar.gz", hash = "sha256:6769f1f01c4dd46448307863a787c9a22fa4dbe11c0c88f525c6e410fdfd7983", size = 403667, upload-time = "2026-10-08T14:35:32.961Z" }
@@ -795,7 +804,8 @@ source = { editable = "." }
 dependencies = [
     { name = "booster-assets" },
     { name = "mujoco" },
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train' or extra != 'group-20-laai-booster-k1-proj-robot'" },
     { name = "pyyaml" },
 ]
 
@@ -806,7 +816,7 @@ dev = [
     { name = "ruff" },
 ]
 robot = [
-    { name = "boosteros", extra = ["brain"] },
+    { name = "boosteros", extra = ["brain"], marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
 ]
 sim = [
     { name = "onnxruntime" },
@@ -815,6 +825,7 @@ sim = [
 ]
 train = [
     { name = "mjlab" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "wandb" },
 ]
 
@@ -822,7 +833,7 @@ train = [
 requires-dist = [
     { name = "booster-assets", editable = "booster_assets" },
     { name = "mujoco", specifier = ">=3.3" },
-    { name = "numpy" },
+    { name = "numpy", specifier = ">=1.26,<3" },
     { name = "pyyaml" },
 ]
 
@@ -840,6 +851,7 @@ sim = [
 ]
 train = [
     { name = "mjlab", specifier = ">=1.6" },
+    { name = "numpy", specifier = ">=2,<3" },
     { name = "wandb" },
 ]
 
@@ -892,15 +904,16 @@ name = "matplotlib"
 version = "3.11.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "contourpy" },
-    { name = "cycler" },
-    { name = "fonttools" },
-    { name = "kiwisolver" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pillow" },
-    { name = "pyparsing" },
-    { name = "python-dateutil" },
+    { name = "contourpy", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "cycler", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "fonttools", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "kiwisolver", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "packaging", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "pillow", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "pyparsing", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "python-dateutil", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e7/c8/9aa712a0afb882649424dd8de8ad9aa6235e796e84c6052e8f6dc1598d0d/matplotlib-3.11.2.tar.gz", hash = "sha256:cec596316640f2b394b8f0daa0ea61a8eae82d017b620b9f202befb972a59ea4", size = 32660610, upload-time = "2026-09-11T19:05:31.214Z" }
 wheels = [
@@ -941,7 +954,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ipython" },
     { name = "matplotlib" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "pillow" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7c/99/8b59dbcebf7e84b35e86c893f52fdc2953299d66ef1fcbacca26162818b0/mediapy-1.2.7.tar.gz", hash = "sha256:fd3826ca156f9165cd369f44d4d345d5609df1da3caf867df7ce304e19dd7fde", size = 28660, upload-time = "2026-07-01T13:14:43.448Z" }
@@ -959,7 +972,7 @@ dependencies = [
     { name = "mjviser" },
     { name = "mujoco" },
     { name = "mujoco-warp" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "onnxscript" },
     { name = "prettytable" },
     { name = "rsl-rl-lib" },
@@ -986,7 +999,7 @@ version = "0.0.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mujoco" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "pillow" },
     { name = "trimesh" },
     { name = "viser" },
@@ -1001,7 +1014,8 @@ name = "ml-dtypes"
 version = "0.5.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/4a/c27b42ed9b1c7d13d9ba8b6905dece787d6259152f2309338aed29b2447b/ml_dtypes-0.5.4.tar.gz", hash = "sha256:8ab06a50fb9bf9666dd0fe5dfb4676fa2b0ac0f31ecff72a6c3af8e22c063453", size = 692314, upload-time = "2025-11-17T22:32:31.031Z" }
 wheels = [
@@ -1047,7 +1061,8 @@ dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },
     { name = "glfw" },
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train' or extra != 'group-20-laai-booster-k1-proj-robot'" },
     { name = "pyopengl" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3b/2d/290f3f4062eec1c0d5246de0a75f1b18b59a1961081f49ddc97333fc8263/mujoco-3.11.0.tar.gz", hash = "sha256:390856102af9547dfd87cb2791eb105a3d2e00a37323fe9a12ed17e512aff1a6", size = 1139880, upload-time = "2026-07-28T01:23:32.252Z" }
@@ -1064,9 +1079,9 @@ version = "3.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "absl-py" },
-    { name = "etils", extra = ["epath"] },
+    { name = "etils", extra = ["epath"], marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
     { name = "mujoco" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "warp-lang" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2c/02/da883029b3661619651d0e2469ec17df92dd64ca5de25119886d516ee1de/mujoco_warp-3.11.0.tar.gz", hash = "sha256:e9e521a3809b95baa98c44bd4fcaccb035b5c700e2616efc52ebc33d29ae2eef", size = 2075418, upload-time = "2026-07-28T01:21:41.987Z" }
@@ -1096,6 +1111,12 @@ wheels = [
 name = "numpy"
 version = "1.26.4"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform == 'darwin'",
+    "platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "sys_platform == 'win32'",
+    "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32')",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/65/6e/09db70a523a96d25e115e71cc56a6f9031e7b8cd166c1ac8438307c14058/numpy-1.26.4.tar.gz", hash = "sha256:2a02aba9ed12e4ac4eb3ea9421c420301a0c6460d9830d74a9df87efa4912010", size = 15786129, upload-time = "2024-02-06T00:26:44.495Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/12/8f2020a8e8b8383ac0177dc9570aad031a3beb12e38847f7129bacd96228/numpy-1.26.4-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:b3ce300f3644fb06443ee2222c2201dd3a89ea6040541412b8fa189341847218", size = 20335901, upload-time = "2024-02-05T23:55:32.801Z" },
@@ -1109,6 +1130,25 @@ wheels = [
 ]
 
 [[package]]
+name = "numpy"
+version = "2.5.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/3a/8770c288c47f0b5c2a786d3c20e79f66fd245f2d42cd232d7cd5e00e83e5/numpy-2.5.5.tar.gz", hash = "sha256:5cddc243c75114ba845f01b1f87aca1572dbf7b6c2d88636ed3e1d2bccd7f1bf", size = 20873892, upload-time = "2026-11-15T21:32:28.607Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/74/5b99f425938870958d43dc9f7b17c684e793ce47ec46b7885cdc7acea285/numpy-2.5.5-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:7da9a248f149cfbb220c6da964a59c8d051d516704f7758acfb81eb382a05d97", size = 14750374, upload-time = "2026-11-15T21:30:10.113Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/f4/06db317e93dd6d618786004c1761214b113832bb77294c8513776956702a/numpy-2.5.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b96e9ee49ccbdb5676359f852a4497f7a9c5df6c377d8877f5330d6fd3ff42e4", size = 10749920, upload-time = "2026-11-15T21:30:13.092Z" },
+    { url = "https://files.pythonhosted.org/packages/8a/92/6de34324a266b73c04ba977db5864b9016500076b26f09078a565f527d34/numpy-2.5.5-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:a3856a97e48ed8371c680fb04120b99fbcc29f2076ebe6dc3deb34f77947c5ca", size = 5513680, upload-time = "2026-11-15T21:30:15.201Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/a1/6563b74cd67e3873f9897afebb3244529b1494d4c0df30f3201329a7e316/numpy-2.5.5-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:f5e8603f0892d1b848e12124863b5b29af72383ee9b25ddc6fe4967d4c1ee6ef", size = 6797540, upload-time = "2026-11-15T21:30:17.172Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/22/82184e9a5b50a4a298e9f8fe0bd8cfc483672dbfea8a3b57c78e2376b139/numpy-2.5.5-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a0750f2156d53446caca85663d0b65d67214e1664b9050454a731ea1418d176a", size = 15284117, upload-time = "2026-11-15T21:30:19.167Z" },
+    { url = "https://files.pythonhosted.org/packages/99/61/522b973ba38987b22a4a71beaed2ea6ac9fd4f687baaa2bc9a45100625e0/numpy-2.5.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:704d819265e5d1064d932968e9ee85fff2103ccc78c05b878c06943ba27b8507", size = 15720599, upload-time = "2026-11-15T21:30:21.273Z" },
+    { url = "https://files.pythonhosted.org/packages/25/cd/182cf60bd9c34e617c516f138f2f68988760062fa65fca8fcc97875cf7cf/numpy-2.5.5-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:86868185bf4b6c4e5a8628ac42cfa165cd9530266c731f7dd1d11b4ad7e7cd1c", size = 16503566, upload-time = "2026-11-15T21:30:24.023Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/57/4fa4723e80be805f68af552731ed483974b2a11e511284a9ef6aafbcb3cf/numpy-2.5.5-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:7fb87c4bcc73850ef433a0c42f096b010d3d3d284e9d00028bb030b43df3d078", size = 17082560, upload-time = "2026-11-15T21:30:26.224Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/0b/73d2bd5be85d3178a862e8354e2d6441b4040fadf1e7d999e01b0bdfa5c6/numpy-2.5.5-cp312-cp312-win32.whl", hash = "sha256:263b2aa236d752b18f90c5107137d24b2e3856d7db37725609f0ab5bcdb58881", size = 6146378, upload-time = "2026-11-15T21:30:28.328Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/71/b1ce51834c21020d189332979d38ba7350eb6cd7ca8c8ec424a663b0ca6f/numpy-2.5.5-cp312-cp312-win_amd64.whl", hash = "sha256:919eb420662b0b4ba34889df503f3d5329775b0c1d5f7e5f5af4fba8315b1e30", size = 12580189, upload-time = "2026-11-15T21:30:30.025Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/5e/09ae9d0d02fbfe6b160043349bbe73e6bbbbfb2565bb46146dd943687271/numpy-2.5.5-cp312-cp312-win_arm64.whl", hash = "sha256:f6622e32cb46c60bee3b2c7dd7f5c22bdc86fcb8630336b4822ec81c3986111a", size = 10535386, upload-time = "2026-11-15T21:30:32.112Z" },
+]
+
+[[package]]
 name = "nvidia-cublas"
 version = "13.4.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1118,6 +1158,7 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/a0/5cd9d4b08a8320f7ca150ee0d66c97e98092922e338336cb4b62da7500c3/nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:4eb1472bf92b741e7cf24da7978dde251b58ddec2092d9f6a04f3623eb4e9a15", size = 513048232, upload-time = "2026-07-16T09:45:07.751Z" },
     { url = "https://files.pythonhosted.org/packages/e1/97/d483a41da34df5c88727c57319576967f6d7befba5028d70928d2999635e/nvidia_cublas-13.4.1.3-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:a5917cb642cfb07f4a0231ee16aec7e2e0357d8cb8b1b78a0c9c68dba3e6afc7", size = 404870805, upload-time = "2026-07-16T09:46:05.62Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/0f/8982a363ab246d22876f3eb8baccce81f0da6304d39f86d63b67389c5457/nvidia_cublas-13.4.1.3-py3-none-win_amd64.whl", hash = "sha256:7e7f780caf07bde7b36b0d25bdad29e8ccbacfc4b75066907bdb601af1e6d4aa", size = 388920654, upload-time = "2026-07-16T10:05:36.737Z" },
 ]
 
 [[package]]
@@ -1127,6 +1168,8 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/81/dc/9a056ef9bd05c55ddaed3afce160702e4ce8303b9ec1b38066044c18dcd2/nvidia_cuda_cccl-13.3.5.0.6-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:6f30b8076b3e69951c459c94ae190bde51924b320076ebaec376d36848b4c76e", size = 4113650, upload-time = "2026-11-04T23:21:46.803Z" },
     { url = "https://files.pythonhosted.org/packages/a7/7e/4aa67cca14e0558b5a151a692f5ffe609930cdfc20d16c7a584de68424d4/nvidia_cuda_cccl-13.3.5.0.6-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:d5230098fa2df5021e1a00c0c4eee41797671a91119d31e892463e5ccf3ee326", size = 4113651, upload-time = "2026-11-04T23:21:54.262Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/36/cda28cc973cc31c710d83256cc5b225922a04e3a361fa1a19c166206f805/nvidia_cuda_cccl-13.3.5.0.6-py3-none-win_amd64.whl", hash = "sha256:6e1f96b71d582171cebd9ae1d7ffbfc726e112a0a41aef77b9ead500aad7e0a2", size = 4113630, upload-time = "2026-11-04T23:34:33.947Z" },
+    { url = "https://files.pythonhosted.org/packages/05/97/d71b6887711e37f19fbb22b624f412fcf226188b194cc1df5c48d6c61f2d/nvidia_cuda_cccl-13.3.5.0.6-py3-none-win_arm64.whl", hash = "sha256:a729999ca75633c6e2c7f48804fa982e00d75e5416284d010fadf82646c1d854", size = 4120910, upload-time = "2026-11-04T23:39:29.265Z" },
 ]
 
 [[package]]
@@ -1136,6 +1179,7 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/ab/52414925ea803a5f86b994ae97d951e5943ed27a6f1da4a5c4ac09e308af/nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_aarch64.whl", hash = "sha256:d9a5c133f73fcb9013f3ada0da6fb54d4117618d81f3f5a0419417ea6ee829d4", size = 11760263, upload-time = "2026-07-16T09:35:34.643Z" },
     { url = "https://files.pythonhosted.org/packages/b4/76/a10d9fb5d9a0e46d5f95e5520bd1b2d8ad22a9c0a09d2f8c20c5ee842a96/nvidia_cuda_cupti-13.2.86-py3-none-manylinux_2_25_x86_64.whl", hash = "sha256:8fa29f15dd8336181f961764d9d95236fc6b931dd0c8fcf8cd70aab0c310b586", size = 11988600, upload-time = "2026-07-16T09:36:06.061Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/7a/7dadeb6faa141c07e608d9ed1dcb355c97b11b42f61106e41937e10da643/nvidia_cuda_cupti-13.2.86-py3-none-win_amd64.whl", hash = "sha256:10837e2910753a7726c0243aa113e2bd65c0edee6f6f3e097db1757a8eac2c9e", size = 8175943, upload-time = "2026-07-16T10:00:42.314Z" },
 ]
 
 [[package]]
@@ -1145,6 +1189,7 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/39/c58835ec8392a91b8d7bad83760eafc3085f64788b722ec2b44a27b3ca3e/nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:8111c5130e967b78222ea2124145f8efe9ce201b752b2579a2513100a53be1c5", size = 47018468, upload-time = "2026-07-16T09:40:35.085Z" },
     { url = "https://files.pythonhosted.org/packages/13/95/029e91026e1d378cba9fb2cdb62394bb15d06de7586bab73d76397df6b7f/nvidia_cuda_nvrtc-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1e5d7b411a2eb83f5c71c98d58133a763fc9fa86a4241ee320c5c4782d9ad1fd", size = 44755454, upload-time = "2026-07-16T09:39:59.909Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/4e/2a19f2aa79ffc822c0d2be7c161fcac5a8b43aebd554c79ff982bb44071e/nvidia_cuda_nvrtc-13.2.86-py3-none-win_amd64.whl", hash = "sha256:bf070582c2d8b03f681cea8d34a9de900d808607deb813a826ecb3a585606f9a", size = 40818138, upload-time = "2026-07-16T10:02:27.876Z" },
 ]
 
 [[package]]
@@ -1154,6 +1199,7 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/d4/fa981071e3d9f29158ca16c69ee617831cd6df4dd47024149c16eec717f8/nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:37844957894bfdecf90243568d21a2cb251b66106915b71459a23c8e6ef2da69", size = 2341433, upload-time = "2026-07-16T09:33:00.116Z" },
     { url = "https://files.pythonhosted.org/packages/70/c6/8f8c5e893d183082ea78f973aebc7ebc845ee219d68bddac73b0f62490fe/nvidia_cuda_runtime-13.2.86-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:3498247680dfddce31bad102af7e3e26fc795342a3cac64722bb0fa95e7f60f0", size = 2323576, upload-time = "2026-07-16T09:33:28.652Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/7f/0849696e8ea074fd6c30864a235ab232683c71cb8e6a88186d48fc62120f/nvidia_cuda_runtime-13.2.86-py3-none-win_amd64.whl", hash = "sha256:b26f5dd86e67f0eb404ae679185e1c49fe546fa9a47b32dee31312f65ccfe764", size = 3154679, upload-time = "2026-07-16T10:00:09.778Z" },
 ]
 
 [[package]]
@@ -1166,6 +1212,7 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/1c/01e1dd3dec6ffe0baaff7e722b8946d867353d05a01301f128f1730fde0b/nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8e5b4f5eccff721416f70ecf4353172fc4d5cdd8ca869fe6f983a4a5b0147b20", size = 595329497, upload-time = "2026-09-10T16:45:39.945Z" },
     { url = "https://files.pythonhosted.org/packages/ac/1b/ea72dd62f26ce3e0a7870b85148b75a5987507629b712deebeb87f7cce9a/nvidia_cudnn_cu13-9.26.0.51-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:9c976d539786698c71d6bcdbe2053b7485fae062ff7e1215d2f2ff67b1a2149a", size = 519150073, upload-time = "2026-09-10T16:47:58.332Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/1f/9c5d7ed254d7040192b4bb4eef669ba3ed66a3c4576c50f7d2385b255c8e/nvidia_cudnn_cu13-9.26.0.51-py3-none-win_amd64.whl", hash = "sha256:8e37a83d7dd7c2663afcae38b1c95c5e9e7c9754f313800da95ca81439fa37f9", size = 419603885, upload-time = "2026-09-10T16:51:07.436Z" },
 ]
 
 [[package]]
@@ -1178,6 +1225,7 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/8d/f650e6d527f9d22b5ded906c000eaebb037721c06d4ecd906df62f300979/nvidia_cufft-12.2.0.57-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1ed438568ae1088ba2c25789d10205d4104b8b140b7bd942e39a787947a0fb74", size = 218244742, upload-time = "2026-07-16T09:47:08.76Z" },
     { url = "https://files.pythonhosted.org/packages/41/28/868ed0c6ade5e6a75b25166b3cf191f4a2ff58ad618c1e40befb776c97c5/nvidia_cufft-12.2.0.57-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:34da27fadf3979b0b042c43823f0530be8408b86df31ee0108e1ca0b621d4ef6", size = 218258101, upload-time = "2026-07-16T09:47:50.978Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/48/4a943a66093ec0e9e077bf584462d35d9feed297a76078a78582841985f2/nvidia_cufft-12.2.0.57-py3-none-win_amd64.whl", hash = "sha256:89b78b2b60d6ca1fb7dab7d1a4af135d69d586d18a216ca84e51db5901cd41d0", size = 217463602, upload-time = "2026-07-16T10:06:13.575Z" },
 ]
 
 [[package]]
@@ -1201,6 +1249,7 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/df/9e6b603f1d64040ce3e076e9bce1b78e2d588d0aabc9783f351cecd861ab/nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:8be097fca28de6be0990ab216ee9b804dd51077e1d1d83acf6c9850650bdc64d", size = 250383075, upload-time = "2026-07-16T09:50:16.355Z" },
     { url = "https://files.pythonhosted.org/packages/e4/a4/90f7ade9992190788658c3c285f196fdb9bcc3a5bb93a325c245121d22fd/nvidia_cusolver-12.2.0.11-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:fab5778f6769947389a1a6abc07e635576825a08c0ffc68c3ae7f1392c794b42", size = 227913465, upload-time = "2026-07-16T09:50:56.976Z" },
+    { url = "https://files.pythonhosted.org/packages/02/12/c5c52523ec7970b193837b79f4b892122c24dc5ee5a6b1fae26dae1a31ca/nvidia_cusolver-12.2.0.11-py3-none-win_amd64.whl", hash = "sha256:364511c9974ef1fcde2ca197caebfe0994ece2cb33bc27117eeb88b8cee5c46d", size = 217690140, upload-time = "2026-07-16T10:07:33.457Z" },
 ]
 
 [[package]]
@@ -1213,6 +1262,7 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/35/abbd278fb6d039fcfb5175efa10a21007a11878bec59920d84854b47d766/nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:597eff2cd83e3ab1d1e3a0dce9c9c879d77cf64ec2659bfdb5af6a5d02e7aaa9", size = 169043093, upload-time = "2026-07-16T09:51:37.058Z" },
     { url = "https://files.pythonhosted.org/packages/bc/46/3a9700cc13f30c9279af9a862363535c814fa27597199b21fd93cad66237/nvidia_cusparse-12.7.10.12-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:25907c75e4db1581685f06f61cc6cdecc04611765516a52373e0a18ebd69fa00", size = 150999307, upload-time = "2026-07-16T09:52:17.727Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/28/355676e73dd07d1a41cc33904a8b4fbb22b6fe97662e5ec47c535fe7e9e3/nvidia_cusparse-12.7.10.12-py3-none-win_amd64.whl", hash = "sha256:6b1e82056a0865c5b4f5da6adbebb15244e9a2b8aeea0838a9cf725e16523c53", size = 149276551, upload-time = "2026-07-16T10:08:16.871Z" },
 ]
 
 [[package]]
@@ -1222,6 +1272,7 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/e1/cdc1797eadf82d3a9a575a19b33fdc871a97edbec42c00b5b5e914f4aff4/nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_aarch64.whl", hash = "sha256:4dca476c50bf4780d46cd0bfbd82e2bc10a08e4fef7950917ce8d7578d22a23f", size = 221051344, upload-time = "2025-09-05T18:49:51.289Z" },
     { url = "https://files.pythonhosted.org/packages/34/7d/2661f2fb3ac4302f3a246f5fc030213ac60c1fe0bce84f9783dbd831dbb7/nvidia_cusparselt_cu13-0.8.1-py3-none-manylinux2014_x86_64.whl", hash = "sha256:786ce87568c303fadb5afcc7102d454cd3040d75f6f8626f5db460d1871f4dd0", size = 170148586, upload-time = "2025-09-05T18:50:50.248Z" },
+    { url = "https://files.pythonhosted.org/packages/31/83/f3647ce26916c94a6ca4ff1810623e2c405cff2dea6e78d29516b2514df9/nvidia_cusparselt_cu13-0.8.1-py3-none-win_amd64.whl", hash = "sha256:dccbd362f91a7b9024d1f55ee9f548ac065027ff15d8c8b0db889ab3a8f31215", size = 156885108, upload-time = "2025-09-05T18:51:35.958Z" },
 ]
 
 [[package]]
@@ -1249,6 +1300,8 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cc/1f/2321702b8d60b4b4dd18b957f61612dbac9cb1c07e940cf6582106b7c8b8/nvidia_nvjitlink-13.5.37-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:280d7cb9649704145f074b8dbde500de04ce02d0872e066e20a83c17bcaa93eb", size = 46642491, upload-time = "2026-11-04T23:33:31.696Z" },
     { url = "https://files.pythonhosted.org/packages/24/15/dd228f798cd01d7aeaf19d872b2b20f9aeafc1a7d8b6bfaa878b30b8d6f7/nvidia_nvjitlink-13.5.37-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:893f6f9a55b2720ed94913b5ba3332e972da8c78dfa2863d0244403dbd528ffc", size = 45253761, upload-time = "2026-11-04T23:33:22.854Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/53/c43398492e8374880d5e01c23c4dac33ba0c3bd03515d6ecc574254c0967/nvidia_nvjitlink-13.5.37-py3-none-win_amd64.whl", hash = "sha256:4465d4e8f2212118220b580c82523c5654f93a62906bd51d29d79bdfc12376c1", size = 41467665, upload-time = "2026-11-04T23:38:44.689Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/4a/1ff9ab7d0c961a1b5539f8291c881bea82adbbf8ba40a9e81f9c9b3a8d5d/nvidia_nvjitlink-13.5.37-py3-none-win_arm64.whl", hash = "sha256:eb30348ae64c525180a280025dd12a089c3e2e1dc4e19cdd58f68c6edc622404", size = 38552904, upload-time = "2026-11-04T23:43:27.658Z" },
 ]
 
 [[package]]
@@ -1270,6 +1323,7 @@ source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/ee/16bde09927e7ffacd50b117cd7d1dc764d145f03249fc41fdf6dfba3301f/nvidia_nvtx-13.2.86-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:968ce72baee2a01791c7d3254000eac81f24677b0b91c62d21b449a1f309c245", size = 153463, upload-time = "2026-07-16T09:41:23.242Z" },
     { url = "https://files.pythonhosted.org/packages/52/5f/74e2d29240de30a971d59ca20f4a3c4f2720cd49752809eeb4177d385c2c/nvidia_nvtx-13.2.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1c6ae1be92fba569dd271f7b9b3056f99f5642726dc6c53d1b93ae4110c398fb", size = 154292, upload-time = "2026-07-16T09:40:53.791Z" },
+    { url = "https://files.pythonhosted.org/packages/df/b3/00239b7a93d2f44dabce1c2b5579d275e83678d6699727ec43de427523ac/nvidia_nvtx-13.2.86-py3-none-win_amd64.whl", hash = "sha256:7f3f430a87bb1e2db3371832d21a5c1efcf77bef7cacfd772fd71649e121cd58", size = 142533, upload-time = "2026-07-16T10:03:02.777Z" },
 ]
 
 [[package]]
@@ -1277,10 +1331,11 @@ name = "onnx"
 version = "1.23.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ml-dtypes" },
-    { name = "numpy" },
-    { name = "protobuf" },
-    { name = "typing-extensions" },
+    { name = "ml-dtypes", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "protobuf", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "typing-extensions", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3f/62/bc2dfadb63ecf04cb2d65a6b17751863039d36c65de51d6a3128ab35f1e7/onnx-1.23.2.tar.gz", hash = "sha256:008cb0467b2bbee41448acc7da8b6f4e704624cb0d327a2d5adafc7ce19bc5b8", size = 6023090, upload-time = "2026-10-06T04:25:58.681Z" }
 wheels = [
@@ -1299,7 +1354,7 @@ version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "onnx" },
     { name = "packaging" },
     { name = "sympy" },
@@ -1316,7 +1371,8 @@ version = "1.31.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flatbuffers" },
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train' or extra != 'group-20-laai-booster-k1-proj-robot'" },
     { name = "packaging" },
     { name = "protobuf" },
 ]
@@ -1334,7 +1390,7 @@ version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ml-dtypes" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "onnx" },
     { name = "onnx-ir" },
     { name = "packaging" },
@@ -1350,7 +1406,7 @@ name = "opencv-python"
 version = "4.11.0.86"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/17/06/68c27a523103dad5837dc5b87e71285280c4f098c60e4fe8a8db6486ab09/opencv-python-4.11.0.86.tar.gz", hash = "sha256:03d60ccae62304860d232272e4a4fda93c39d595780cb40b161b310244b736a4", size = 95171956, upload-time = "2025-01-16T13:52:24.737Z" }
 wheels = [
@@ -1422,7 +1478,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "googleapis-common-protos" },
     { name = "opentelemetry-api" },
-    { name = "opentelemetry-exporter-http-transport", extra = ["requests"] },
+    { name = "opentelemetry-exporter-http-transport", extra = ["requests"], marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
     { name = "opentelemetry-exporter-otlp-common" },
     { name = "opentelemetry-exporter-otlp-proto-common" },
     { name = "opentelemetry-proto" },
@@ -1785,7 +1841,7 @@ name = "pytest"
 version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
@@ -1801,7 +1857,7 @@ name = "python-dateutil"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "tzdata" },
+    { name = "tzdata", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/18/39/b3927f3616f6223832f9b760e4208e8a7c7e1dea2b4d9ad7d32a5d214c3a/python_dateutil-4.0.0.tar.gz", hash = "sha256:d7295ff14fdc0f92f662100bfb6c551d160ca090f2939f1ec5b9794265c03f06", size = 250419, upload-time = "2026-11-01T07:02:42.426Z" }
 wheels = [
@@ -1852,10 +1908,10 @@ name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "certifi" },
-    { name = "charset-normalizer" },
-    { name = "idna" },
-    { name = "urllib3" },
+    { name = "certifi", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "charset-normalizer", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "idna", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "urllib3", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179abd6d00ebd70bff6273f37fb3e0cc209f48b39d00cbf/requests-2.34.2.tar.gz", hash = "sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed", size = 142856, upload-time = "2026-05-14T19:25:27.735Z" }
 wheels = [
@@ -1881,7 +1937,7 @@ version = "5.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gitpython" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "onnx" },
     { name = "onnxscript" },
     { name = "tensorboard" },
@@ -1924,7 +1980,8 @@ name = "scipy"
 version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train' or extra != 'group-20-laai-booster-k1-proj-robot'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -2001,7 +2058,7 @@ dependencies = [
     { name = "absl-py" },
     { name = "grpcio" },
     { name = "markdown" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "packaging" },
     { name = "pillow" },
     { name = "protobuf" },
@@ -2029,7 +2086,7 @@ version = "0.15.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "pyvers" },
     { name = "torch" },
 ]
@@ -2042,19 +2099,19 @@ name = "torch"
 version = "2.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cuda-bindings", marker = "sys_platform == 'linux'" },
-    { name = "cuda-toolkit", extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "sys_platform == 'linux'" },
+    { name = "cuda-bindings", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "cuda-toolkit", extra = ["cublas", "cudart", "cufft", "cufile", "cupti", "cusolver", "cusparse", "nvjitlink", "nvrtc", "nvtx"], marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
     { name = "filelock" },
     { name = "fsspec" },
     { name = "jinja2" },
     { name = "networkx" },
-    { name = "nvidia-cudnn-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cusparselt-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-nccl-cu13", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-nvshmem-cu13", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cudnn-cu13", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-cusparselt-cu13", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-nccl-cu13", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
+    { name = "nvidia-nvshmem-cu13", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
     { name = "setuptools" },
     { name = "sympy" },
-    { name = "triton", marker = "sys_platform == 'linux'" },
+    { name = "triton", marker = "sys_platform == 'linux' or (extra == 'group-20-laai-booster-k1-proj-robot' and extra == 'group-20-laai-booster-k1-proj-train')" },
     { name = "typing-extensions" },
 ]
 wheels = [
@@ -2071,7 +2128,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
     { name = "fabric" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "torch" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cc/80/b760a13db3e41fc2645911c30717cef05f1b200367d98f979226802ab10e/torchrunx-0.4.0.tar.gz", hash = "sha256:adcdbfd82ef633e549ba6e7694bc6eb258f55a6a64c8c59776794b922ae7b3ff", size = 41553, upload-time = "2026-08-04T07:55:09.264Z" }
@@ -2084,9 +2141,10 @@ name = "torchvision"
 version = "0.29.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "pillow" },
-    { name = "torch" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-robot'" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "pillow", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
+    { name = "torch", marker = "extra == 'group-20-laai-booster-k1-proj-robot' or extra == 'group-20-laai-booster-k1-proj-train'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/ec/ce97c46e5322b588b95be388f2c21878d014ca20838478e7aab59edd128a/torchvision-0.29.2-py3-none-macosx_14_0_arm64.whl", hash = "sha256:d412494ff011f24c884a3cffd33eba1cb45a0299d4e26c1e175113f9d3b3ebc7", size = 1823414, upload-time = "2026-10-28T15:21:31.892Z" },
@@ -2121,7 +2179,7 @@ name = "trimesh"
 version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/77/8a/0798e6cd28e2d1c6a7dfc97ba8eb27f7da5f392a5c81147d4f1e41ce0c1b/trimesh-5.2.0.tar.gz", hash = "sha256:d0a845d058e5a4ff145d0f0082d80c58d761687ce389c79d422dbe774966957b", size = 880133, upload-time = "2026-10-24T01:10:30.021Z" }
 wheels = [
@@ -2199,7 +2257,7 @@ version = "8.4.208"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
     { name = "nvidia-ml-py" },
     { name = "opencv-python" },
     { name = "pillow" },
@@ -2233,7 +2291,7 @@ name = "ultralytics-thop"
 version = "2.2.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" } },
     { name = "torch" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/af/36/d7fdbcd8b19a78fc7f8d8c5398af9c7049d3faa1a0a7c08c377f5af2fdfa/ultralytics_thop-2.2.5.tar.gz", hash = "sha256:ad2ed5b829497b541cdf3b1aaa0dc82c468ad5eb77ba8a999f84e31da1b70984", size = 40247, upload-time = "2026-11-04T09:49:45.809Z" }
@@ -2273,7 +2331,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "imageio" },
     { name = "msgspec" },
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
     { name = "requests" },
     { name = "rich" },
     { name = "tqdm" },
@@ -2323,7 +2381,7 @@ name = "warp-lang"
 version = "1.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
+    { name = "numpy", version = "2.5.5", source = { registry = "https://pypi.org/simple" } },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/23/5ebb66c804c1107ebff3375707ec94ea1db99842d9b850f746ec925dddf1/warp_lang-1.19.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:310e7dcd9b4afa1ea45bf2304d793efc88f7317182e996b2077b069a0e34d3a0", size = 28197738, upload-time = "2026-11-02T04:43:42.014Z" },

@@ -1,0 +1,39 @@
+{
+  "iterations": 1500,
+  "wall_minutes": 581.2726291457813,
+  "mean_reward": 43.896420364379885,
+  "peak_reward": 44.53206253051758,
+  "episode_length": 496.25379760742186,
+  "rewards": {
+    "action_acc_l2": -0.08007272332906723,
+    "action_rate_l2": -0.311330139040947,
+    "alive": 0.4942603212594986,
+    "arm_effort": -0.06596862263977528,
+    "bike_tilt_rate": -0.000576490467065014,
+    "bike_upright": 0.9780644607543946,
+    "failure": -0.0063988096639513966,
+    "feet_on_floor": 0.4156949293613434,
+    "joint_acc_l2": -0.008311272263526917,
+    "joint_torques_l2": -0.014861236941069365,
+    "posture": 0.1014786085486412,
+    "saddle_load": 1.8999000883102417,
+    "trunk_orientation": 0.9695431578159333
+  },
+  "terminations": {
+    "bike_fell": 0.005357142984867096,
+    "fell_off_seat": 0.01388095274567604,
+    "time_out": 1.299064108133316
+  },
+  "task_metrics": {
+    "action_change": 1.2543428540229797,
+    "bike_speed_m_s": 0.028304186202585697,
+    "bike_tilt_deg": 0.7952329111099243,
+    "bike_tilt_deg_max": 3.1026561498641967,
+    "feet_on_floor": 0.83322878241539,
+    "posture_error_deg": 9.49463493347168,
+    "saddle_load": 0.8107409143447876,
+    "trunk_tilt_deg": 1.5119092273712158,
+    "trunk_tilt_deg_max": 3.9304768943786623
+  },
+  "last": 50
+}

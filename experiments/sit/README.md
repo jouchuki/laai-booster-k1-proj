@@ -62,6 +62,9 @@ the model.
 
 ## Stage 1 `LAAI-K1-Sit-Puky-Lean`: keep a standing bike upright
 
+For the separate experiment with a completely free bike and no stand spring, see
+[sit_free/](../sit_free/README.md). Its pretrained/scratch runs log to `logs/laai_sit_free/`.
+
 Still no forward motion: the bike stands on a virtual stand that lets it **lean left and
 right on its tyres** (a hinge along the line where both tyres touch the floor), held towards
 upright by a spring. Everything else is stage 0, plus:
@@ -83,6 +86,10 @@ to 19 deg and back. So the skill here is staying upright (keeping the lean small
 pushes), not avoiding a fall. Forward motion comes next (phase 4), on the same stand.
 
 Train, watch and export: [docs/commands.md](../../docs/commands.md#train-the-sit-task-phase-3).
+For Hex, use [cluster/train.slurm](../../cluster/train.slurm) for GPU training or
+[cluster/train_cpu.slurm](../../cluster/train_cpu.slurm) for CPU-only training, for either
+stage. The [cluster guide](../../cluster/README.md#submit-cpu-sit-training) includes CPU and
+GPU smoke jobs, stage 0 submission and stage 1 submission from a stage 0 checkpoint.
 
 ## Robot task `laai_sit`: the trained policy
 
@@ -98,7 +105,18 @@ policy in charge:
 | Safety stops | The hold's four (trunk tilt 15 deg from seated, joint speed 4 rad/s, torque 90% for 0.5 s, tracking 0.3 rad for 1 s), plus the walk task's shake watchdog (action jumps > 2.5 for 3 steps, or an average jump > 0.8 over 0.2 s) and booster_deploy's 60-degree fall check |
 | Exit | Damping (limp), as the hold |
 
-Keep the bike held: stage 0 trains with the bike fixed to the world. Rehearse first with
+It also runs the free-bike policies ([sit_free/](../sit_free/README.md)), which share the
+interface. Rehearsed on the bike (2026-11-19, 8 s, joints placed up to 0.1 rad off):
+
+| Policy | Bike held | Bike released | 40 N push | 60 / 100 N push |
+|---|---|---|---|---|
+| `sit_free` run 2 (scratch) | No stop; 62% peak torque, trunk tilt 4 deg | No stop; saddle 69%, feet 34% | No stop; tilt 8 deg | Tilt stop at 16-17 deg |
+| `sit_free` run 1 (pretrained) | Right hip-roll torque stop within 1 s | Same | Same | Same |
+
+Run 2 is the candidate for the first robot test; run 1 saturates the hip roll (actions up to
+3) and must not go to the robot.
+
+Keep the bike held for the first tests: stage 0 trains with the bike fixed to the world. Rehearse first with
 `check_hold.py --task laai_sit --bike-held`; commands in
 [docs/commands.md](../../docs/commands.md#robot-test-the-trained-sit-policy-phase-3). A
 zero-action policy behaves exactly like `laai_sit_hold` (tested in `tests/test_sit_hold.py`).
