@@ -50,3 +50,31 @@ One training seed per initialization is a pilot comparison, not a statistical co
 
 Submission and monitoring commands: [docs/commands.md](../../docs/commands.md#compare-free-bike-training-on-hex)
 and [cluster/README.md](../../cluster/README.md). No real-robot deployment was validated.
+
+## Completed comparison, 2026-11-18
+
+Both jobs completed 1,500 new updates and saved `model_1499.pt`. Their identical final
+32-episode evaluation produced:
+
+| Result | Pretrained actor (run 1) | Scratch (run 2) |
+|---|---:|---:|
+| Successes | 32/32 | 32/32 |
+| Mean episode duration | 10.00 s | 10.00 s |
+| Bike/torso falls | 0/0 | 0/0 |
+| Mean return | 49.8744 | 54.3205 |
+| SLURM elapsed time | 9:42:25 | 8:47:02 |
+
+The scratch policy scored higher on this evaluation; both reached its survival ceiling.
+These runs do not establish which initialization generalizes better beyond this one-seed
+comparison and the tested disturbances.
+
+Final checkpoints, configs, evaluation reports and verified deployment-format `policy.pt`
+exports are downloaded into the corresponding local `logs/laai_sit_free/<run>/` folders.
+Both exports matched checkpoint actions exactly in the CPU playback check. A synchronized
+10-second local visual trial also passed for both policies. The recording is
+`logs/laai_sit_free/comparison-final.mp4`; replay/export commands are in
+[the command reference](../../docs/commands.md#compare-the-trained-free-bike-policies-locally).
+
+The [committed artifact index](runs/comparison/README.md) links both runs' complete scalar
+histories, compressed console logs, configs, evaluation reports, compact actor checkpoints,
+exported policies, original source snapshot and the side-by-side video.

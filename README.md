@@ -110,7 +110,7 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 | 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
 | 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis in the saddle dip by contact); robot task `laai_sit_hold` holds the pose for a first real test (no balance); training task `LAAI-K1-Sit-Puky` ready, not trained yet | [experiments/sit/](experiments/sit/README.md), [models/k1_on_bike/](models/k1_on_bike/README.md) |
 | 4 | Walk the bike, supported | Not started | |
-| 5 | Free bike, feet as support | Unsupported seated-balance comparison running on Hex: pretrained actor versus scratch; forward riding not started | [experiments/sit_free/](experiments/sit_free/README.md) |
+| 5 | Free bike, feet as support | Unsupported seated-balance comparison completed: pretrained and scratch policies both passed 32/32 ten-second evaluation episodes; forward riding not started | [experiments/sit_free/](experiments/sit_free/README.md) |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
 
 1. Prove sim-to-real with walking. Train a standard walking policy for our robot and run it on the real one. This tests the whole pipeline (model, simulator, training, deployment), and walking is also the base skill for riding a balance bike.

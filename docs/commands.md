@@ -555,6 +555,46 @@ Each final checkpoint triggers the same held-out evaluation inside its allocatio
 results appear in `evaluation.json` and W&B `Evaluation/*`. Compare these along with
 episode duration, fall causes, bike tilt and saddle support. The original run stays separate.
 
+## Compare the trained free-bike policies locally
+
+The completed comparison is archived in `experiments/sit_free/runs/`: both runs include
+full training scalar histories, compressed console logs, configs, evaluation reports,
+exported policies and compact actor checkpoints. See the
+[artifact index and recording](../experiments/sit_free/runs/comparison/README.md).
+The original full checkpoints remain in the Hex run folders and in the local
+`logs/laai_sit_free/` download. The compact checkpoints contain the same actor tensors
+and support playback without downloading optimizer or critic state.
+
+**Linux host**, repository root: open one split-screen window with synchronized clocks,
+camera angles, initial seed and pushes. The pretrained policy is on the left, scratch on
+the right. Each side stops at its first failure or after 10 seconds.
+
+```bash
+uv run --group train python scripts/compare_sit_free.py \
+  --pretrained experiments/sit_free/runs/run1/actor_checkpoint.pt \
+  --scratch experiments/sit_free/runs/run2/actor_checkpoint.pt
+```
+
+Space pauses/resumes; Enter replays both; N selects the next shared seed; Escape closes.
+Drag to rotate both cameras and use the wheel to zoom. Add `--paused` to start paused.
+Add `--once --record logs/laai_sit_free/comparison-final.mp4` to record a paired trial
+and close afterwards. This one-world visual trial is separate from the 32-world evaluation.
+For the Linux GTK schema error described below, prefix this invocation with
+`GDK_BACKEND=x11`; keep that workaround local to the command.
+
+**Linux and macOS**, repository root, headless: export either checkpoint into the existing
+Booster deployment observation/action layout. Replace `YOUR_RUN` with the actual run name.
+
+```bash
+uv run --group train python -m experiments.sit_free.export \
+  --checkpoint logs/laai_sit_free/YOUR_RUN/model_1499.pt \
+  --out logs/laai_sit_free/YOUR_RUN/policy.pt --device cpu
+```
+
+The export checks its actions against the checkpoint and prints `OK` when they match.
+Export verification does not validate deployment on the real robot. The split-screen
+viewer has been validated on Linux only.
+
 ## Robot test: hold the seated pose (phase 3)
 
 `laai_sit_hold` holds the solved seated pose on the Puky. It does not balance. The full
