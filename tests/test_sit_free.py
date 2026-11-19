@@ -153,3 +153,55 @@ def test_policy_transfer_keeps_fresh_critic_optimizer_and_counters(env, tmp_path
     assert env.common_step_counter == counter
     assert provenance["source_iteration"] == 800
     assert len(provenance["sha256"]) == 64
+
+
+def test_push_task_is_the_free_task_plus_a_push_curriculum():
+    cfg, base = free.free_push_env_cfg(), free.free_sit_env_cfg()
+    assert set(cfg.rewards) == set(base.rewards)
+    assert set(cfg.terminations) == set(base.terminations)
+    assert set(cfg.curriculum) == {"push"} and not base.curriculum
+    assert not free.free_push_env_cfg(play=True).curriculum, "watching: no curriculum"
+    assert load_rl_cfg(free.PUSH_TASK_ID).experiment_name == "laai_sit_free"
+
+
+def test_push_curriculum_pushes_harder_and_backs_off():
+    cfg = free.free_push_env_cfg()
+    cfg.scene.num_envs = 4
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    try:
+        env.reset()
+        term = env.curriculum_manager.get_term_cfg("push")
+        curriculum = term.func
+        velocity = env.event_manager.get_term_cfg("push_robot").params["velocity_range"]
+        curriculum(env, torch.arange(4), **term.params)
+        assert velocity["x"] == velocity["y"] == (-free.PUSH_MIN, free.PUSH_MIN), "starts light"
+
+        env.episode_length_buf[:] = 500  # four episodes ran to the time limit
+        env.termination_manager.time_outs[:] = True
+        curriculum(env, torch.arange(4), **term.params)
+        assert curriculum.level == pytest.approx(0.1)
+        push = free.PUSH_MIN + 0.1 * (free.PUSH_MAX - free.PUSH_MIN)
+        assert velocity["y"] == pytest.approx((-push, push))
+
+        curriculum.level = 1.0
+        env.termination_manager.time_outs[:] = False  # four failures: easier again
+        curriculum(env, torch.arange(4), **term.params)
+        assert curriculum.level == pytest.approx(0.9)
+        assert velocity["roll"] == (-0.3, 0.3), "only the speed range grows"
+    finally:
+        env.close()
+
+
+def test_push_sweep_reports_the_zero_action_baseline():
+    from experiments.sit_free.evaluate import push_sweep
+
+    def zero(obs):
+        return torch.zeros(obs.batch_size[0], 20)
+
+    sweep = push_sweep(zero, "cpu", pushes=(0.2, 2.0), num_envs=2)
+    assert sweep["pushes_mps"] == [0.2, 2.0]
+    # A zero-action policy is the baseline itself: it never beats it.
+    assert sweep["success_fraction"] == sweep["zero_action_success_fraction"]
+    assert sweep["beats_zero_action_at_mps"] == []
+    assert sweep["zero_action_success_fraction"][0] == 1.0, "a light push needs no balance"
+    assert sweep["zero_action_success_fraction"][1] == 0.0, "a 2 m/s push tips the bike"

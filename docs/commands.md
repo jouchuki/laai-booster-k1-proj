@@ -583,12 +583,24 @@ python3 scripts/dry_run.py --task laai_sit --seconds 10 | tee logs/dry_run_repor
 ```
 
 ```bash
-python3 scripts/deploy.py --task laai_sit
+python3 scripts/deploy.py --task laai_sit_ankle_kd15
 ```
 
 X slides the joints to the seated pose in 1 s, then press `r` (A) within a few seconds: the
 safety stops run only from there. Ctrl+C stops into damping (limp) mode. Never add
 `--exit-mode walking`.
+
+`laai_sit_ankle_kd15` is `laai_sit` with ankle damping 1.5 instead of 1.0. Use it: with 1.0
+the ankle rolls oscillated after a push in the first policy test
+([2026-11-19](../experiments/sit/robot_tests/2026-11-19/notes.md#policy-test-free-bike-run-2)).
+Plain `laai_sit` still works (`--task laai_sit`, for the dry run too).
+
+Rehearse a robot placement before the policy runs: `--start-from` takes a dry run's log
+(copied to the laptop) and starts the rehearsal in that placement:
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit_ankle_kd15 --bike-held --policy experiments/sit_free/runs/run2/policy.pt --start-from experiments/sit/robot_tests/YYYY-MM-DD/dry_run_laai_sit_ros_TIME.npz
+```
 
 ## Compare free-bike training on Hex
 
@@ -621,6 +633,26 @@ records job IDs in `manifest.json`, and gives both runs one W&B comparison group
 Each final checkpoint triggers the same held-out evaluation inside its allocation;
 results appear in `evaluation.json` and W&B `Evaluation/*`. Compare these along with
 episode duration, fall causes, bike tilt and saddle support. The original run stays separate.
+
+## Train the free bike with a push curriculum
+
+`LAAI-K1-Sit-Puky-Free-Push` is the free-bike task with pushes growing from 0.2 to 2.0 m/s as
+the policy keeps the bike up; why and how: [experiments/sit_free/README.md](../experiments/sit_free/README.md#push-curriculum-laai-k1-sit-puky-free-push).
+
+### Linux GPU cluster: train from free-bike run 2's actor
+
+```bash
+sbatch --job-name=sit-free-push cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+```
+
+### Linux and macOS: CPU smoke run
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Sit-Puky-Free-Push --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 --agent.logger tensorboard --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt
+```
+
+The job's `evaluation.json` includes `push_sweep`: success at 0.2-2.0 m/s for the policy and
+for zero actions. The run has learned to balance where `beats_zero_action_at_mps` lists a push.
 
 ## Compare the trained free-bike policies locally
 

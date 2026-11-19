@@ -104,6 +104,7 @@ policy in charge:
 | A (`r`) | The targets slide from the seated pose to the policy's over 1 s; safety stops active from here |
 | Safety stops | The hold's four (trunk tilt 15 deg from seated, joint speed 4 rad/s, torque 90% for 0.5 s, tracking 0.3 rad for 1 s), plus the walk task's shake watchdog (action jumps > 2.5 for 3 steps, or an average jump > 0.8 over 0.2 s) and booster_deploy's 60-degree fall check |
 | Exit | Damping (limp), as the hold |
+| `laai_sit_ankle_kd15` | The same with ankle damping 1.5 (k1_walk: 1.0), inside training's randomization (x0.6 to x1.6). Use it on the robot: with 1.0 the ankle rolls oscillated at about 9 Hz after a push ([2026-11-19](robot_tests/2026-11-19/notes.md#policy-test-free-bike-run-2)) |
 
 It also runs the free-bike policies ([sit_free/](../sit_free/README.md)), which share the
 interface. Rehearsed on the bike (2026-11-19, 8 s, joints placed up to 0.1 rad off):

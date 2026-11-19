@@ -1,8 +1,9 @@
-# Robot test 2026-11-19: `laai_sit_hold` on the Puky
+# Robot test 2026-11-19: `laai_sit_hold` and `laai_sit` on the Puky
 
-First real-robot run of `laai_sit_hold`. The hands rested on the grips without clips, and
-someone held the bike the whole time. Times below are local; the robot's clock (and so the
-log names) is 7 hours ahead.
+First real-robot runs of `laai_sit_hold` (morning) and of a trained policy, free-bike run 2
+under `laai_sit` (afternoon). The hands rested on the grips without clips, and someone held
+the bike the whole time. Times below are local; the robot's clock (and so the log names) is 7
+hours ahead.
 
 ## Result
 
@@ -14,6 +15,11 @@ log names) is 7 hours ahead.
   to the model's height, the legs fit.
 - **Without clips the hands do not sit where the model puts them**, so the arms press down
   on the bar. The left shoulder roll was 0.49 rad off the pose in every dry run.
+- **The trained policy (free-bike run 2) sat calmly for at least 35 s**, then a push set the
+  ankle rolls oscillating at about 9 Hz until the speed stop, 40 s after start. The left hand
+  came loose. With ankle damping 1.5 (`laai_sit_ankle_kd15`) and the feet on the floor it ran
+  96 s without a stop and without shaking, but slowly leaned to the left without correcting.
+  [Details](#policy-test-free-bike-run-2).
 
 ## Setup
 
@@ -105,6 +111,94 @@ the bar, as the clip would. Unclipped, the hand can only rest on top of the bar,
 and further forward, so holding the model's arm angles pushes it down. Moving the handlebar
 does not fix this; the clips do.
 
+## Policy test: free-bike run 2
+
+Afternoon: the first trained policy on the robot. `laai_sit` ran free-bike run 2
+(`experiments/sit_free/runs/run2/policy.pt`, trained from scratch), installed with
+`bash robot/setup_robot.sh 10.0.0.238 sit experiments/sit_free/runs/run2/policy.pt`. The bike
+was held, and the hands rested on the grips without clips.
+
+### Dry run (15:34)
+
+| Item | Value |
+|---|---|
+| Placement | Trunk tilt 9.4 deg. Hip pitch L +0.25 / R +0.35, left hip yaw +0.13, ankle pitch -0.15 / -0.16, left shoulder roll -0.47 (as in every run), head pitch -0.31 |
+| Policy actions | Max 1.57-1.72 (warning above 1.6), mean 0.46, steady from the first second. Largest on the arms: left shoulder pitch -1.58 (asks -0.40 rad), right shoulder roll +1.36, right shoulder pitch -0.97, left elbow pitch +0.88. Legs about 0.1 rad |
+| Stop (would-be) | Left hip yaw over 90% of its torque limit for 0.5 s: from its 0.13 rad placement offset, which X removes |
+| Timing | Inference 10.7 ms median, 20.6 ms at the 99th percentile; one 107 ms loop |
+
+Two reasons a dry run overstates a policy: it skips X, so the policy sees the placement offsets
+(training only started within 0.05 rad of the pose), and the motors do not move, so a
+requested move never shrinks. Rehearsed in simulation from this exact placement
+(`check_hold.py --start-from` with the dry-run log; X, then run 2, bike held): 10 s, no stop,
+62% peak torque, 11.4 deg tilt, max action 1.70 (robot: 1.72). Simulation gives the policy the
+same inputs as the robot. Even in simulation run 2 pushes its shoulders (left shoulder pitch
+-0.17 rad): it learned with the hands welded to the bar.
+
+### Run (15:39-15:40)
+
+`deploy.py --task laai_sit`: X, then `r` 18 s later. The policy ran **40 s** (2000 steps at
+50 Hz, longest step 33 ms) until the joint-speed stop: left ankle roll 4.7 rad/s > 4.
+Damping followed as intended.
+
+Seen: the feet floated slightly. We pushed the robot a little; the left hand came loose and the
+feet started to shake.
+
+From the stop log (`stop_20261119_224032_970.npz`, the last 5 s; seconds after `r`):
+
+| Time | What happened |
+|---|---|
+| 35.4-39.1 s | Calm: trunk tilt 9 deg, every joint under 0.4 rad/s, actions about 0.8 |
+| about 39.1 s | The push: the hips move slightly |
+| 39.44 s | The right ankle roll starts swinging |
+| 39.4-40.1 s | The swing grows each cycle (0.7, 1.2, 1.6, 2.2, 3.2 rad/s); the left ankle joins |
+| 40.1 s | Left ankle roll at 4.7 rad/s: speed stop |
+
+The ankle oscillated, not the policy: the right ankle roll swung over 0.126 rad while its
+target moved 0.045 rad smoothly; the oscillation is at least 9 Hz (zero crossings at 50 Hz
+sampling) while the action changed slowly (0.17 to 0.32); the trunk stayed at 9.0-9.6 deg.
+This is walk run 1's ankle-roll oscillation with ankle damping 1.0
+(`experiments/walk/README.md`); `laai_sit` uses 1.0 too. A foot carrying no weight is damped
+only by its motor, so the floating feet made it easier to start.
+
+The arms were steady in these 5 s, the left shoulder pitch 0.13-0.19 rad off the pose (the
+rehearsal: 0.17). The hand probably came loose before second 35, outside the log.
+
+Simulation does not reproduce the oscillation: in the rehearsal from this placement, with 40
+and 60 N pushes, ankle damping 1.0 and 1.5 both run 10 s without a stop.
+
+### Changes after this test
+
+- New task `laai_sit_ankle_kd15`: `laai_sit` with ankle damping 1.5, as
+  `laai_walk_ankle_kd15`. Inside the sit training's damping randomization (x0.6 to x1.6).
+- For the next run: feet on the floor (lower the saddle a few millimetres; after X check that
+  both soles touch), no pushes until it sits calmly for 30 s, a hand near the left grip.
+
+### Run with ankle damping 1.5 (15:55-15:57)
+
+`deploy.py --task laai_sit_ankle_kd15`, same policy and setup, **feet on the floor**. X, then
+`r` 11 s later. The policy ran **96 s** (2000 steps at 50 Hz, longest step 34 ms) with **no
+safety stop**, until Ctrl+C; damping followed.
+
+Seen: some movement. The robot started leaning to the left and slowly kept falling that way;
+the policy did not correct enough to come back upright. We pushed it back a little. Apart from
+the lean it stayed up a long time. No ankle shaking was reported. No log: the task saves one
+only on a safety stop.
+
+What this shows:
+- **The ankle fix worked as far as this test goes**: feet loaded and damping 1.5, no
+  oscillation in 96 s, including the pushes back (gentle, by hand).
+- **The policy does not balance against a slow lean.** This matches the free-bike analysis
+  (`experiments/sit_free/README.md`, "Analysis, 2026-11-19"): run 2 never beats holding the pose
+  with zero actions, because training only pushed with up to 0.2 m/s. A slow drift is exactly
+  what it never had to correct.
+- **The unclipped hands may matter here.** In training the hands are welded to the bar, which
+  ties the trunk to the bike sideways; unclipped, the robot can lean relative to the bike with
+  only the saddle and its feet against it.
+
+The trunk tilt stop (15 deg from seated) did not trip: the lean stayed below it, or the
+pushes back kept it there.
+
 ## Problems found in the procedure
 
 - **Our safety stops only run after `r`.** Between X and `r` only Booster's prepare pose holds
@@ -115,7 +209,10 @@ does not fix this; the clips do.
 
 ## Logs
 
-Robot-clock names, from `~/booster_deploy/logs/` on the robot. **Not yet in this folder.**
+Robot-clock names, from `~/booster_deploy/logs/` on the robot. In this folder: the policy test's
+`dry_run_laai_sit_ros_20261119_223420.npz` (15:34), its would-be stop
+`stop_20261119_223411_527.npz`, and the run's stop `stop_20261119_224032_970.npz` (15:40). The
+hold tests' logs below are **not yet in this folder**.
 
 | Local time | Dry-run log | Stop log |
 |---|---|---|
