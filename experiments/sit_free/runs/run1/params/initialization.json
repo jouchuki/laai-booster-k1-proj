@@ -1,0 +1,17 @@
+{
+  "mode": "pretrained_actor",
+  "checkpoint": "/scratch/laoa/laai-booster-k1-proj/logs/laai_sit_free/comparisons/free-bike-20261117T211126Z/model_900.pt",
+  "sha256": "42e0ff4f8d08e1e40cba032d8ac05f4a27c4296007b107053bf25d00318444c1",
+  "source_iteration": 900,
+  "loaded": [
+    "actor",
+    "actor_observation_normalization",
+    "actor_distribution"
+  ],
+  "reset": [
+    "critic",
+    "optimizer",
+    "iteration",
+    "environment_step_counter"
+  ]
+}
