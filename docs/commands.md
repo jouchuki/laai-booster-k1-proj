@@ -622,6 +622,26 @@ Each final checkpoint triggers the same held-out evaluation inside its allocatio
 results appear in `evaluation.json` and W&B `Evaluation/*`. Compare these along with
 episode duration, fall causes, bike tilt and saddle support. The original run stays separate.
 
+## Train the free bike with a push curriculum
+
+`LAAI-K1-Sit-Puky-Free-Push` is the free-bike task with pushes growing from 0.2 to 2.0 m/s as
+the policy keeps the bike up; why and how: [experiments/sit_free/README.md](../experiments/sit_free/README.md#push-curriculum-laai-k1-sit-puky-free-push).
+
+### Linux GPU cluster: train from free-bike run 2's actor
+
+```bash
+sbatch --job-name=sit-free-push cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+```
+
+### Linux and macOS: CPU smoke run
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Sit-Puky-Free-Push --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 3 --agent.logger tensorboard --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt
+```
+
+The job's `evaluation.json` includes `push_sweep`: success at 0.2-2.0 m/s for the policy and
+for zero actions. The run has learned to balance where `beats_zero_action_at_mps` lists a push.
+
 ## Compare the trained free-bike policies locally
 
 The completed comparison is archived in `experiments/sit_free/runs/`: both runs include

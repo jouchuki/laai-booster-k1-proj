@@ -60,7 +60,7 @@ class PolicyInitRunner(MjlabOnPolicyRunner):
             return
         if self._evaluated:
             return
-        from experiments.sit_free.evaluate import evaluate_policy
+        from experiments.sit_free.evaluate import evaluate_policy, push_sweep
 
         self._evaluated = True
         policy = self.alg.get_policy()
@@ -68,14 +68,22 @@ class PolicyInitRunner(MjlabOnPolicyRunner):
         policy.eval()
         try:
             metrics = evaluate_policy(policy, self.device)
+            sweep = push_sweep(policy, self.device)
         finally:
             policy.train(was_training)
         report = Path(path).parent / "evaluation.json"
-        report.write_text(json.dumps(metrics, indent=2) + "\n")
+        report.write_text(json.dumps({**metrics, "push_sweep": sweep}, indent=2) + "\n")
+        it = self.current_learning_iteration
         for name, value in metrics.items():
-            self.logger.writer.add_scalar(
-                f"Evaluation/{name}", value, self.current_learning_iteration
-            )
+            self.logger.writer.add_scalar(f"Evaluation/{name}", value, it)
+        for push, ours, zero in zip(
+            sweep["pushes_mps"],
+            sweep["success_fraction"],
+            sweep["zero_action_success_fraction"],
+            strict=True,
+        ):
+            self.logger.writer.add_scalar(f"Evaluation/push_{push:g}mps/success", ours, it)
+            self.logger.writer.add_scalar(f"Evaluation/push_{push:g}mps/zero_action", zero, it)
         if hasattr(self.logger.writer, "save_file"):
             self.logger.writer.save_file(str(report))
         print(f"[INFO] Held-out evaluation: {json.dumps(metrics)}")

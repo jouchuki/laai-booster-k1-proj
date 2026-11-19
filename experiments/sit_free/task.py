@@ -2,6 +2,13 @@
 
 The seated pose, motor model, actor interface and perturbations come from sit/task.py.
 Hands remain welded to the grips, as in that task; this is still a model simplification.
+
+Two tasks:
+  * LAAI-K1-Sit-Puky-Free: pushes of at most 0.2 m/s, as sit/task.py (the archived comparison).
+  * LAAI-K1-Sit-Puky-Free-Push: the same task with a push curriculum (push_curriculum), which
+    raises the push speed from PUSH_MIN to PUSH_MAX as the policy keeps the bike up. At 0.2 m/s
+    holding the seated pose with zero actions already passes every episode, so without stronger
+    pushes there is no balance to learn.
 """
 
 import math
@@ -10,6 +17,7 @@ from dataclasses import fields
 import torch
 from mjlab.entity import EntityCfg
 from mjlab.envs import mdp
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.metrics_manager import MetricsTermCfg
 from mjlab.managers.observation_manager import ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
@@ -21,6 +29,9 @@ from experiments.sit_free.runner import PolicyInitRunner, PolicyInitRunnerCfg
 from k1bike.scene import load_bike
 
 TASK_ID = "LAAI-K1-Sit-Puky-Free"
+PUSH_TASK_ID = "LAAI-K1-Sit-Puky-Free-Push"
+PUSH_MIN = 0.2  # m/s: sit/task.py's push, where the curriculum starts
+PUSH_MAX = 2.0  # m/s: zero actions survive no episode from 1.0 m/s on (free-bike evaluation)
 
 
 def free_bike():
@@ -107,6 +118,73 @@ def free_sit_env_cfg(play=False):
     return cfg
 
 
+class push_curriculum:
+    """Curriculum: push harder while the policy keeps the bike up and the robot seated.
+
+    The push event (sit/task.py's push_robot, every 2-4 s) sets the robot's forward and
+    sideways speed to a random value within +-push. Counts finished episodes; once `batch`
+    have finished (0: as many as there are environments), the level goes up by `step` if at
+    least `promote` of them ran to the time limit, down by `step` below `demote`.
+    push = push_min + level * (push_max - push_min). Pushes are uniform within +-push, so light
+    pushes stay part of training at every level.
+    """
+
+    def __init__(self, cfg: CurriculumTermCfg, env):
+        self.level = 0.0
+        self.episodes = 0
+        self.successes = 0
+        self.last_rate = float("nan")
+
+    def __call__(
+        self,
+        env,
+        env_ids,
+        step: float,
+        promote: float,
+        demote: float,
+        batch: int,
+        push_min: float,
+        push_max: float,
+    ) -> dict[str, float]:
+        ids = (
+            env_ids
+            if isinstance(env_ids, torch.Tensor)
+            else torch.arange(env.num_envs, device=env.device)
+        )
+        ran = env.episode_length_buf[ids] > 0  # skip the reset at start-up
+        self.episodes += int(ran.sum())
+        self.successes += int((env.termination_manager.time_outs[ids] & ran).sum())
+        if self.episodes >= (batch if batch > 0 else env.num_envs):
+            self.last_rate = self.successes / self.episodes
+            if self.last_rate >= promote:
+                self.level = min(1.0, self.level + step)
+            elif self.last_rate < demote:
+                self.level = max(0.0, self.level - step)
+            self.episodes = self.successes = 0
+        push = push_min + self.level * (push_max - push_min)
+        velocity = env.event_manager.get_term_cfg("push_robot").params["velocity_range"]
+        velocity["x"] = velocity["y"] = (-push, push)
+        return {"level": self.level, "push_mps": push, "success_rate": self.last_rate}
+
+
+def free_push_env_cfg(play=False):
+    """The free-bike task with the push curriculum (watching: no pushes, as every sit task)."""
+    cfg = free_sit_env_cfg(play=play)
+    if not play:
+        cfg.curriculum["push"] = CurriculumTermCfg(
+            func=push_curriculum,
+            params={
+                "step": 0.1,
+                "promote": 0.85,
+                "demote": 0.5,
+                "batch": 0,
+                "push_min": PUSH_MIN,
+                "push_max": PUSH_MAX,
+            },
+        )
+    return cfg
+
+
 def free_sit_runner_cfg():
     base = sit.k1_sit_ppo_runner_cfg()
     cfg = PolicyInitRunnerCfg(**{f.name: getattr(base, f.name) for f in fields(base)})
@@ -118,6 +196,14 @@ register_mjlab_task(
     task_id=TASK_ID,
     env_cfg=free_sit_env_cfg(),
     play_env_cfg=free_sit_env_cfg(play=True),
+    rl_cfg=free_sit_runner_cfg(),
+    runner_cls=PolicyInitRunner,
+)
+# Logs into the same folder (logs/laai_sit_free/), so --agent.init-policy-from finds its runs.
+register_mjlab_task(
+    task_id=PUSH_TASK_ID,
+    env_cfg=free_push_env_cfg(),
+    play_env_cfg=free_push_env_cfg(play=True),
     rl_cfg=free_sit_runner_cfg(),
     runner_cls=PolicyInitRunner,
 )
