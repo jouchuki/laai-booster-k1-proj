@@ -17,7 +17,8 @@ hours ahead.
   on the bar. The left shoulder roll was 0.49 rad off the pose in every dry run.
 - **The trained policy (free-bike run 2) sat calmly for at least 35 s**, then a push set the
   ankle rolls oscillating at about 9 Hz until the speed stop, 40 s after start. The left hand
-  came loose. Next try: ankle damping 1.5 (`laai_sit_ankle_kd15`), feet on the floor.
+  came loose. With ankle damping 1.5 (`laai_sit_ankle_kd15`) and the feet on the floor it ran
+  96 s without a stop and without shaking, but slowly leaned to the left without correcting.
   [Details](#policy-test-free-bike-run-2).
 
 ## Setup
@@ -172,6 +173,31 @@ and 60 N pushes, ankle damping 1.0 and 1.5 both run 10 s without a stop.
   `laai_walk_ankle_kd15`. Inside the sit training's damping randomization (x0.6 to x1.6).
 - For the next run: feet on the floor (lower the saddle a few millimetres; after X check that
   both soles touch), no pushes until it sits calmly for 30 s, a hand near the left grip.
+
+### Run with ankle damping 1.5 (15:55-15:57)
+
+`deploy.py --task laai_sit_ankle_kd15`, same policy and setup, **feet on the floor**. X, then
+`r` 11 s later. The policy ran **96 s** (2000 steps at 50 Hz, longest step 34 ms) with **no
+safety stop**, until Ctrl+C; damping followed.
+
+Seen: some movement. The robot started leaning to the left and slowly kept falling that way;
+the policy did not correct enough to come back upright. We pushed it back a little. Apart from
+the lean it stayed up a long time. No ankle shaking was reported. No log: the task saves one
+only on a safety stop.
+
+What this shows:
+- **The ankle fix worked as far as this test goes**: feet loaded and damping 1.5, no
+  oscillation in 96 s, including the pushes back (gentle, by hand).
+- **The policy does not balance against a slow lean.** This matches the free-bike analysis
+  (`experiments/sit_free/README.md`, "Analysis, 2026-11-19"): run 2 never beats holding the pose
+  with zero actions, because training only pushed with up to 0.2 m/s. A slow drift is exactly
+  what it never had to correct.
+- **The unclipped hands may matter here.** In training the hands are welded to the bar, which
+  ties the trunk to the bike sideways; unclipped, the robot can lean relative to the bike with
+  only the saddle and its feet against it.
+
+The trunk tilt stop (15 deg from seated) did not trip: the lean stayed below it, or the
+pushes back kept it there.
 
 ## Problems found in the procedure
 
