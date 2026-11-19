@@ -443,8 +443,59 @@ MUJOCO_GL=egl uv run --group train python -m experiments.sit.export \
   --checkpoint logs/laai_sit/YOUR_RUN/model_1499.pt --video sit.mp4
 ```
 
-Keep the result as `experiments/sit/runs/runN/policy.pt`. A booster_deploy task that runs it on
-the robot (seated pose as default pose, like `laai_sit_hold`) follows once a policy is trained.
+The export must print `Deploy-format check: ... (OK)`. Keep the result as
+`experiments/sit/runs/runN/policy.pt`; the booster_deploy task `laai_sit` runs it on the robot
+(next section but one).
+
+## Robot test: the trained sit policy (phase 3)
+
+`laai_sit` runs the trained policy around the seated pose, with the same safety stops as
+`laai_sit_hold` plus the walk task's shake watchdog. Same placement, people and keys as the
+hold (next section); set the saddle as in
+[the 2026-11-19 robot test](../experiments/sit/robot_tests/2026-11-19/notes.md). The bike stays
+held: stage 0 (`LAAI-K1-Sit-Puky`) trains with the bike fixed to the world.
+
+### Linux and macOS: rehearse it in simulation on the bike
+
+The newest run's `policy.pt`, with the bike held (as on the robot), then released:
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit --bike-held
+```
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit
+```
+
+A specific policy, with a sideways push halfway through:
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit --policy experiments/sit/runs/run1/policy.pt --push 40
+```
+
+### Linux and macOS host: copy to the robot
+
+Installs the newest sit run's `policy.pt` as `models/laai_sit.pt` (or give a policy file after `sit`):
+
+```bash
+bash robot/setup_robot.sh ROBOT_IP sit
+```
+
+### Robot (Linux): dry run with the robot placed on the bike, then the policy
+
+```bash
+cd ~/booster_deploy && source .venv/bin/activate
+source /opt/booster/BoosterRos2Interface/install/setup.bash
+python3 scripts/dry_run.py --task laai_sit --seconds 10 | tee logs/dry_run_report_$(date +%Y%m%d_%H%M%S).txt
+```
+
+```bash
+python3 scripts/deploy.py --task laai_sit
+```
+
+X slides the joints to the seated pose in 1 s, then press `r` (A) within a few seconds: the
+safety stops run only from there. Ctrl+C stops into damping (limp) mode. Never add
+`--exit-mode walking`.
 
 ## Robot test: hold the seated pose (phase 3)
 

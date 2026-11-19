@@ -93,10 +93,9 @@ The task saves data only on a safety stop, so there is no log of the two holds t
 
 Measured with a clip on:
 
-- **2 cm from the robot's hand to the bar centre.** The model puts the bar centre 2 cm beyond
-  the forearm tip (`CLIP_HAND_TO_BAR` and `CLIP_HAND_CENTRE_INSET` in `src/k1bike/seat.py`). If
-  the 2 cm was measured from the forearm tip, it matches the model. If it was measured from
-  the hand centre, the model's 4 cm is 2 cm too long. To confirm.
+- **2 cm from the forearm tip to the bar centre**, along the forearm. This matches the model:
+  `src/k1bike/seat.py` puts the bar centre 2 cm beyond the forearm tip (`CLIP_HAND_TO_BAR`
+  minus `CLIP_HAND_CENTRE_INSET`). The clip offset needs no change.
 - **The forearms point straight forward; the bar crosses the hands slightly diagonally.** The
   model takes the clip as collinear with the forearm. The bar's angle across the clip is not
   yet compared with the solved pose.
@@ -137,9 +136,9 @@ also wrote a `dry_run_report_<time>.txt`.
 
 1. Measure the final saddle dip height. Record the seat-post setting, so the bike can be set
    up the same way next time.
-2. Confirm where the 2 cm clip measurement starts (forearm tip or hand centre). Then compare
-   the bar's angle in the clip with the solved pose, and, if they differ, change the clip
-   geometry in `src/k1bike/seat.py` and run `scripts/solve_seated_pose.py` again.
+2. Compare the bar's angle across the clip (slightly diagonal on the real robot) with the
+   solved pose. If they differ, change the clip orientation in `src/k1bike/seat.py` and run
+   `scripts/solve_seated_pose.py` again. The 2 cm offset already matches.
 3. Hold test with the hands clipped, once the clip geometry matches the model.
 4. Train `LAAI-K1-Sit-Puky`. With the saddle at the model's height, the training scene
    matches the real setup in the legs and trunk.

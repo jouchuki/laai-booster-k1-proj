@@ -15,8 +15,8 @@ rest on top of the bar, 3 cm above the model's hand, and press down.
 |---|---|
 | `task.py` | mjlab training task `LAAI-K1-Sit-Puky` (below) |
 | `export.py` | Export a checkpoint to booster_deploy's policy format, with the same check as the walk export |
-| `deploy/laai_sit.py` | booster_deploy task `laai_sit_hold`: holds the seated pose on the Puky, no policy, with safety stops |
-| `check_hold.py` | Rehearses that task in simulation on the bike, in the same order as on the robot |
+| `deploy/laai_sit.py` | booster_deploy tasks `laai_sit_hold` (holds the seated pose on the Puky, no policy) and `laai_sit` (runs the trained policy around that pose), both with safety stops |
+| `check_hold.py` | Rehearses either task in simulation on the bike, in the same order as on the robot |
 
 ## Runs
 
@@ -83,6 +83,29 @@ to 19 deg and back. So the skill here is staying upright (keeping the lean small
 pushes), not avoiding a fall. Forward motion comes next (phase 4), on the same stand.
 
 Train, watch and export: [docs/commands.md](../../docs/commands.md#train-the-sit-task-phase-3).
+
+## Robot task `laai_sit`: the trained policy
+
+`laai_sit` runs an exported sit policy (`experiments/sit/runs/runN/policy.pt`, installed as
+`models/laai_sit.pt` by `robot/install.sh sit`) on the robot. It is `laai_sit_hold` with the
+policy in charge:
+
+| Item | Setting |
+|---|---|
+| Interface | As in training and the walk policy: 690 inputs (10 frames of 69, velocity command always 0), 20 actions in k1_walk's joint order, target = seated pose + 0.25 x action, k1_walk PD gains, no action filter |
+| X | Slides to the seated pose in 1 s, as in the hold |
+| A (`r`) | The targets slide from the seated pose to the policy's over 1 s; safety stops active from here |
+| Safety stops | The hold's four (trunk tilt 15 deg from seated, joint speed 4 rad/s, torque 90% for 0.5 s, tracking 0.3 rad for 1 s), plus the walk task's shake watchdog (action jumps > 2.5 for 3 steps, or an average jump > 0.8 over 0.2 s) and booster_deploy's 60-degree fall check |
+| Exit | Damping (limp), as the hold |
+
+Keep the bike held: stage 0 trains with the bike fixed to the world. Rehearse first with
+`check_hold.py --task laai_sit --bike-held`; commands in
+[docs/commands.md](../../docs/commands.md#robot-test-the-trained-sit-policy-phase-3). A
+zero-action policy behaves exactly like `laai_sit_hold` (tested in `tests/test_sit_hold.py`).
+
+The joint speed limit (4 rad/s) is the hold's. A policy reacting to pushes may move faster; if
+it trips on speed while sitting calmly otherwise, raise `MAX_JOINT_VEL` after checking the
+rehearsal's numbers.
 
 ## What `laai_sit_hold` does, and does not do
 

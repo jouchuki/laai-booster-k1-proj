@@ -1,29 +1,38 @@
-"""booster_deploy task "laai_sit_hold": hold the K1's solved seated pose on the Puky (no policy).
+"""booster_deploy tasks for the K1 seated on the Puky (phase 3):
 
-For the first real-robot tests of the seated pose (experiments/sit/README.md has the full
-procedure). Nothing is learned and nothing balances: every joint is held at the seated pose
-from models/k1_on_bike/puky_bike.json with Booster's k1_walk PD gains, the same gains the
-simulation holds it with. The robot stays up only through its feet and the bike's wheels.
+  * "laai_sit_hold": hold the solved seated pose, no policy. For the first robot tests of the
+    pose itself. Nothing is learned and nothing balances: every joint is held at the seated pose
+    from models/k1_on_bike/puky_bike.json with Booster's k1_walk PD gains, the same gains the
+    simulation holds it with. The robot stays up only through its feet and the bike's wheels.
+  * "laai_sit": run the trained sit policy (experiments/sit/task.py, exported with
+    experiments/sit/export.py) around the same seated pose. Interface as the walk policy: 690
+    inputs (10 frames of 69, velocity command always zero), 20 actions, target = seated pose +
+    0.25 x action.
 
 Source of truth: experiments/sit/deploy/laai_sit.py in the project repository. robot/install.sh
-copies it to booster_deploy/tasks/locomotion/robots/k1/ and the seated poses to
-.../k1/models/seated_poses/<bike>.json.
+copies it to booster_deploy/tasks/locomotion/robots/k1/, the seated poses to
+.../k1/models/seated_poses/<bike>.json and the sit policy to .../k1/models/laai_sit.pt.
 
 Sequence on the robot (robot in damping mode, placed on the bike by hand, bike held upright):
   * X: booster_deploy's "standing" preparation slides all joints from where they are to the
-    seated pose over 1 s (this task's prepare pose is the seated pose, with the k1_walk gains,
-    not Booster's stiff standing gains). Booster's walking mode is never entered.
-  * A: this task starts and holds the seated pose. Its targets slide from the last command
-    over HANDOVER_S, so starting it never jumps.
+    seated pose over 1 s (the prepare pose is the seated pose, with the k1_walk gains, not
+    Booster's stiff standing gains). Booster's walking mode is never entered.
+  * A (keyboard r), within a few seconds of X: the task starts. Its targets slide from the last
+    command over HANDOVER_S, so starting it never jumps. The safety stops below run only from
+    here on.
   * Any stop or exit: damping mode (limp). Someone must hold the robot.
 
-Safety stops (each prints the reason and saves the last LOG_SECONDS to logs/stop_<time>.npz):
+Safety stops, in both tasks (each prints the reason and saves the last LOG_SECONDS to
+logs/stop_<time>.npz):
   * the trunk tilts more than MAX_TILT_CHANGE_DEG away from its seated orientation (the bike
     is falling over, or the robot is sliding off);
-  * any joint moves faster than MAX_JOINT_VEL rad/s (holding a pose should be nearly still);
+  * any joint moves faster than MAX_JOINT_VEL rad/s;
   * any joint's PD torque stays above TORQUE_FRACTION of its limit for TORQUE_SECONDS (the
     joint is fighting something, for example hand clips that sit elsewhere than assumed);
   * any joint stays more than MAX_TRACKING_ERROR rad from its target for TRACKING_SECONDS.
+"laai_sit" also stops when the policy shakes: action jumps above MAX_ACTION_JUMP for JUMP_STEPS
+steps in a row, or an average jump above MAX_MEAN_JUMP over SHAKE_WINDOW steps (as the walk
+task).
 """
 
 import json
@@ -44,16 +53,23 @@ from booster_deploy.utils.isaaclab import math as lab_math
 from booster_deploy.utils.isaaclab.configclass import configclass
 from booster_deploy.utils.registry import register_task
 
+from ...locomotion import K1LocomotionPolicyCfg, LocomotionPolicy
 from . import K1WalkControllerCfg
 
 BIKE = "puky_bike"  # the bike the robot sits on (its pose file: models/seated_poses/<bike>.json)
+# Relative to this file's folder; robot/install.sh sit puts the newest run's policy.pt there.
+POLICY_FILE = "models/laai_sit.pt"
 MAX_TILT_CHANGE_DEG = 15.0  # trunk tilt away from the seated orientation
-MAX_JOINT_VEL = 4.0  # rad/s
+MAX_JOINT_VEL = 4.0  # rad/s; seated, with the bike held, the joints should barely move
 TORQUE_FRACTION = 0.9  # of each joint's effort limit
 TORQUE_SECONDS = 0.5
 MAX_TRACKING_ERROR = 0.3  # rad
 TRACKING_SECONDS = 1.0
-HANDOVER_S = 1.0  # seconds to slide from the previous command to the seated pose
+MAX_ACTION_JUMP = 2.5  # norm of the change in the 20 actions between two steps (laai_sit)
+JUMP_STEPS = 3  # that many steps in a row
+SHAKE_WINDOW = 10  # steps (0.2 s at 50 Hz)
+MAX_MEAN_JUMP = 0.8  # average action jump over SHAKE_WINDOW steps
+HANDOVER_S = 1.0  # seconds to slide from the previous command to the task's targets
 LOG_SECONDS = 5.0  # history saved when the task stops
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,40 +101,43 @@ def seated_targets(joint_names, fallback, bike: str = BIKE) -> tuple[list[float]
     return [float(joints.get(n, d)) for n, d in zip(joint_names, fallback)], pose["trunk_quat"]
 
 
-class SitHoldPolicy(Policy):
-    """Hold the seated pose; stop on tilt, speed, torque or tracking limits."""
+def _require_pose(bike: str) -> None:
+    if pose_file(bike) is None:
+        raise FileNotFoundError(
+            f"No seated pose for '{bike}' in {_POSE_DIRS[0]}. Install it with robot/install.sh sit."
+        )
 
-    def __init__(self, cfg, controller):
-        torch.set_num_threads(1)
-        super().__init__(cfg, controller)
-        if pose_file(cfg.bike) is None:
-            raise FileNotFoundError(
-                f"No seated pose for '{cfg.bike}' in {_POSE_DIRS[0]}. "
-                "Install it with robot/install.sh sit."
-            )
-        self.robot = controller.robot
-        self.device = cfg.device
-        self.default_joint_pos = self.robot.default_joint_pos.to(self.device)  # the seated pose
+
+class SeatedSafety:
+    """Safety stops shared by both sit tasks. Call `_init_safety` after the policy's own
+    __init__, `_reset_safety` from reset() and `_check_safety` once per step."""
+
+    task_name = ""
+
+    def _init_safety(self, controller) -> None:
+        self._dt = controller.cfg.policy_dt
         _, trunk_quat = seated_targets(
-            self.robot.cfg.joint_names, self.robot.cfg.default_joint_pos, cfg.bike
+            self.robot.cfg.joint_names, self.robot.cfg.default_joint_pos, self.cfg.bike
         )
         # Gravity as the trunk should feel it when seated on an upright bike.
         self._seated_gravity = lab_math.quat_apply_inverse(
             torch.tensor(trunk_quat, dtype=torch.float32),
             torch.tensor([0.0, 0.0, -1.0], dtype=torch.float32),
         ).to(self.device)
-        n = self.robot.num_joints
-        self.last_action = torch.zeros(n, dtype=torch.float32, device=self.device)
-        self._dt = controller.cfg.policy_dt
         self._handover_steps = max(1, round(HANDOVER_S / self._dt))
         self._torque_steps = max(1, round(TORQUE_SECONDS / self._dt))
         self._tracking_steps = max(1, round(TRACKING_SECONDS / self._dt))
         self._history = deque(maxlen=max(1, round(LOG_SECONDS / self._dt)))
-        self.reset()
+        self._reset_safety()
 
-    # Interface used by robot/dry_run.py (same names as booster_deploy's LocomotionPolicy).
-    def _action_to_targets(self, action: torch.Tensor) -> torch.Tensor:
-        return self.default_joint_pos + action
+    def _reset_safety(self) -> None:
+        self._step = 0
+        self._stopped = False
+        self._over_torque = torch.zeros(self.robot.num_joints, dtype=torch.int32)
+        self._off_target = torch.zeros(self.robot.num_joints, dtype=torch.int32)
+        self._history.clear()
+        self._handover_start = None
+        self.stop_reason = None
 
     def _previous_targets(self) -> torch.Tensor:
         """The last command the robot received (booster_deploy's prepare slide ends on the
@@ -133,14 +152,15 @@ class SitHoldPolicy(Policy):
                 pass
         return self.robot.data.joint_pos.to(self.device).clone()
 
-    def reset(self) -> None:
-        self._step = 0
-        self._stopped = False
-        self._over_torque = torch.zeros(self.robot.num_joints, dtype=torch.int32)
-        self._off_target = torch.zeros(self.robot.num_joints, dtype=torch.int32)
-        self._history.clear()
-        self._handover_start = None
-        self.stop_reason = None
+    def _handover(self, targets: torch.Tensor) -> torch.Tensor:
+        """Slide from the previous command to `targets` over the first HANDOVER_S."""
+        if self._handover_start is None:
+            self._handover_start = self._previous_targets()
+        self._step += 1
+        if self._step < self._handover_steps:
+            alpha = self._step / self._handover_steps
+            return self._handover_start + alpha * (targets - self._handover_start)
+        return targets
 
     def _gravity(self) -> torch.Tensor:
         return lab_math.quat_apply_inverse(
@@ -172,15 +192,16 @@ class SitHoldPolicy(Policy):
 
     def _save_history(self, reason: str) -> None:
         try:
-            t, q, dq, tgt, grav = (np.array(x) for x in zip(*self._history))
+            t, q, dq, act, tgt, grav = (np.array(x) for x in zip(*self._history))
             os.makedirs("logs", exist_ok=True)
             stamp = time.strftime("stop_%Y%m%d_%H%M%S") + f"_{int(time.time() * 1000) % 1000:03d}"
             path = os.path.join("logs", f"{stamp}.npz")
             meta = {
-                "task": "laai_sit_hold",
+                "task": self.task_name,
                 "bike": self.cfg.bike,
                 "reason": reason,
                 "joint_names": list(self.robot.cfg.joint_names),
+                "policy_joint_names": list(self.cfg.policy_joint_names),
                 "policy_dt": self._dt,
                 "seated_pose": self.default_joint_pos.cpu().tolist(),
             }
@@ -190,6 +211,7 @@ class SitHoldPolicy(Policy):
                 t=t,
                 joint_pos=q,
                 joint_vel=dq,
+                action=act,
                 target=tgt,
                 gravity=grav,
             )
@@ -197,22 +219,14 @@ class SitHoldPolicy(Policy):
         except Exception as exc:  # noqa: BLE001  (diagnostics must never block the stop)
             print(f"  (could not write stop details: {exc})")
 
-    def inference(self) -> torch.Tensor:
-        if self._handover_start is None:
-            self._handover_start = self._previous_targets()
-        self._step += 1
-        targets = self.default_joint_pos.clone()
-        if self._step < self._handover_steps:
-            alpha = self._step / self._handover_steps
-            targets = self._handover_start + alpha * (targets - self._handover_start)
-        self.last_action = targets - self.default_joint_pos
-
+    def _check_safety(self, targets: torch.Tensor, action: torch.Tensor) -> None:
         d = self.robot.data
         self._history.append(
             (
                 self._step * self._dt,
                 d.joint_pos.detach().cpu().numpy().copy(),
                 d.joint_vel.detach().cpu().numpy().copy(),
+                action.detach().cpu().numpy().copy(),
                 targets.detach().cpu().numpy().copy(),
                 self._gravity().detach().cpu().numpy().copy(),
             )
@@ -251,7 +265,111 @@ class SitHoldPolicy(Policy):
             self._trip(
                 f"{names[j]} more than {MAX_TRACKING_ERROR} rad from its target for {TRACKING_SECONDS} s"
             )
+
+
+class SitHoldPolicy(SeatedSafety, Policy):
+    """Hold the seated pose; stop on tilt, speed, torque or tracking limits."""
+
+    task_name = "laai_sit_hold"
+
+    def __init__(self, cfg, controller):
+        torch.set_num_threads(1)
+        super().__init__(cfg, controller)
+        _require_pose(cfg.bike)
+        self.robot = controller.robot
+        self.device = cfg.device
+        self.default_joint_pos = self.robot.default_joint_pos.to(self.device)  # the seated pose
+        self.last_action = torch.zeros(
+            self.robot.num_joints, dtype=torch.float32, device=self.device
+        )
+        self._init_safety(controller)
+
+    # Interface used by robot/dry_run.py (same name as booster_deploy's LocomotionPolicy).
+    def _action_to_targets(self, action: torch.Tensor) -> torch.Tensor:
+        return self.default_joint_pos + action
+
+    def reset(self) -> None:
+        self._reset_safety()
+
+    def inference(self) -> torch.Tensor:
+        targets = self._handover(self.default_joint_pos.clone())
+        self.last_action = targets - self.default_joint_pos
+        self._check_safety(targets, self.last_action)
         return targets
+
+
+class SitPolicy(SeatedSafety, LocomotionPolicy):
+    """Run the trained sit policy around the seated pose, with the sit safety stops and the
+    walk task's shake watchdog."""
+
+    task_name = "laai_sit"
+
+    def __init__(self, cfg, controller):
+        # One CPU thread: faster on the robot (see laai_walk.py).
+        torch.set_num_threads(1)
+        _require_pose(cfg.bike)
+        path = cfg.checkpoint_path
+        if not os.path.isabs(path):
+            path = os.path.join(_HERE, path)
+        if not os.path.isfile(path):
+            raise FileNotFoundError(
+                f"No sit policy at {path}. Export one with experiments/sit/export.py, keep it as "
+                "experiments/sit/runs/runN/policy.pt and install it with robot/install.sh sit."
+            )
+        super().__init__(cfg, controller)  # LocomotionPolicy: loads the model
+        self._prev_action = None
+        self._jump_count = 0
+        self._jumps = deque(maxlen=SHAKE_WINDOW)
+        self._init_safety(controller)
+
+    def reset(self) -> None:
+        super().reset()  # LocomotionPolicy: observation history and last action
+        self._reset_safety()
+        self._prev_action = None
+        self._jump_count = 0
+        self._jumps.clear()
+
+    def _check_shaking(self, action: torch.Tensor) -> None:
+        if self._prev_action is not None:
+            jump = float((action - self._prev_action).norm())
+            self._jump_count = self._jump_count + 1 if jump > MAX_ACTION_JUMP else 0
+            if self._jump_count >= JUMP_STEPS:
+                self._trip(f"action jumps > {MAX_ACTION_JUMP} for {JUMP_STEPS} steps (shaking)")
+            self._jumps.append(jump)
+            if len(self._jumps) == SHAKE_WINDOW:
+                mean_jump = sum(self._jumps) / SHAKE_WINDOW
+                if mean_jump > MAX_MEAN_JUMP:
+                    self._trip(
+                        f"average action jump {mean_jump:.2f} over "
+                        f"{SHAKE_WINDOW * self._dt:.1f} s > {MAX_MEAN_JUMP} (shaking)"
+                    )
+        self._prev_action = action
+
+    def inference(self) -> torch.Tensor:
+        was_running = self.controller.is_running
+        targets = self._handover(super().inference())  # seated pose + 0.25 x action
+        action = self.last_action.clone()
+        if was_running and not self.controller.is_running and not self._stopped:
+            # booster_deploy's own fall check (in compute_observation) stopped the controller.
+            self._trip("booster_deploy fall check (body tilted more than about 60 deg)")
+        self._check_shaking(action)
+        self._check_safety(targets, action)
+        return targets
+
+
+def _seated_robot(robot, bike: str):
+    """The K1 with the seated pose as its default pose, and X sliding to it with the k1_walk
+    gains (Booster's walking mode never runs)."""
+    seated, _ = seated_targets(list(robot.joint_names), robot.default_joint_pos, bike)
+    return robot.replace(
+        default_joint_pos=seated,
+        prepare_mode="standing",
+        prepare_state=PrepareStateCfg(
+            stiffness=list(robot.joint_stiffness),
+            damping=list(robot.joint_damping),
+            joint_pos=seated,
+        ),
+    )
 
 
 @configclass
@@ -270,17 +388,7 @@ class LaaiSitHoldTaskCfg(K1WalkControllerCfg):
     def __post_init__(self):
         super().__post_init__()
         names = list(self.robot.joint_names)
-        seated, _ = seated_targets(names, self.robot.default_joint_pos, self.bike)
-        self.robot = self.robot.replace(
-            default_joint_pos=seated,
-            # X slides to the seated pose with the k1_walk gains, never via Booster's walking.
-            prepare_mode="standing",
-            prepare_state=PrepareStateCfg(
-                stiffness=list(self.robot.joint_stiffness),
-                damping=list(self.robot.joint_damping),
-                joint_pos=seated,
-            ),
-        )
+        self.robot = _seated_robot(self.robot, self.bike)
         self.vel_command = None
         self.booster = BoosterRobotControllerCfg(exit_mode="damping")
         self.policy = LaaiSitHoldPolicyCfg(
@@ -290,4 +398,38 @@ class LaaiSitHoldTaskCfg(K1WalkControllerCfg):
         )
 
 
+@configclass
+class LaaiSitPolicyCfg(K1LocomotionPolicyCfg):
+    constructor = SitPolicy
+    bike: str = BIKE
+
+
+@configclass
+class LaaiSitTaskCfg(K1WalkControllerCfg):
+    bike: str = BIKE
+    policy_file: str = POLICY_FILE  # relative to this file's folder, or absolute
+
+    def __post_init__(self):
+        super().__post_init__()
+        joints = self.policy.policy_joint_names  # k1_walk's 20 joints, in its order
+        self.robot = _seated_robot(self.robot, self.bike)
+        self.vel_command = None  # the policy always sees a zero velocity command
+        self.booster = BoosterRobotControllerCfg(exit_mode="damping")
+        self.policy = LaaiSitPolicyCfg(
+            policy_joint_names=joints,
+            bike=self.bike,
+            checkpoint_path=self.policy_file,
+            # Same interface as the walk policy (laai_walk.py) and the sit training task.
+            actor_obs_history_length=10,
+            history_init="repeat",
+            obs_dof_vel_scale=0.1,
+            action_scale=0.25,
+            use_actor_module=False,
+            action_filter=1.0,
+            arm_action_fix_joint_name=None,
+            arm_action_fix_offset=0.0,
+        )
+
+
 register_task("laai_sit_hold", LaaiSitHoldTaskCfg())
+register_task("laai_sit", LaaiSitTaskCfg())
