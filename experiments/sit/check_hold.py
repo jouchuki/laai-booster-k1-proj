@@ -1,6 +1,7 @@
-"""Rehearse the robot task "laai_sit_hold" in simulation, on the bike, before a robot test.
+"""Rehearse the robot tasks "laai_sit_hold" and "laai_sit" in simulation, on the bike, before a
+robot test.
 
-booster_deploy's own MuJoCo mode loads the robot alone (no bike), so it cannot show this task.
+booster_deploy's own MuJoCo mode loads the robot alone (no bike), so it cannot show these tasks.
 This script runs the same task file (experiments/sit/deploy/laai_sit.py) through booster_deploy's
 controller interface in our K1 + bike scene, with booster_deploy's control law (PD at 500 Hz,
 policy at 50 Hz, effort limits), in the same order as on the robot:
@@ -8,15 +9,19 @@ policy at 50 Hz, effort limits), in the same order as on the robot:
   1. the robot starts near the seated pose, joints off by up to --offset rad (placed by hand);
   2. "X": booster_deploy's standing preparation slides all joints to the seated pose in 1 s,
      while a helper holds the bike upright;
-  3. "A": the helper lets go and the task holds the pose for --seconds, safety stops active.
+  3. "A": the task runs for --seconds, safety stops active. The helper lets go of the bike,
+     or keeps holding it with --bike-held (as in the robot test, and as stage 0 trained).
 
-It prints the weight split (saddle, feet, hands), the tilt, the largest torque against its
-limit and any safety stop. --push N pushes the trunk sideways with N newtons for 0.3 s halfway
-through, to see the robot fall (it does not balance) and the tilt stop trip.
+--task laai_sit runs a trained policy (--policy, default: policy.pt of the newest sit run)
+instead of holding the pose. It prints the weight split (saddle, feet, hands), the tilt, the
+largest torque against its limit, the policy's actions and any safety stop. --push N pushes the
+trunk sideways with N newtons for 0.3 s halfway through.
 
 Linux and macOS, from the repository root (headless report):
     uv run --group sim python experiments/sit/check_hold.py
     uv run --group sim python experiments/sit/check_hold.py --offset 0.15 --push 60
+    uv run --group sim python experiments/sit/check_hold.py --task laai_sit --bike-held
+    uv run --group sim python experiments/sit/check_hold.py --task laai_sit --policy experiments/sit/runs/run1/policy.pt
 
 macOS host, with the viewer:
     uv run --group sim mjpython experiments/sit/check_hold.py --viewer
@@ -64,7 +69,31 @@ def load_task_module():
     return module
 
 
-def make_controller(task, bike: str):
+def newest_policy() -> Path | None:
+    """policy.pt of the highest-numbered sit run (as robot/install.sh sit picks it)."""
+    runs = []
+    for path in (REPO_ROOT / "experiments" / "sit" / "runs").glob("run*/policy.pt"):
+        number = path.parent.name[3:]
+        if number.isdigit():
+            runs.append((int(number), path))
+    return max(runs)[1] if runs else None
+
+
+def task_cfg(task, task_name: str, bike: str, policy: Path | str | None = None):
+    """The registered task's config for `bike`; for laai_sit, with `policy` as its model."""
+    if task_name == "laai_sit_hold":
+        return task.LaaiSitHoldTaskCfg(bike=bike)
+    if task_name == "laai_sit":
+        policy = policy or newest_policy()
+        if policy is None:
+            raise FileNotFoundError(
+                "No sit policy: give --policy, or keep one as experiments/sit/runs/runN/policy.pt"
+            )
+        return task.LaaiSitTaskCfg(bike=bike, policy_file=str(Path(policy).resolve()))
+    raise ValueError(f"unknown task {task_name!r} (laai_sit_hold or laai_sit)")
+
+
+def make_controller(task, bike: str, task_name: str = "laai_sit_hold", policy=None):
     """A booster_deploy controller that drives the K1 in our K1 + bike scene."""
     import torch
     from booster_deploy.controllers.base_controller import BaseController
@@ -129,7 +158,7 @@ def make_controller(task, bike: str):
 
     from copy import deepcopy
 
-    return SeatedSceneController(deepcopy(task.LaaiSitHoldTaskCfg(bike=bike)))
+    return SeatedSceneController(deepcopy(task_cfg(task, task_name, bike, policy)))
 
 
 def load_split(model, data) -> dict:
@@ -158,19 +187,23 @@ def rehearse(
     push: float = 0.0,
     seed: int = 0,
     viewer: bool = False,
+    task_name: str = "laai_sit_hold",
+    policy: Path | str | None = None,
+    bike_held: bool = False,
 ) -> dict:
-    """Run the robot sequence (placed by hand, X, A, hold) and return what happened."""
+    """Run the robot sequence (placed by hand, X, A, task) and return what happened."""
     task = load_task_module()
-    ctl = make_controller(task, bike)
+    ctl = make_controller(task, bike, task_name, policy)
+    args = (ctl, bike, seconds, offset, push, seed, bike_held)
     if not viewer:
-        return _rehearse(ctl, bike, seconds, offset, push, seed, None)
+        return _rehearse(*args, None)
     import mujoco.viewer
 
     with mujoco.viewer.launch_passive(ctl.model, ctl.data) as window:
-        return _rehearse(ctl, bike, seconds, offset, push, seed, window)
+        return _rehearse(*args, window)
 
 
-def _rehearse(ctl, bike, seconds, offset, push, seed, viewer) -> dict:
+def _rehearse(ctl, bike, seconds, offset, push, seed, bike_held, viewer) -> dict:
     m, d = ctl.model, ctl.data
     seated = np.array(ctl.cfg.robot.default_joint_pos)
 
@@ -185,12 +218,12 @@ def _rehearse(ctl, bike, seconds, offset, push, seed, viewer) -> dict:
         ctl.pd_steps(start + (i + 1) / PREPARE_STEPS * (seated - start), 1)
         if viewer is not None and i % 10 == 0:
             viewer.sync()
-    # 3. A: the task holds the pose; the helper lets go of the bike.
-    d.eq_active[m.equality("helper_holds_bike").id] = 0
+    # 3. A: the task runs; the helper lets go of the bike unless it stays held.
+    d.eq_active[m.equality("helper_holds_bike").id] = int(bike_held)
     ctl.update_state()
     ctl.start()
     weight = m.body_subtreemass[m.body("trunk").id] * 9.81
-    loads, tilts = [], []
+    loads, tilts, actions = [], [], []
     steps = int(seconds / ctl.cfg.policy_dt)
     for k in range(steps):
         ctl.push[:] = [0, push, 0] if push and steps // 2 <= k < steps // 2 + 15 else 0
@@ -198,6 +231,7 @@ def _rehearse(ctl, bike, seconds, offset, push, seed, viewer) -> dict:
         targets = ctl.policy_step()
         ctl.ctrl_step(targets)
         tilts.append(ctl.policy.tilt_change_deg())
+        actions.append(ctl.policy.last_action.detach().cpu().numpy().copy())
         if k * ctl.cfg.policy_dt >= 1.0:
             loads.append(load_split(m, d))
         if viewer is not None:
@@ -212,22 +246,32 @@ def _rehearse(ctl, bike, seconds, offset, push, seed, viewer) -> dict:
         for key in ("saddle", "feet")
     }
     split["hands"] = 1.0 - split["saddle"] - split["feet"]
+    acts = np.array(actions)
+    jumps = np.linalg.norm(np.diff(acts, axis=0), axis=1) if len(acts) > 1 else np.zeros(1)
     return {
         "bike": bike,
+        "task": ctl.policy.task_name,
         "stopped": ctl.policy.stop_reason,
         "held_s": len(tilts) * ctl.cfg.policy_dt,
         "split": split,
         "max_tilt_change_deg": float(np.max(tilts)) if tilts else float("nan"),
         "max_torque_ratio": ctl.torque_ratio,
+        "max_action": float(np.abs(acts).max()) if len(acts) else float("nan"),
+        "mean_action_jump": float(jumps.mean()),
     }
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--task", default="laai_sit_hold", choices=["laai_sit_hold", "laai_sit"])
+    ap.add_argument("--policy", default=None, help="laai_sit: policy.pt (default: newest run)")
     ap.add_argument("--bike", default="puky_bike")
-    ap.add_argument("--seconds", type=float, default=6.0, help="how long the task holds the pose")
+    ap.add_argument("--seconds", type=float, default=6.0, help="how long the task runs")
     ap.add_argument("--offset", type=float, default=0.1, help="start posture error per joint, rad")
     ap.add_argument("--push", type=float, default=0.0, help="sideways push on the trunk, N")
+    ap.add_argument(
+        "--bike-held", action="store_true", help="the helper keeps holding the bike after A"
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--viewer", action="store_true")
     args = ap.parse_args()
@@ -238,14 +282,23 @@ def main() -> None:
         push=args.push,
         seed=args.seed,
         viewer=args.viewer,
+        task_name=args.task,
+        policy=args.policy,
+        bike_held=args.bike_held,
     )
     s = result["split"]
-    print(f"bike {result['bike']}: held {result['held_s']:.1f} s")
+    held = "held by the helper" if args.bike_held else "released"
+    print(f"{result['task']} on {result['bike']} (bike {held}): ran {result['held_s']:.1f} s")
     print(f"  weight: saddle {s['saddle']:.0%}, feet {s['feet']:.0%}, hands {s['hands']:.0%}")
     print(
         f"  largest trunk tilt from the seated orientation: {result['max_tilt_change_deg']:.1f} deg"
     )
     print(f"  largest joint torque: {result['max_torque_ratio']:.0%} of its limit")
+    if result["task"] == "laai_sit":
+        print(
+            f"  policy actions: max |action| {result['max_action']:.2f}, "
+            f"mean jump per step {result['mean_action_jump']:.3f}"
+        )
     print(f"  safety stop: {result['stopped'] or 'none'}")
 
 

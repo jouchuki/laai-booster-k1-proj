@@ -5,12 +5,12 @@
 # solved seated poses (models/k1_on_bike/*.json -> models/seated_poses/) and a policy into
 # booster_deploy, so its scripts/deploy.py can run them in MuJoCo and, after
 # robot/setup_robot.sh, on the robot. The policy is installed as models/laai_<experiment>.pt;
-# an experiment without trained runs (sit: it only holds a pose) installs without one.
+# an experiment without trained runs installs without one (sit's laai_sit_hold needs none).
 #
 # Usage (from anywhere):
 #   bash robot/install.sh walk                                        # policy of the newest run
 #   bash robot/install.sh walk experiments/walk/runs/run1/policy.pt   # a specific policy
-#   bash robot/install.sh sit                                         # task files and poses only
+#   bash robot/install.sh sit                                         # sit tasks, poses, newest sit policy if any
 set -euo pipefail
 
 EXPERIMENT="${1:?Usage: bash robot/install.sh <experiment> [policy.pt]}"

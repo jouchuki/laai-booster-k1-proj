@@ -15,6 +15,9 @@ EXPERIMENT="${2:?$USAGE}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$REPO_ROOT/scripts/booster_paths.sh"
 DEPLOY_DIR="$(booster_checkout_path "$REPO_ROOT" booster_deploy)"
+# Resolve a symlinked checkout (booster_deploy -> booster/booster_deploy), so tar copies
+# the folder itself and not the link.
+DEPLOY_DIR="$(cd "$DEPLOY_DIR" && pwd -P)"
 TARGET="booster@${ROBOT_IP}"
 # Reuse one SSH connection, so the password is asked only once.
 SSH_OPTS=(-o ControlMaster=auto -o ControlPath=/tmp/k1-ssh-%r@%h -o ControlPersist=10m)

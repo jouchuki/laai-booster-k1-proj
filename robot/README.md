@@ -11,7 +11,7 @@ For university lab equipment and arena access, follow the
 
 | File | What |
 |---|---|
-| `install.sh <experiment> [policy.pt]` | Copies `experiments/<experiment>/deploy/*.py`, `dry_run.py`, the seated poses (`models/seated_poses/`) and a policy (default: the newest run's `policy.pt`; none for an experiment without trained runs, such as `sit`) into booster_deploy; the policy becomes `models/laai_<experiment>.pt` |
+| `install.sh <experiment> [policy.pt]` | Copies `experiments/<experiment>/deploy/*.py`, `dry_run.py`, the seated poses (`models/seated_poses/`) and a policy (default: the newest run's `policy.pt`; none for an experiment without trained runs) into booster_deploy; the policy becomes `models/laai_<experiment>.pt` |
 | `setup_robot.sh <robot-ip> <experiment> [policy.pt]` | Runs `install.sh`, copies booster_deploy to the robot and installs its Python packages there |
 | `dry_run.py` | Runs any task's policy on live robot sensors without sending motor commands, then prints a check report |
 | `robot_info.py` | Connects with Booster's `boosteros` SDK and prints the robot's model, mode and joint count (Linux, on the robot's network) |
