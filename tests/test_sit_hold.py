@@ -143,6 +143,24 @@ def test_shaking_policy_is_stopped(tmp_path, monkeypatch):
     assert meta["task"] == "laai_sit" and "shaking" in meta["reason"]
 
 
+def test_ankle_kd15_task_only_raises_the_ankle_damping(task, tmp_path):
+    from booster_deploy.utils.registry import get_task
+
+    policy = str(_save(ZeroPolicy(), tmp_path / "p.pt"))
+    base = task.LaaiSitTaskCfg(policy_file=policy)
+    ankle = task.LaaiSitTaskCfg(policy_file=policy, ankle_kd=1.5)
+    names = list(base.robot.joint_names)
+    for i, name in enumerate(names):
+        expected = 1.5 if name in task.ANKLE_JOINTS else base.robot.joint_damping[i]
+        assert ankle.robot.joint_damping[i] == expected, name
+        assert ankle.robot.prepare_state.damping[i] == expected, f"X uses the same gains: {name}"
+    assert list(ankle.robot.joint_stiffness) == list(base.robot.joint_stiffness)
+    assert list(ankle.robot.default_joint_pos) == list(base.robot.default_joint_pos)
+    assert base.robot.joint_damping[names.index("left_ankle_roll_joint")] == 1.0
+    registered = get_task("laai_sit_ankle_kd15")
+    assert registered.robot.joint_damping[names.index("right_ankle_roll_joint")] == 1.5
+
+
 def test_sit_task_without_a_policy_file_says_how_to_install_one(task, tmp_path):
     with pytest.raises(FileNotFoundError, match="robot/install.sh sit"):
         check_hold.make_controller(task, "puky_bike", "laai_sit", tmp_path / "missing.pt")

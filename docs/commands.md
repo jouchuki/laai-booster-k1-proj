@@ -583,12 +583,24 @@ python3 scripts/dry_run.py --task laai_sit --seconds 10 | tee logs/dry_run_repor
 ```
 
 ```bash
-python3 scripts/deploy.py --task laai_sit
+python3 scripts/deploy.py --task laai_sit_ankle_kd15
 ```
 
 X slides the joints to the seated pose in 1 s, then press `r` (A) within a few seconds: the
 safety stops run only from there. Ctrl+C stops into damping (limp) mode. Never add
 `--exit-mode walking`.
+
+`laai_sit_ankle_kd15` is `laai_sit` with ankle damping 1.5 instead of 1.0. Use it: with 1.0
+the ankle rolls oscillated after a push in the first policy test
+([2026-11-19](../experiments/sit/robot_tests/2026-11-19/notes.md#policy-test-free-bike-run-2)).
+Plain `laai_sit` still works (`--task laai_sit`, for the dry run too).
+
+Rehearse a robot placement before the policy runs: `--start-from` takes a dry run's log
+(copied to the laptop) and starts the rehearsal in that placement:
+
+```bash
+uv run --group sim python experiments/sit/check_hold.py --task laai_sit_ankle_kd15 --bike-held --policy experiments/sit_free/runs/run2/policy.pt --start-from experiments/sit/robot_tests/YYYY-MM-DD/dry_run_laai_sit_ros_TIME.npz
+```
 
 ## Compare free-bike training on Hex
 

@@ -8,6 +8,8 @@
     experiments/sit/export.py) around the same seated pose. Interface as the walk policy: 690
     inputs (10 frames of 69, velocity command always zero), 20 actions, target = seated pose +
     0.25 x action.
+  * "laai_sit_ankle_kd15": "laai_sit" with ankle damping 1.5 instead of 1.0 (see the note at
+    its registration below).
 
 Source of truth: experiments/sit/deploy/laai_sit.py in the project repository. robot/install.sh
 copies it to booster_deploy/tasks/locomotion/robots/k1/, the seated poses to
@@ -70,6 +72,13 @@ JUMP_STEPS = 3  # that many steps in a row
 SHAKE_WINDOW = 10  # steps (0.2 s at 50 Hz)
 MAX_MEAN_JUMP = 0.8  # average action jump over SHAKE_WINDOW steps
 HANDOVER_S = 1.0  # seconds to slide from the previous command to the task's targets
+ANKLE_JOINTS = (
+    "left_ankle_pitch_joint",
+    "left_ankle_roll_joint",
+    "right_ankle_pitch_joint",
+    "right_ankle_roll_joint",
+)
+ANKLE_KD = 1.5  # laai_sit_ankle_kd15 (k1_walk: 1.0), as laai_walk_ankle_kd15
 LOG_SECONDS = 5.0  # history saved when the task stops
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -408,11 +417,17 @@ class LaaiSitPolicyCfg(K1LocomotionPolicyCfg):
 class LaaiSitTaskCfg(K1WalkControllerCfg):
     bike: str = BIKE
     policy_file: str = POLICY_FILE  # relative to this file's folder, or absolute
+    ankle_kd: float | None = None  # damping of the four ankle joints (None: k1_walk's 1.0)
 
     def __post_init__(self):
         super().__post_init__()
         joints = self.policy.policy_joint_names  # k1_walk's 20 joints, in its order
-        self.robot = _seated_robot(self.robot, self.bike)
+        if self.ankle_kd is not None:
+            kd = list(self.robot.joint_damping)
+            for name in ANKLE_JOINTS:
+                kd[self.robot.joint_names.index(name)] = self.ankle_kd
+            self.robot = self.robot.replace(joint_damping=kd)
+        self.robot = _seated_robot(self.robot, self.bike)  # X uses the same gains
         self.vel_command = None  # the policy always sees a zero velocity command
         self.booster = BoosterRobotControllerCfg(exit_mode="damping")
         self.policy = LaaiSitPolicyCfg(
@@ -433,3 +448,8 @@ class LaaiSitTaskCfg(K1WalkControllerCfg):
 
 register_task("laai_sit_hold", LaaiSitHoldTaskCfg())
 register_task("laai_sit", LaaiSitTaskCfg())
+# More ankle damping. Robot test 2026-11-19: after a push, the right ankle roll oscillated at
+# about 9 Hz around an almost constant target (the joint swinging 3x further than commanded,
+# with the feet barely touching the floor) until the speed stop, as laai_walk's ankles did with
+# kd 1.0 (laai_walk.py). 1.5 is inside the sit training's damping randomization (x0.6 to x1.6).
+register_task("laai_sit_ankle_kd15", LaaiSitTaskCfg(ankle_kd=ANKLE_KD))

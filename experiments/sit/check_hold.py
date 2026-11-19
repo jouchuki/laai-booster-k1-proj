@@ -43,6 +43,8 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TASK_FILE = REPO_ROOT / "experiments" / "sit" / "deploy" / "laai_sit.py"
 PREPARE_STEPS = 500  # booster_deploy's standing preparation: 500 commands, 2 ms apart (1 s)
+# Policy tasks and their ankle damping, as registered in laai_sit.py (None: k1_walk's 1.0).
+POLICY_TASKS = {"laai_sit": None, "laai_sit_ankle_kd15": 1.5}
 
 
 def booster_deploy_dir() -> Path | None:
@@ -83,14 +85,16 @@ def task_cfg(task, task_name: str, bike: str, policy: Path | str | None = None):
     """The registered task's config for `bike`; for laai_sit, with `policy` as its model."""
     if task_name == "laai_sit_hold":
         return task.LaaiSitHoldTaskCfg(bike=bike)
-    if task_name == "laai_sit":
+    if task_name in POLICY_TASKS:
         policy = policy or newest_policy()
         if policy is None:
             raise FileNotFoundError(
                 "No sit policy: give --policy, or keep one as experiments/sit/runs/runN/policy.pt"
             )
-        return task.LaaiSitTaskCfg(bike=bike, policy_file=str(Path(policy).resolve()))
-    raise ValueError(f"unknown task {task_name!r} (laai_sit_hold or laai_sit)")
+        return task.LaaiSitTaskCfg(
+            bike=bike, policy_file=str(Path(policy).resolve()), ankle_kd=POLICY_TASKS[task_name]
+        )
+    raise ValueError(f"unknown task {task_name!r} (laai_sit_hold, {', '.join(POLICY_TASKS)})")
 
 
 def make_controller(task, bike: str, task_name: str = "laai_sit_hold", policy=None):
@@ -190,11 +194,12 @@ def rehearse(
     task_name: str = "laai_sit_hold",
     policy: Path | str | None = None,
     bike_held: bool = False,
+    start_offsets: dict[str, float] | None = None,
 ) -> dict:
     """Run the robot sequence (placed by hand, X, A, task) and return what happened."""
     task = load_task_module()
     ctl = make_controller(task, bike, task_name, policy)
-    args = (ctl, bike, seconds, offset, push, seed, bike_held)
+    args = (ctl, bike, seconds, offset, push, seed, bike_held, start_offsets)
     if not viewer:
         return _rehearse(*args, None)
     import mujoco.viewer
@@ -203,14 +208,36 @@ def rehearse(
         return _rehearse(*args, window)
 
 
-def _rehearse(ctl, bike, seconds, offset, push, seed, bike_held, viewer) -> dict:
+def placement_from_log(path: Path | str, seconds: float = 1.0) -> dict[str, float]:
+    """Placement offsets from the seated pose (rad, by joint name) measured by a robot dry run
+    (robot/dry_run.py's logs/dry_run_<task>_ros_<time>.npz): mean over its first `seconds`."""
+    import json
+
+    log = np.load(path, allow_pickle=True)
+    meta = json.loads(str(log["meta"]))
+    names = meta["joint_names"]
+    t = np.asarray(log["t"])
+    q = np.asarray(log["q"])[t - t[0] < seconds].mean(0)
+    seated = meta["default_joint_pos"]  # the task's default pose: the seated pose
+    return {n: float(a - s) for n, a, s in zip(names, q, seated, strict=True)}
+
+
+def _rehearse(ctl, bike, seconds, offset, push, seed, bike_held, start_offsets, viewer) -> dict:
     m, d = ctl.model, ctl.data
     seated = np.array(ctl.cfg.robot.default_joint_pos)
 
-    # 1. Placed by hand: the seated keyframe with every joint off by up to `offset` rad.
+    # 1. Placed by hand: the seated keyframe with every joint off by up to `offset` rad, or by
+    #    `start_offsets` (rad, by joint name; joints not named start in the pose).
     mujoco.mj_resetDataKeyframe(m, d, m.key("seated").id)
-    rng = np.random.default_rng(seed)
-    d.qpos[ctl.qadr] = seated + rng.uniform(-offset, offset, size=seated.size)
+    if start_offsets is None:
+        rng = np.random.default_rng(seed)
+        d.qpos[ctl.qadr] = seated + rng.uniform(-offset, offset, size=seated.size)
+    else:
+        names = list(ctl.cfg.robot.joint_names)
+        unknown = set(start_offsets) - set(names)
+        if unknown:
+            raise ValueError(f"unknown joints in start_offsets: {sorted(unknown)}")
+        d.qpos[ctl.qadr] = seated + np.array([start_offsets.get(n, 0.0) for n in names])
     mujoco.mj_forward(m, d)
     # 2. X: slide from the current joint angles to the seated pose (prepare gains = hold gains).
     start = d.qpos[ctl.qadr].copy()
@@ -263,7 +290,7 @@ def _rehearse(ctl, bike, seconds, offset, push, seed, bike_held, viewer) -> dict
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--task", default="laai_sit_hold", choices=["laai_sit_hold", "laai_sit"])
+    ap.add_argument("--task", default="laai_sit_hold", choices=["laai_sit_hold", *POLICY_TASKS])
     ap.add_argument("--policy", default=None, help="laai_sit: policy.pt (default: newest run)")
     ap.add_argument("--bike", default="puky_bike")
     ap.add_argument("--seconds", type=float, default=6.0, help="how long the task runs")
@@ -272,9 +299,19 @@ def main() -> None:
     ap.add_argument(
         "--bike-held", action="store_true", help="the helper keeps holding the bike after A"
     )
+    ap.add_argument(
+        "--start-from",
+        default=None,
+        help="start in the placement a robot dry run measured (its dry_run_*.npz log); "
+        "replaces --offset",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--viewer", action="store_true")
     args = ap.parse_args()
+    start = placement_from_log(args.start_from) if args.start_from else None
+    if start:
+        far = sorted(start.items(), key=lambda kv: -abs(kv[1]))[:5]
+        print("start placement from the log: " + ", ".join(f"{n} {v:+.2f}" for n, v in far))
     result = rehearse(
         bike=args.bike,
         seconds=args.seconds,
@@ -285,10 +322,11 @@ def main() -> None:
         task_name=args.task,
         policy=args.policy,
         bike_held=args.bike_held,
+        start_offsets=start,
     )
     s = result["split"]
     held = "held by the helper" if args.bike_held else "released"
-    print(f"{result['task']} on {result['bike']} (bike {held}): ran {result['held_s']:.1f} s")
+    print(f"{args.task} on {result['bike']} (bike {held}): ran {result['held_s']:.1f} s")
     print(f"  weight: saddle {s['saddle']:.0%}, feet {s['feet']:.0%}, hands {s['hands']:.0%}")
     print(
         f"  largest trunk tilt from the seated orientation: {result['max_tilt_change_deg']:.1f} deg"
