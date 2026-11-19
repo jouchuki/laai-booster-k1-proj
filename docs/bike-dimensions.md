@@ -25,6 +25,17 @@ saddle top and 53 cm at both grip centres. Height references are ground to
 saddle top and ground to grip centres. The other bikes retain their existing
 dimensions and masses.
 
+### Saddle setting for robot tests (2026-11-19)
+
+In the model the saddle top is 42.0 cm at its highest point and **40.4 cm at its dip** (the
+lowest point, where the pelvis rests). At the first robot test the real saddle's dip was
+**43 cm**, 2.6 cm higher than the model's. Either the seat post had been raised since the
+measurement above, or the 42 cm was taken at a different point; that is not known. The robot
+could not reach its solved seated pose until the seat post was lowered to put the dip at
+40.4 cm. It was then lowered about 1 cm more so the feet touch the floor; that final height was
+not measured exactly. Set the saddle this way for robot tests; the model is unchanged. Details:
+[experiments/sit/robot_tests/2026-11-19](../experiments/sit/robot_tests/2026-11-19/notes.md).
+
 ## Earlier Sketchfab calibration reference (2026-11-09)
 
 | Quantity | Reported value | Simulation units | Status |

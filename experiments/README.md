@@ -34,7 +34,7 @@ configs are also in W&B; see [Tracking and comparing runs](#tracking-and-compari
 |---|---|---|
 | 1. Walking | [walk/](walk/README.md) | Walks and turns on the robot (run 2) |
 | 2. Bike model | none: a model, see [models/](../models/README.md) | Measured model, provisional physics |
-| 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Training task `LAAI-K1-Sit-Puky` ready, not trained; robot task `laai_sit_hold` holds the seated pose (no balance) |
+| 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Training task `LAAI-K1-Sit-Puky` ready, not trained; robot task `laai_sit_hold` holds the seated pose (no balance); on the robot, it keeps the K1 seated with the bike held (2026-11-19) |
 | 4-5. Push, ride | not created yet | Not started |
 
 ## Names

@@ -5,6 +5,12 @@ Status 2026-11-16: training tasks for stage 0 (`LAAI-K1-Sit-Puky`) and stage 1
 ([models/k1_on_bike](../../models/k1_on_bike/README.md)), and a robot task holds the solved
 seated pose for the first real-robot tests.
 
+Robot test 2026-11-19 ([notes](robot_tests/2026-11-19/notes.md)): with the bike held fixed,
+`laai_sit_hold` keeps the K1 seated by itself (holds of 28 s and 32 s, no safety stop). First
+lower the saddle to the model's height: dip at 40.4 cm, about 1 cm lower still for the feet to
+touch. As found, the dip was 43 cm, and the pose could not be reached. Without clips, the hands
+rest on top of the bar, 3 cm above the model's hand, and press down.
+
 | File | What |
 |---|---|
 | `task.py` | mjlab training task `LAAI-K1-Sit-Puky` (below) |
@@ -157,7 +163,9 @@ ready to hold the robot, one runs the commands. Use a harness if available. Clea
    This installs `laai_sit_hold`, the seated poses and the dry-run script into booster_deploy
    and copies it to the robot.
 
-2. **Place the robot.** Switch the robot to damping (limp) mode, then lift it onto the Puky:
+2. **Place the robot.** First set the saddle: its dip (the lowest point of the top) at 40.4 cm,
+   the model's height, then about 1 cm lower so the feet touch the floor
+   ([2026-11-19](robot_tests/2026-11-19/notes.md)). Switch the robot to damping (limp) mode, then lift it onto the Puky:
    pelvis in the lowest part of the saddle, feet flat on the floor in front of the saddle and
    hip-width apart, hands resting on the grips. **First test: hands not clipped**, so the arms
    cannot fight clips that sit elsewhere than the simulation assumes.
@@ -188,6 +196,10 @@ ready to hold the robot, one runs the commands. Use a harness if available. Clea
    | `x` / X | Joints slide to the seated pose in 1 s (keep holding the bike) |
    | `r` / A | Start holding the pose |
    | Ctrl+C | Stop: damping mode, the robot goes limp (hold it) |
+
+   Press `r` within a few seconds of X: the safety stops below run only after `r`. Before
+   that, only Booster's prepare pose holds the robot. On the keyboard, A is `r`; `a` changes
+   the sideways speed.
 
    After A, the bike holder loosens their grip gradually but keeps their hands at the bike.
    Hold 10-30 s, then Ctrl+C and support the robot.
