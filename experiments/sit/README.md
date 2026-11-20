@@ -28,7 +28,7 @@ metrics below, not on the reward: they keep their meaning when reward weights ch
 
 | Run | Date | Stage | Main change | Iterations | Mean reward | Episode length (of 500) | Saddle load | Trunk tilt mean / max (deg) | Bike lean max (deg) | Action change | Booster MuJoCo | Robot | W&B |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | | | |
+| [1](runs/run1/notes.md) | 2026-11-17 | Fixed-bike CPU stage 0 | 1500 | 43.8 | 500 | 0.728 | 0.542 / 1.73 | Fixed bike | 0.500 | Export actions match exactly; 10 s with no reset | Not tested | [run](https://forge.coreweave.com/wandb/K1Booster/laai-k1/runs/ckhliij3) |
 
 ### Metrics (`Episode_Metrics/*` in W&B)
 

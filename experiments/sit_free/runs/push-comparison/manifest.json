@@ -1,0 +1,79 @@
+{
+  "comparison": "push-comparison-20261120",
+  "created_utc": "2026-11-20T14:41:59.875352+00:00",
+  "source_commit": "4d10ca9d8bdd8b2e69e6a8f57ff7ddb80a8d5f26",
+  "source_archive": "/scratch/laoa/laai-booster-k1-push-20261120/logs/laai_sit_free/comparisons/push-comparison-20261120/source.tar.gz",
+  "source_sha256": "32d08b25efc7293ec037d65d1f431afa71d71b6e43cb321061f6cec44db5b428",
+  "repository": "/scratch/laoa/laai-booster-k1-push-20261120",
+  "task": "LAAI-K1-Sit-Puky-Free-Push",
+  "checkpoint": "/scratch/laoa/laai-booster-k1-push-20261120/experiments/sit_free/runs/run2/actor_checkpoint.pt",
+  "checkpoint_sha256": "d56287b064791781b5efaa719ce6ef24f9e30676113a24f61d8960d0fd383301",
+  "environments": 256,
+  "iterations": 3000,
+  "device": "cpu",
+  "time_limit": "24:00:00",
+  "cpus_per_run": 4,
+  "memory_per_run": "4G",
+  "critic_warmup": false,
+  "hands": "welded to grips, unchanged from main; real clips not verified",
+  "gpu_smoke": {
+    "job_id": "55241",
+    "state": "FAILED",
+    "exit_code": "0:53",
+    "note": "Failed before batch script produced output on node08"
+  },
+  "runs": [
+    {
+      "run_name": "push-run3",
+      "job_id": "55245",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=sit-free-push",
+        "--time=24:00:00",
+        "cluster/train_cpu.slurm",
+        "LAAI-K1-Sit-Puky-Free-Push",
+        "--env.scene.num-envs",
+        "256",
+        "--agent.init-policy-from",
+        "experiments/sit_free/runs/run2/actor_checkpoint.pt",
+        "--agent.max-iterations",
+        "3000",
+        "--agent.run-name",
+        "push-run3",
+        "--agent.logger",
+        "wandb"
+      ],
+      "initialization": "run2_actor"
+    },
+    {
+      "run_name": "push-run4-scratch",
+      "job_id": "55246",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=sit-free-push-scratch",
+        "--time=24:00:00",
+        "cluster/train_cpu.slurm",
+        "LAAI-K1-Sit-Puky-Free-Push",
+        "--env.scene.num-envs",
+        "256",
+        "--agent.max-iterations",
+        "3000",
+        "--agent.run-name",
+        "push-run4-scratch",
+        "--agent.logger",
+        "wandb"
+      ],
+      "initialization": "scratch"
+    }
+  ],
+  "seed": 42,
+  "postprocess_job_id": "55247",
+  "monitor": {
+    "interval_minutes": 15,
+    "local_status": "logs/push-comparison-20261120/status.json",
+    "local_timer": "laai-push-comparison-20261120.timer",
+    "availability": "Local collection runs while the Linux laptop is online; the SLURM archive job runs independently."
+  }
+}
