@@ -149,7 +149,7 @@ and trips the safety stop, so it must not go to the robot. Details:
    9 h on 4 CPUs with 256 worlds.
 5. **At least three seeds per variant** before comparing initializations.
 6. **Record the fixed-bike stage 0 run** (`cpu-stage0`, whose iteration 900 started run 1) in
-   `experiments/sit/runs/`.
+   `experiments/sit/runs/`. Archived on 2026-11-20 as [sit run 1](../sit/runs/run1/notes.md).
 
 ## Push curriculum: `LAAI-K1-Sit-Puky-Free-Push`
 
@@ -183,13 +183,13 @@ Train on Hex, starting from run 2's actor (`--agent.init-policy-from`, as run 1 
 compact `actor_checkpoint.pt` holds the complete actor:
 
 ```bash
-sbatch --job-name=sit-free-push cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+sbatch --job-name=sit-free-push --time=24:00:00 cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
 ```
 
 CPU only (256 worlds, as the comparison):
 
 ```bash
-sbatch --job-name=sit-free-push cluster/train_cpu.slurm LAAI-K1-Sit-Puky-Free-Push --env.scene.num-envs 256 --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+sbatch --job-name=sit-free-push --time=24:00:00 cluster/train_cpu.slurm LAAI-K1-Sit-Puky-Free-Push --env.scene.num-envs 256 --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
 ```
 
 From scratch: leave out `--agent.init-policy-from`. Until the critic warm-up (point 3 above)
@@ -204,3 +204,11 @@ uv run --group train python scripts/train.py LAAI-K1-Sit-Puky-Free-Push --gpu-id
 
 Follow `Curriculum/push/push_mps` in W&B: the run works if it climbs past about 1 m/s and
 `beats_zero_action_at_mps` is not empty at the end.
+
+### Submitted comparison, 2026-11-20
+
+[Run 3](runs/run3/notes.md), initialized from run 2, and [run 4](runs/run4/notes.md),
+from scratch, are running as CPU jobs 55245 and 55246 with 256 worlds and 3,000 updates
+each. The [comparison record](runs/push-comparison/README.md) includes the source revision,
+submission manifest, acceptance criterion and next-lab requirements. Both have a 24-hour
+limit to accommodate the longer training; final results are pending.

@@ -642,8 +642,29 @@ the policy keeps the bike up; why and how: [experiments/sit_free/README.md](../e
 ### Linux GPU cluster: train from free-bike run 2's actor
 
 ```bash
-sbatch --job-name=sit-free-push cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+sbatch --job-name=sit-free-push --time=24:00:00 cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
 ```
+
+Run a matched scratch comparison by omitting the actor initialization:
+
+```bash
+sbatch --job-name=sit-free-push-scratch --time=24:00:00 cluster/train.slurm LAAI-K1-Sit-Puky-Free-Push --agent.max-iterations 3000 --agent.run-name push-run4-scratch
+```
+
+### Linux GPU cluster: CPU fallback for both comparison runs
+
+From the repository root on the Hex login node, after preparing the locked environment:
+
+```bash
+sbatch --job-name=sit-free-push --time=24:00:00 cluster/train_cpu.slurm LAAI-K1-Sit-Puky-Free-Push --env.scene.num-envs 256 --agent.init-policy-from experiments/sit_free/runs/run2/actor_checkpoint.pt --agent.max-iterations 3000 --agent.run-name push-run3
+sbatch --job-name=sit-free-push-scratch --time=24:00:00 cluster/train_cpu.slurm LAAI-K1-Sit-Puky-Free-Push --env.scene.num-envs 256 --agent.max-iterations 3000 --agent.run-name push-run4-scratch
+```
+
+Use the same device and environment count for both runs. The explicit 24-hour limit
+allows for 3,000 updates and evaluation; both launchers otherwise default to 8 hours.
+The earlier 1,500-update CPU free-bike runs took roughly 9 hours. A 24-hour limit is
+a budget, not a measured runtime for this task. GPU training remains subject to the
+driver and allocation checks in `cluster/README.md`.
 
 ### Linux and macOS: CPU smoke run
 
