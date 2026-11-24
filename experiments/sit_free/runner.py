@@ -60,9 +60,13 @@ class PolicyInitRunner(MjlabOnPolicyRunner):
             return
         if self._evaluated:
             return
+        self._evaluated = True
+        self.final_evaluation(path)
+
+    def final_evaluation(self, path) -> None:
+        """Held-out test at the final checkpoint; other experiments override this."""
         from experiments.sit_free.evaluate import evaluate_policy, push_sweep
 
-        self._evaluated = True
         policy = self.alg.get_policy()
         was_training = policy.training
         policy.eval()

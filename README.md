@@ -109,7 +109,7 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [experiments/walk/](experiments/walk/README.md) |
 | 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
 | 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis in the saddle dip by contact); robot task `laai_sit_hold` holds the pose for a first real test (no balance); training task `LAAI-K1-Sit-Puky` ready, not trained yet | [experiments/sit/](experiments/sit/README.md), [models/k1_on_bike/](models/k1_on_bike/README.md) |
-| 4 | Walk the bike, supported | Not started | |
+| 4 | Walk the bike | Skipped the supported step: training tasks ready on the free bike, with a simple and a shaped reward (forward-speed command, straight line); not trained | [experiments/push/](experiments/push/README.md) |
 | 5 | Free bike, feet as support | Unsupported seated-balance comparison completed: pretrained and scratch policies both passed 32/32 ten-second evaluation episodes; forward riding not started | [experiments/sit_free/](experiments/sit_free/README.md) |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
 

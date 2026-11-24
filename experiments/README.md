@@ -36,7 +36,7 @@ configs are also in W&B; see [Tracking and comparing runs](#tracking-and-compari
 | 2. Bike model | none: a model, see [models/](../models/README.md) | Measured model, provisional physics |
 | 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Training task `LAAI-K1-Sit-Puky` trained on Hex (`cpu-stage0`), not yet recorded here; robot task `laai_sit_hold` keeps the K1 seated on the robot with the bike held (2026-11-19); robot task `laai_sit` runs a trained policy, rehearsed in simulation only |
 | 3. Unsupported balance | [sit_free/](sit_free/README.md) | Pretrained (run 1) and scratch (run 2) both pass the 0.2 m/s evaluation 32/32, but so do zero actions, which do better under stronger pushes ([analysis](sit_free/README.md#analysis-2026-11-19)). Run 2 has the better posture and is the base for later experiments; run 1 trips the hip-roll torque stop in the robot task. Push-curriculum task `LAAI-K1-Sit-Puky-Free-Push` ready, not trained |
-| 4-5. Push, ride | not created yet | Not started |
+| 4-5. Walk the bike | [push/](push/README.md) | Tasks `LAAI-K1-Push-Puky-Simple` and `-Shaped` ready (free bike, forward-speed command, straight line, saddle randomization); not trained |
 
 ## Names
 
