@@ -60,9 +60,9 @@ It can turn, slow down and topple as gravity and ground contact act on it.
 | Close the window | Stop the viewer before launching another example. |
 
 `--steer` sets the starting steering angle; the steering joint moves freely
-after release. `--push` gives an initial rolling speed. This is a passive physics
-demo; powered riding and automatic balance remain future work. A separate
-`k1_seated` scene holds the K1 seated on this bike with PD control.
+after release. `--push` gives an initial rolling speed for the passive bike demo.
+The trained policies below control the K1 on the bike. The `k1_seated` scene
+holds the K1 in the seated pose with PD control.
 The bike scan's configured mass is **3.7 kg**, the midpoint of the owner's
 reported 3.5–3.9 kg range. Its model matches the reported **50 cm wheelbase,
 22 cm tyre diameter, 42 cm saddle top and 53 cm grip-centre height**.
@@ -101,6 +101,43 @@ the original simple blue shapes.
 See the [model notes](models/puky_bike/README.md) for scan and physics
 limitations, and [platform troubleshooting](docs/commands.md#platform-specific-troubleshooting)
 if the viewer does not open. On macOS, the native viewer requires `mjpython`.
+
+## Watch the trained bike-driving policies
+
+After setting up the robot assets above, run one command from the repository root.
+Both policies run one simulation on CPU in the native MuJoCo viewer.
+
+**Linux host**
+
+```bash
+# Shaped rewards
+uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Shaped \
+  --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+
+# Simple rewards
+uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Simple \
+  --checkpoint-file experiments/push/runs/simple/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+```
+
+**macOS host**
+
+```bash
+# Shaped rewards
+uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Shaped \
+  --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+
+# Simple rewards
+uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Simple \
+  --checkpoint-file experiments/push/runs/simple/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+```
+
+Playback samples forward-speed commands from 0.15 to 0.6 m/s and includes stops.
+See the [bike-driving experiment](experiments/push/README.md) for the rewards
+and training runs.
 
 ## Plan and status
 
