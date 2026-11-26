@@ -677,8 +677,9 @@ for zero actions. The run has learned to balance where `beats_zero_action_at_mps
 
 ## Train the bike-walking tasks
 
-`LAAI-K1-Push-Puky-Simple` and `LAAI-K1-Push-Puky-Shaped` push the free bike along a straight
-line at a commanded speed, with a minimal and a shaped reward; setup and metrics:
+`LAAI-K1-Push-Puky-Simple`, `LAAI-K1-Push-Puky-Shaped` and `LAAI-K1-Push-Puky-Form` push the
+free bike along a straight line at a commanded speed, with a minimal, a shaped, and a shaped
+plus riding-form reward; setup and metrics:
 [experiments/push/README.md](../experiments/push/README.md). Output goes to `logs/laai_push/`.
 
 ### Linux GPU cluster: smoke job, then both runs on Hex
@@ -696,6 +697,13 @@ After it succeeds, submit both runs (same seed; 3,000 iterations each by default
 ```bash
 sbatch --job-name=push-simple cluster/train.slurm LAAI-K1-Push-Puky-Simple --agent.run-name simple-run1
 sbatch --job-name=push-shaped cluster/train.slurm LAAI-K1-Push-Puky-Shaped --agent.run-name shaped-run1
+```
+
+The riding-form task (shaped rewards plus trunk-to-bike, leg band, bike collision and step
+symmetry):
+
+```bash
+sbatch --job-name=push-form cluster/train.slurm LAAI-K1-Push-Puky-Form --agent.run-name form-run1
 ```
 
 ### Linux and macOS: CPU smoke run

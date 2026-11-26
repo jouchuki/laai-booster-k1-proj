@@ -1,4 +1,4 @@
-"""The same test for both push tasks: fixed speed commands, deterministic actions.
+"""The same test for every push task: fixed speed commands, deterministic actions.
 
 Every world gets one 10 s episode per commanded speed, without pushes or sensor noise, for the
 policy and for a zero-action baseline (the robot holding the seated pose, which should not

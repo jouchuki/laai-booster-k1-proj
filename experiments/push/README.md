@@ -4,18 +4,19 @@ Both policies completed training and simulation evaluation on Hex on 2026-11-24.
 Robot testing is pending.
 
 The K1 sits on the unsupported Puky (the free bike of [sit_free](../sit_free/README.md)) and
-pushes it along with its feet at a commanded forward speed, on the line it started on. Two
+pushes it along with its feet at a commanded forward speed, on the line it started on. Three
 tasks train on exactly the same scene and command, and differ only in their rewards:
 
 | Task | Rewards |
 |---|---|
 | `LAAI-K1-Push-Puky-Simple` | 5 terms: only the task |
 | `LAAI-K1-Push-Puky-Shaped` | The same 5, plus 10 terms for the gait, the posture and the motor load |
+| `LAAI-K1-Push-Puky-Form` | The shaped 15, plus 4 terms for the riding form (not trained yet) |
 
 | File | What |
 |---|---|
-| `task.py` | Both mjlab tasks |
-| `evaluate.py` | The final test, identical for both tasks |
+| `task.py` | The three mjlab tasks |
+| `evaluate.py` | The final test, identical for all tasks |
 | `runner.py` | Runs that test at the last checkpoint and logs it |
 | `export.py` | Export to booster_deploy's policy format (both tasks have the same interface) |
 
@@ -71,7 +72,20 @@ the tracking reward at a 0.3 m/s command, but 37% at 0.15 m/s.
 | `action_acc_l2` | -0.02 | Oscillating actions |
 | `torque_near_limit` | -1.0 | Torque above 80% of a motor's limit; one motor at its limit costs 1 |
 
-Not used in either task: `alive`, `joint_acc_l2`, `joint_torques_l2`, `bike_tilt_rate` (they
+**Form** adds to the shaped terms (2026-11-26; untested in training):
+
+| Term | Weight | What it targets |
+|---|---|---|
+| `trunk_to_bike` | +1.0 | exp(-(yaw / 0.15 rad)^2 - (pitch / 0.25 rad)^2), the trunk's forward axis in the bike's frame against the seated one: facing along the bike, pitched as seated. Roll is left to `trunk_orientation`, because leaning the trunk against the bike's lean is how a rider balances |
+| `leg_band` | -0.5 | Each knee 0-4 cm and each foot 0-8 cm outward of its hip, across the bike (seated: 1.3 and 3.4 cm). Free inside the band; squared distance outside it, per 2 cm. Inward risks hitting the bike; wider is splayed |
+| `bike_collision` | -1.0 | Any contact between the robot and the bike outside the saddle (1 per step), plus the force as a share of the body weight (at most 1 more). Holding the bar is free: the forearm-fork contacts are excluded because the hands are welded to the grips. A side effect is that the forearms touching the fork elsewhere is not seen either |
+| `step_symmetry` | +0.5 | Left and right steps alike and half a step apart, while moving: compares each foot's latest step (air time, mean floor force during stance, range of the hip, knee and ankle pitch over the swing) and when each foot lands as a share of its step period after the other foot's landing (0.5 = alternating). 0 until both feet have stepped within the last 2 s, so a still or one-footed robot earns nothing |
+
+The symmetry term compares whole steps, not instantaneous states, because one foot pushing
+harder at a given moment is often the correct balancing move. A mirror-symmetry loss in PPO
+(rsl_rl's `symmetry` extension) would be the other way to enforce this; it is not used.
+
+Not used in any task: `alive`, `joint_acc_l2`, `joint_torques_l2`, `bike_tilt_rate` (they
 added little in the free-bike runs) and a swing-foot clearance term (mjlab's needs a terrain
 height sensor this scene does not have; a dragging foot is already penalized as slip).
 
@@ -88,6 +102,10 @@ Their returns are not comparable: the reward sums differ. Compare the task metri
 | `bike_tilt_deg`, `bike_tilt_deg_max`, `trunk_tilt_deg` | Balance |
 | `action_change` | Step-to-step action change: high means shaking |
 | `torque_ratio_max`, `torque_above_90` | Largest torque as a share of its limit; share of time above 90% (the robot's stop is 90% for 0.5 s) |
+| `trunk_bike_yaw_deg`, `trunk_bike_pitch_deg` | Trunk against the bike, from its seated orientation |
+| `knee_out_cm`, `foot_out_cm` | Knee and foot outward of the hip across the bike, mean of both legs |
+| `bike_collision`, `bike_collision_force` | Share of time touching the bike outside the saddle; that force as a share of the weight |
+| `step_air_asymmetry`, `step_force_asymmetry`, `step_swing_asymmetry_deg`, `step_phase_asymmetry` | Left against right on the latest steps: relative air time and force differences, pitch-range difference, phase distance from 0.5. They hold their last value; `steps_tracked` is the share of time both feet have a current step, so read them with it |
 
 **Final evaluation** (`evaluation.json`, W&B `Evaluation/*`): 32 worlds, one 10 s episode at
 each command of 0, 0.2 and 0.4 m/s, deterministic actions, no pushes, no sensor noise, the
