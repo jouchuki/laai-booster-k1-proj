@@ -60,9 +60,9 @@ It can turn, slow down and topple as gravity and ground contact act on it.
 | Close the window | Stop the viewer before launching another example. |
 
 `--steer` sets the starting steering angle; the steering joint moves freely
-after release. `--push` gives an initial rolling speed. This is a passive physics
-demo; powered riding and automatic balance remain future work. A separate
-`k1_seated` scene holds the K1 seated on this bike with PD control.
+after release. `--push` gives an initial rolling speed for the passive bike demo.
+The trained policies below control the K1 on the bike. The `k1_seated` scene
+holds the K1 in the seated pose with PD control.
 The bike scan's configured mass is **3.7 kg**, the midpoint of the owner's
 reported 3.5–3.9 kg range. Its model matches the reported **50 cm wheelbase,
 22 cm tyre diameter, 42 cm saddle top and 53 cm grip-centre height**.
@@ -102,6 +102,43 @@ See the [model notes](models/puky_bike/README.md) for scan and physics
 limitations, and [platform troubleshooting](docs/commands.md#platform-specific-troubleshooting)
 if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 
+## Watch the trained bike-driving policies
+
+After setting up the robot assets above, run one command from the repository root.
+Both policies run one simulation on CPU in the native MuJoCo viewer.
+
+**Linux host**
+
+```bash
+# Shaped rewards
+uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Shaped \
+  --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+
+# Simple rewards
+uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Simple \
+  --checkpoint-file experiments/push/runs/simple/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+```
+
+**macOS host**
+
+```bash
+# Shaped rewards
+uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Shaped \
+  --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+
+# Simple rewards
+uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Simple \
+  --checkpoint-file experiments/push/runs/simple/model_2999.pt \
+  --device cpu --num-envs 1 --viewer native
+```
+
+Playback samples forward-speed commands from 0.15 to 0.6 m/s and includes stops.
+See the [bike-driving experiment](experiments/push/README.md) for the rewards
+and training runs.
+
 ## Plan and status
 
 | Phase | Goal | Status | Where |
@@ -109,7 +146,7 @@ if the viewer does not open. On macOS, the native viewer requires `mjpython`.
 | 1 | Walking: prove sim-to-real | Walks and turns on the robot (run 2, 2026-11-11); ankle-roll oscillation at high speed | [experiments/walk/](experiments/walk/README.md) |
 | 2 | Balance-bike model in simulation | `puky_bike`: textured scan of the real bike, calibrated to its measurements (the default everywhere); `yellow_bike` (the earlier green bike) and `primitive_bike`; provisional physics | [models/](models/README.md), [docs/bike-dimensions.md](docs/bike-dimensions.md) |
 | 3 | Sit on a supported bike | Seated scene ready on the real bike and on any bike with a solved pose (hands welded to the grips, pelvis in the saddle dip by contact); robot task `laai_sit_hold` holds the pose for a first real test (no balance); training task `LAAI-K1-Sit-Puky` ready, not trained yet | [experiments/sit/](experiments/sit/README.md), [models/k1_on_bike/](models/k1_on_bike/README.md) |
-| 4 | Walk the bike | Skipped the supported step: training tasks ready on the free bike, with a simple and a shaped reward (forward-speed command, straight line); not trained | [experiments/push/](experiments/push/README.md) |
+| 4 | Walk the bike | Simple and shaped policies trained on Hex and evaluated on the free bike at commanded forward speeds. | [experiments/push/](experiments/push/README.md) |
 | 5 | Free bike, feet as support | Unsupported seated-balance comparison completed: pretrained and scratch policies both passed 32/32 ten-second evaluation episodes; forward riding not started | [experiments/sit_free/](experiments/sit_free/README.md) |
 | 6 | Simulation to real robot | Robot pipeline works for phase 1 | [robot/](robot/README.md) |
 

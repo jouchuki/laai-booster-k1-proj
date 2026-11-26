@@ -1,0 +1,62 @@
+[
+  {
+    "path": "actor_checkpoint.pt",
+    "size_bytes": 2095975,
+    "sha256": "e451ae513db1a68095e26c51704aa3699c3349c9f94682e4b3adf7e4097f69ea"
+  },
+  {
+    "path": "actor_checkpoint_900.pt",
+    "size_bytes": 2096051,
+    "sha256": "8ed2c3f7f3d8972e5f71fdd076365b794fbf8ea32f27fd1e1c002fe22896e60d"
+  },
+  {
+    "path": "notes.md",
+    "size_bytes": 2513,
+    "sha256": "a9f0895ecd60e24888804493f720695123efd58a993b3addab22fd524fcec4fb"
+  },
+  {
+    "path": "params/agent.yaml",
+    "size_bytes": 1285,
+    "sha256": "b047b165cdc20869fd29a53befa3b3f44f91ba66d53cbff9d0c70167b58f2848"
+  },
+  {
+    "path": "params/env.yaml",
+    "size_bytes": 56088,
+    "sha256": "84f11ccc48a65bfcfa27e8a43b96907f65646b0e8a15691889a4316bab1308f4"
+  },
+  {
+    "path": "policy.pt",
+    "size_bytes": 2114258,
+    "sha256": "10145c20187f20ad044a48d21b63a77b597714147516ae70bfff7c3b2b8666d5"
+  },
+  {
+    "path": "provenance.json",
+    "size_bytes": 416,
+    "sha256": "6a9423235750d0e794d78331a260d2d52890fe3596b3e15f32f1844e08b2ace2"
+  },
+  {
+    "path": "task.py",
+    "size_bytes": 24958,
+    "sha256": "60b7c9f4f04e7b8d24eaf6e85ad43e5338df6810a3934c8695fb381b4af6f454"
+  },
+  {
+    "path": "training/events.out.tfevents.1794933177.node03.3001574.0",
+    "size_bytes": 2645448,
+    "sha256": "656e39e1c01f539238acc6289da600881d42bb0d7017fbdf411642796e16a7aa"
+  },
+  {
+    "path": "training/laai-booster-k1-proj.diff.gz",
+    "size_bytes": 25422,
+    "sha256": "f4d03003f9184ae7b4a6c51abf771cc175ae71685fb61727c665a82ed304a72a"
+  },
+  {
+    "path": "training/slurm-54630.out.gz",
+    "size_bytes": 147838,
+    "sha256": "2a61124fbc78e6ea047d90d0ef6a2c29a17e2ae53abe8992b76604da37c7cde7"
+  },
+  {
+    "path": "training_summary.json",
+    "size_bytes": 1051,
+    "sha256": "80719ba331c906aed93e27f427ab12fcbc9fab2169aaaf980e173aa36281b231"
+  }
+]
