@@ -1,0 +1,12 @@
+{
+  "job_id": "54630",
+  "state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed": "07:32:41",
+  "source_commit": "7ade19e171a6cf575df9364e6ea8088aa2096bf6",
+  "source_diff": "training/laai-booster-k1-proj.diff.gz",
+  "checkpoints": {
+    "model_900.pt": "42e0ff4f8d08e1e40cba032d8ac05f4a27c4296007b107053bf25d00318444c1",
+    "model_1499.pt": "7e227e4371969df1ce6c39896a8c0f5f9515c5333c39f341b23420ea1c3c9d09"
+  }
+}

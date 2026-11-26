@@ -84,14 +84,19 @@ def batch(tmp_path):
     binaries.mkdir()
     log = tmp_path / "calls.jsonl"
     uv = binaries / "uv"
-    uv.write_text(
-        f"#!{sys.executable}\n"
+    uv_python = binaries / "uv.py"
+    uv_python.write_text(
         "import json, os, sys\n"
         "with open(os.environ['MOCK_LOG'], 'a') as output:\n"
         "    output.write(json.dumps({'args': sys.argv[1:], 'env': dict(os.environ), "
         "'cwd': os.getcwd()}) + '\\n')\n"
         "if '-c' in sys.argv and os.environ.get('MOCK_CUDA_FAIL'):\n"
         "    sys.exit(17)\n"
+    )
+    # A shebang cannot quote a Python executable whose path contains spaces.
+    # Use a shell launcher so both the interpreter and mock path remain single arguments.
+    uv.write_text(
+        f'#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(uv_python))} "$@"\n'
     )
     uv.chmod(0o755)
     smi = binaries / "nvidia-smi"
