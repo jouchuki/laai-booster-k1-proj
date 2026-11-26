@@ -1,6 +1,7 @@
 # Walk the bike in a straight line: simple versus shaped rewards
 
-Both policies completed training and simulation evaluation on Hex on 2026-11-24.
+Both policies completed training and simulation evaluation on Hex on 2026-11-24: Simple
+fails the deployability gates (torque limit, hopping), Shaped passes ([results](#results-simple-fails-shaped-passes)).
 Robot testing is pending.
 
 The K1 sits on the unsupported Puky (the free bike of [sit_free](../sit_free/README.md)) and
@@ -148,9 +149,8 @@ Start each stage from the simplest set that passed the one before, for example
 then speed tracking (`quality`: 1 - error / command, averaged over the moving speeds). It
 writes `results.md` and `results.json` next to the manifest in `logs/laai_push/sweeps/<sweep>/`.
 
-The gates matter. Re-evaluated on CPU (16 worlds, 2026-11-26), the archived Simple run tracks
-the speed (error 0.05-0.07 m/s) but spends all of its moving time above 90% of a torque
-limit and has both feet off the floor 39-45% of it. Shaped passes every gate. The sweep only
+The gates matter: Simple tracks the speed but fails on the torque limit and hopping, while
+Shaped passes ([results](#results-simple-fails-shaped-passes)). The sweep only
 tests the straight line; the reward for steering has to be checked again once the command
 includes a turn rate.
 
@@ -160,10 +160,50 @@ includes a turn rate.
 
 ## Runs
 
-The final checkpoints are available below. The original checkpoints and `evaluation.json`
-are in the listed Hex run directories, relative to the training checkout.
+Both trained from scratch for 3,000 iterations on Hex (one RTX 4500, about 1.3 h each,
+about 70k steps/s), with the same seed. Each folder has the final checkpoint, the job's
+final evaluation (`evaluation.json`), its configuration (`params/`) and the TensorBoard
+training curves (`training/`).
 
-| Task | Final checkpoint | Hex job | Hex run directory |
+| Task | Folder | Hex job | Hex run directory |
 |---|---|---:|---|
-| Simple | [model_2999.pt](runs/simple/model_2999.pt) | 56366 | `logs/laai_push/2026-11-24_17-07-08_simple` |
-| Shaped | [model_2999.pt](runs/shaped/model_2999.pt) | 56367 | `logs/laai_push/2026-11-24_17-33-56_shaped` |
+| Simple | [runs/simple](runs/simple) | 56366 | `logs/laai_push/2026-11-24_17-07-08_simple` |
+| Shaped | [runs/shaped](runs/shaped) | 56367 | `logs/laai_push/2026-11-24_17-33-56_shaped` |
+
+### Results: Simple fails, Shaped passes
+
+Final evaluation (32 worlds per speed, no pushes, nominal saddle), judged by the
+[reward sweep's gates](#reward-sweep):
+
+| At 0.2 / 0.4 m/s | Simple | Shaped |
+|---|---|---|
+| Speed error (m/s) | 0.046 / 0.065 | 0.016 / 0.015 |
+| Time above 90% of a torque limit | 100% / 100% (68% when sitting still) | 0 / 0 |
+| Both feet off the floor | 38% / 45% | 2.3% / 0.7% |
+| Distance from the line (m) | 0.11 / 0.09 | 0.03 / 0.08 |
+| Steps per second | 4.7 / 3.2 | 2.1 / 2.1 |
+| Gates | **fail**: torque limit, hopping | **pass** (tracking quality 0.94) |
+
+Neither fell, and both move the bike (zero actions do not). Simple pushes the bike along, but
+on the robot it would trip the torque stop at once. In a CPU rollout of its checkpoint
+(8 worlds, 2026-11-26) the overloaded motors are an ankle roll (74% of the time when still;
+the right one 100% at 0.3 m/s), the left elbow yaw (79%, the arms straining against the hand
+welds) and the right hip yaw (76%). Shaped overloads none. The likely fix among the shaped
+terms is `torque_near_limit`, `arm_effort` or `posture`; the sweep's `groups` stage tests
+these groups separately.
+
+Training curves:
+
+- Simple's time above 90% of a torque limit fell to 29% by iteration 500, then climbed back
+  to 99% by the end. It learned to exploit the limit, so a short run would miss this failure.
+- Shaped settled by about iteration 1,000.
+- Both got worse at iteration 1,500, when the speed range widens to 0.15-0.6 m/s. Shaped
+  only partly recovered.
+- Peak bike lean during training: about 17 deg for Simple and 5 deg for Shaped (falls at
+  20 deg).
+
+Keep 3,000 iterations for sweep runs: the 0.4 m/s evaluation needs the widened range, and
+failures like Simple's appear late. A CPU re-evaluation of both checkpoints (16 worlds) gave
+the same numbers to within a few percent.
+
+Robot testing of either policy is pending.
