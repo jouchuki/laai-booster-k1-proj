@@ -315,6 +315,9 @@ uv run --group train mjpython scripts/play.py LAAI-K1-Walk-Flat \
   --device cpu --num-envs 1 --viewer native
 ```
 
+Add `--forward-speed MPS` to hold a fixed forward command during playback of velocity-command
+tasks. The [Shaped bike example](../README.md#watch-the-trained-bike-driving-policies) uses 1.0 m/s.
+
 For mjlab's browser viewer, both platforms use `uv run --group train python`
 with `--viewer viser` instead. This is separate from Booster's `deploy.py` viewer.
 
