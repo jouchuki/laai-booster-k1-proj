@@ -677,8 +677,11 @@ for zero actions. The run has learned to balance where `beats_zero_action_at_mps
 
 ## Train the bike-walking tasks
 
-`LAAI-K1-Push-Puky-Simple` and `LAAI-K1-Push-Puky-Shaped` push the free bike along a straight
-line at a commanded speed, with a minimal and a shaped reward; setup and metrics:
+`LAAI-K1-Push-Puky-Simple`, `LAAI-K1-Push-Puky-Shaped`, `LAAI-K1-Push-Puky-Simple-Symmetric` and
+`LAAI-K1-Push-Puky-Simple-Weight-On-Saddle` push the free bike along a straight line at a
+commanded speed, with a minimal reward, a shaped one, the minimal one plus a left-right foot
+balance term, and the minimal one with 75% instead of 50% of the body weight on the saddle;
+setup and metrics:
 [experiments/push/README.md](../experiments/push/README.md). Output goes to `logs/laai_push/`.
 
 ### Linux GPU cluster: smoke job, then both runs on Hex
@@ -698,11 +701,26 @@ sbatch --job-name=push-simple cluster/train.slurm LAAI-K1-Push-Puky-Simple --age
 sbatch --job-name=push-shaped cluster/train.slurm LAAI-K1-Push-Puky-Shaped --agent.run-name shaped-run1
 ```
 
+The foot balance run, with the same seed and iterations, to compare with the simple run:
+
+```bash
+sbatch --job-name=push-simple-symmetric cluster/train.slurm LAAI-K1-Push-Puky-Simple-Symmetric --agent.run-name simple-symmetric-run1
+```
+
+The saddle-weight run, also compared with the simple run:
+
+```bash
+sbatch --job-name=push-simple-saddle cluster/train.slurm LAAI-K1-Push-Puky-Simple-Weight-On-Saddle --agent.run-name simple-weight-on-saddle-run1
+```
+
 ### Linux and macOS: CPU smoke run
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Shaped --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
 ```
+
+Use `LAAI-K1-Push-Puky-Simple-Symmetric` or `LAAI-K1-Push-Puky-Simple-Weight-On-Saddle` in
+place of `LAAI-K1-Push-Puky-Shaped` to smoke-test those tasks.
 
 ## Compare the trained free-bike policies locally
 

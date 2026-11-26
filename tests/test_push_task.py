@@ -26,8 +26,10 @@ def test_bike_is_free_with_steering_and_nothing_holds_it():
     assert model.neq == 2 and (model.eq_obj1id > 0).all() and (model.eq_obj2id > 0).all()
 
 
-def test_both_tasks_differ_only_in_their_rewards():
-    simple, shaped = push.push_env_cfg(), push.push_env_cfg(shaped=True)
+def test_tasks_differ_only_in_their_rewards():
+    simple, shaped = push.push_env_cfg(), push.push_env_cfg("shaped")
+    symmetric = push.push_env_cfg("simple_symmetric")
+    saddle = push.push_env_cfg("simple_weight_on_saddle")
     assert set(simple.rewards) == {
         "track_bike_speed",
         "on_line",
@@ -36,12 +38,22 @@ def test_both_tasks_differ_only_in_their_rewards():
         "action_rate_l2",
     }
     assert set(simple.rewards) < set(shaped.rewards) and len(shaped.rewards) == 15
+    assert set(symmetric.rewards) == set(simple.rewards) | {"foot_balance"}
+    # Weight-On-Saddle: the simple rewards, only the saddle target raised from 50% to 75%.
+    assert set(saddle.rewards) == set(simple.rewards)
+    assert simple.rewards["saddle_load"].params == {"target": 0.5}
+    assert saddle.rewards["saddle_load"].params == {"target": 0.75}
     for name, term in simple.rewards.items():
-        assert shaped.rewards[name].weight == term.weight
-    for part in ("terminations", "events", "metrics", "curriculum", "commands"):
-        assert set(getattr(simple, part)) == set(getattr(shaped, part)), part
-    assert simple.observations["actor"].terms.keys() == shaped.observations["actor"].terms.keys()
-    for task_id in (push.SIMPLE_TASK_ID, push.SHAPED_TASK_ID):
+        if name != "saddle_load":
+            assert saddle.rewards[name].params == term.params, name
+    for other in (shaped, symmetric, saddle):
+        for name, term in simple.rewards.items():
+            assert other.rewards[name].weight == term.weight
+        for part in ("terminations", "events", "metrics", "curriculum", "commands"):
+            assert set(getattr(simple, part)) == set(getattr(other, part)), part
+        actor = other.observations["actor"].terms
+        assert simple.observations["actor"].terms.keys() == actor.keys()
+    for task_id in push.TASK_IDS.values():
         assert load_rl_cfg(task_id).experiment_name == "laai_push"
         assert load_runner_cls(task_id) is PushRunner
     watching = push.push_env_cfg(play=True)
@@ -57,7 +69,7 @@ def test_command_is_forward_speed_only():
 
 @pytest.fixture(scope="module")
 def env():
-    cfg = push.push_env_cfg(shaped=True)
+    cfg = push.push_env_cfg("shaped")
     cfg.scene.num_envs = 2
     cfg.seed = 42
     cfg.events.pop("push_robot")
@@ -120,6 +132,34 @@ def test_line_reward_falls_with_sideways_drift_and_turning(env):
     env.reset()
 
 
+def test_foot_balance_pays_for_equal_floor_time_only(env):
+    env.reset()
+    sensor = env.scene.sensors["feet_floor_contact"]
+    assert sensor.primary_names == ["left_ankle_roll_link", "right_ankle_roll_link"]
+    term = push.foot_balance(None, env)
+    params = {"std": push.FOOT_BALANCE_STD, "tau": push.FOOT_SHARE_S}
+    found = sensor.data.found
+
+    def run(pattern, seconds):
+        """Feed per-step (left, right) foot contacts, repeating `pattern`."""
+        term.reset()
+        steps = round(seconds / env.step_dt)
+        for i in range(steps):
+            found[:] = torch.tensor(pattern[i % len(pattern)], dtype=found.dtype)
+            reward = term(env, **params)
+        return reward
+
+    one_foot = run([(0, 1)], 2.0)  # left held up for 2 s, right pushing
+    assert (one_foot < 0.05).all()
+    # Alternating at one step per second: each foot down for half a second in turn.
+    half = round(0.5 / env.step_dt)
+    alternating = run([(1, 0)] * half + [(0, 1)] * half, 6.0)
+    assert (alternating > 0.8).all()
+    both_down = run([(1, 1)], 2.0)
+    assert torch.allclose(both_down, torch.ones(2))
+    env.reset()
+
+
 def test_saddle_moves_as_one_piece_within_its_range():
     cfg = push.push_env_cfg()
     cfg.scene.num_envs = 4
@@ -163,3 +203,6 @@ def test_evaluation_reports_each_speed_for_policy_and_zero_actions():
     assert still["speed_error_mps"] < 0.02
     assert moving["speed_error_mps"] == pytest.approx(0.2, abs=0.02), "the baseline stays put"
     assert moving["torque_ratio_max"] < 0.9
+    # Seated still, both feet stay down.
+    assert still["left_foot_down_share"] == still["right_foot_down_share"] == 1.0
+    assert still["foot_imbalance"] == 0.0

@@ -7,14 +7,19 @@ The velocity command (always zero while sitting) now carries a forward speed. Th
 rewarded for pushing the bike along at that speed, on the line it started on. The saddle's
 height and fore-aft position differ a little in every episode.
 
-Two tasks share everything except their rewards, to compare a minimal reward with a shaped one:
+Four tasks share everything except their rewards, to compare a minimal reward with others:
 
   * LAAI-K1-Push-Puky-Simple: only the task (speed, straight line, stay seated, do not fall,
     smooth actions).
   * LAAI-K1-Push-Puky-Shaped: the same plus terms for the gait, posture and motor load.
+  * LAAI-K1-Push-Puky-Simple-Symmetric: built on Simple: its rewards plus one term, both feet
+    spend about the same share of time on the floor (the simple policy pushed with one foot
+    and held the other up).
+  * LAAI-K1-Push-Puky-Simple-Weight-On-Saddle: built on Simple: the same rewards, but the
+    saddle reward pays in full only from 75% of the body weight on the saddle (Simple: 50%).
 
 Their returns are not comparable (different reward sums); compare the logged metrics and the
-final evaluation (experiments/push/evaluate.py), which are identical for both.
+final evaluation (experiments/push/evaluate.py), which are identical for all of them.
 """
 
 from __future__ import annotations
@@ -46,6 +51,8 @@ from k1bike.robots.k1 import DEPLOY_JOINTS, EFFORT, FOOT_SITES, POLICY_JOINT_REG
 
 SIMPLE_TASK_ID = "LAAI-K1-Push-Puky-Simple"
 SHAPED_TASK_ID = "LAAI-K1-Push-Puky-Shaped"
+SIMPLE_SYMMETRIC_TASK_ID = "LAAI-K1-Push-Puky-Simple-Symmetric"
+SIMPLE_WEIGHT_ON_SADDLE_TASK_ID = "LAAI-K1-Push-Puky-Simple-Weight-On-Saddle"
 COMMAND = "twist"  # the walk task's command name, so mjlab's velocity terms work unchanged
 
 # --- Saddle randomization (per episode) --------------------------------------------------------
@@ -66,6 +73,14 @@ SPEED_STD = 0.15  # m/s: standing still on a 0.3 m/s command earns 2% of the tra
 SPEED_FILTER_S = 0.5  # each push-off surges and fades; track the speed averaged over this time
 MOVING = 0.05  # m/s: commands above this count as "moving" in the shaped rewards
 TORQUE_SOFT_LIMIT = 0.8  # share of a joint's torque limit that costs nothing
+# Foot balance: each foot's share of time on the floor, averaged over FOOT_SHARE_S. At about
+# one step per second, alternating steps still earn about 0.85; a foot held up for 2 s
+# (left share near 0, right near 1) earns almost nothing.
+FOOT_SHARE_S = 2.0
+FOOT_BALANCE_STD = 0.3
+# Saddle reward: full from this share of the body weight resting vertically on the saddle.
+SADDLE_LOAD_TARGET = 0.5
+SADDLE_LOAD_TARGET_HIGH = 0.75  # the Weight-On-Saddle task
 
 
 def _line(env) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -131,11 +146,29 @@ def saddle_load(env, target: float) -> torch.Tensor:
 
 
 def _feet_down(env) -> torch.Tensor:
+    """[worlds, 2]: left foot, right foot (the sensor's primary order) on the floor."""
     return env.scene.sensors["feet_floor_contact"].data.found > 0
 
 
 def both_feet_off(env) -> torch.Tensor:
     return (~_feet_down(env).any(-1)).float()
+
+
+class foot_balance:
+    """exp(-((left share - right share) / std)^2), each foot's share of time on the floor
+    averaged over about `tau` s. One foot pushing while the other stays up earns about 0;
+    alternating steps, or both feet down, earn about 1."""
+
+    def __init__(self, cfg: RewardTermCfg, env):
+        # Episodes start seated with both feet down.
+        self.share = torch.ones(env.num_envs, 2, device=env.device)
+
+    def reset(self, env_ids=None) -> None:
+        self.share[slice(None) if env_ids is None else env_ids] = 1.0
+
+    def __call__(self, env, std: float, tau: float) -> torch.Tensor:
+        self.share += min(1.0, env.step_dt / tau) * (_feet_down(env).float() - self.share)
+        return torch.exp(-torch.square((self.share[:, 0] - self.share[:, 1]) / std))
 
 
 def feet_on_floor_when_still(env) -> torch.Tensor:
@@ -163,7 +196,7 @@ def torque_near_limit(env, soft: float) -> torch.Tensor:
     return excess.square().sum(-1)
 
 
-# --- Metrics (identical for both tasks) --------------------------------------------------------
+# --- Metrics (identical for all tasks) ---------------------------------------------------------
 def speed_error(env) -> torch.Tensor:
     return (speed_command(env) - bike_speed(env)).abs()
 
@@ -175,6 +208,14 @@ def foot_slip_speed(env) -> torch.Tensor:
     speed = robot.data.site_lin_vel_w[:, ids, :2].norm(dim=-1)
     down = _feet_down(env).float()
     return (speed * down).sum(-1) / down.sum(-1).clamp(min=1.0)
+
+
+def left_foot_down(env) -> torch.Tensor:
+    return _feet_down(env)[:, 0].float()
+
+
+def right_foot_down(env) -> torch.Tensor:
+    return _feet_down(env)[:, 1].float()
 
 
 def torque_ratio_max(env) -> torch.Tensor:
@@ -193,7 +234,9 @@ def simple_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
             func=track_bike_speed, weight=2.0, params={"std": SPEED_STD, "tau": SPEED_FILTER_S}
         ),
         "on_line": RewardTermCfg(func=on_line, weight=1.0, params={"std_m": 0.3, "std_rad": 0.3}),
-        "saddle_load": RewardTermCfg(func=saddle_load, weight=1.0, params={"target": 0.5}),
+        "saddle_load": RewardTermCfg(
+            func=saddle_load, weight=1.0, params={"target": SADDLE_LOAD_TARGET}
+        ),
         # Five reward units per fall (the manager otherwise scales weights by control dt).
         "failure": RewardTermCfg(func=envs_mdp.is_terminated, weight=-5.0 / control_dt),
         "action_rate_l2": RewardTermCfg(func=envs_mdp.action_rate_l2, weight=-0.2),
@@ -270,7 +313,42 @@ def shaped_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
     }
 
 
-def push_env_cfg(shaped: bool = False, play: bool = False) -> ManagerBasedRlEnvCfg:
+def simple_symmetric_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
+    """The simple rewards plus one term: both feet on the floor for similar shares of time."""
+    return {
+        **simple_rewards(control_dt),
+        "foot_balance": RewardTermCfg(
+            func=foot_balance,
+            weight=1.0,
+            params={"std": FOOT_BALANCE_STD, "tau": FOOT_SHARE_S},
+        ),
+    }
+
+
+def simple_weight_on_saddle_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
+    """The simple rewards, with the saddle reward full only from 75% of the body weight."""
+    rewards = simple_rewards(control_dt)
+    rewards["saddle_load"] = dataclasses.replace(
+        rewards["saddle_load"], params={"target": SADDLE_LOAD_TARGET_HIGH}
+    )
+    return rewards
+
+
+REWARD_SETS = {
+    "simple": simple_rewards,
+    "shaped": shaped_rewards,
+    "simple_symmetric": simple_symmetric_rewards,
+    "simple_weight_on_saddle": simple_weight_on_saddle_rewards,
+}
+TASK_IDS = {
+    "simple": SIMPLE_TASK_ID,
+    "shaped": SHAPED_TASK_ID,
+    "simple_symmetric": SIMPLE_SYMMETRIC_TASK_ID,
+    "simple_weight_on_saddle": SIMPLE_WEIGHT_ON_SADDLE_TASK_ID,
+}
+
+
+def push_env_cfg(rewards: str = "simple", play: bool = False) -> ManagerBasedRlEnvCfg:
     # The free bike, its fall limits (bike 20 deg, trunk 35 deg) and the critic's bike state.
     cfg = free.free_sit_env_cfg(play=play)
     # Air time per foot, for the stepping reward and the step count.
@@ -320,7 +398,7 @@ def push_env_cfg(shaped: bool = False, play: bool = False) -> ManagerBasedRlEnvC
             },
         )
     control_dt = cfg.decimation * cfg.sim.mujoco.timestep
-    cfg.rewards = shaped_rewards(control_dt) if shaped else simple_rewards(control_dt)
+    cfg.rewards = REWARD_SETS[rewards](control_dt)
     if not play:
         cfg.curriculum["command_vel"] = CurriculumTermCfg(
             func=velocity_mdp.commands_vel,
@@ -335,6 +413,8 @@ def push_env_cfg(shaped: bool = False, play: bool = False) -> ManagerBasedRlEnvC
             "heading_error_deg": MetricsTermCfg(func=heading_error_deg),
             "both_feet_off": MetricsTermCfg(func=both_feet_off),
             "foot_slip_m_s": MetricsTermCfg(func=foot_slip_speed),
+            "left_foot_down": MetricsTermCfg(func=left_foot_down),
+            "right_foot_down": MetricsTermCfg(func=right_foot_down),
             "torque_ratio_max": MetricsTermCfg(func=torque_ratio_max, reduce="max"),
             "torque_above_90": MetricsTermCfg(func=torque_above_90),
         }
@@ -350,11 +430,11 @@ def push_runner_cfg():
     return cfg
 
 
-for _task_id, _shaped in ((SIMPLE_TASK_ID, False), (SHAPED_TASK_ID, True)):
+for _rewards, _task_id in TASK_IDS.items():
     register_mjlab_task(
         task_id=_task_id,
-        env_cfg=push_env_cfg(shaped=_shaped),
-        play_env_cfg=push_env_cfg(shaped=_shaped, play=True),
+        env_cfg=push_env_cfg(_rewards),
+        play_env_cfg=push_env_cfg(_rewards, play=True),
         rl_cfg=push_runner_cfg(),
         runner_cls=PushRunner,
     )

@@ -1,4 +1,4 @@
-"""The same test for both push tasks: fixed speed commands, deterministic actions.
+"""The same test for every push task: fixed speed commands, deterministic actions.
 
 Every world gets one 10 s episode per commanded speed, without pushes or sensor noise, for the
 policy and for a zero-action baseline (the robot holding the seated pose, which should not
@@ -56,6 +56,8 @@ def _run(env, policy, device, num_envs, seed, speed):
             "action_change",
             "torque_above_90",
             "touchdowns",
+            "left_foot_down",
+            "right_foot_down",
         )
     }
     distance = torch.zeros(num_envs, device=device)
@@ -85,6 +87,8 @@ def _run(env, policy, device, num_envs, seed, speed):
             totals["action_change"] += on * push.sit.action_change(env)
             totals["torque_above_90"] += on * push.torque_above_90(env)
             totals["touchdowns"] += on * (down & ~was_down).sum(-1)
+            totals["left_foot_down"] += on * down[:, 0]
+            totals["right_foot_down"] += on * down[:, 1]
             # After the warm-up: settling into the saddle at the start briefly hits a limit.
             peak = torch.maximum(torque_max, push.torque_ratio_max(env))
             torque_max = torch.where(live, peak, torque_max)
@@ -96,6 +100,8 @@ def _run(env, policy, device, num_envs, seed, speed):
             break
     steps = measured.clamp(min=1.0)
     mean = {name: float((total / steps).mean()) for name, total in totals.items()}
+    # Per world first: one world on its left foot and one on its right are not balanced.
+    imbalance = (totals["left_foot_down"] - totals["right_foot_down"]).abs() / steps
     return {
         "command_mps": speed,
         "success_fraction": float(success.float().mean()),
@@ -109,6 +115,9 @@ def _run(env, policy, device, num_envs, seed, speed):
         "both_feet_off_share": mean["both_feet_off"],
         "foot_slip_mps": mean["foot_slip"],
         "steps_per_second": mean["touchdowns"] / env.step_dt,
+        "left_foot_down_share": mean["left_foot_down"],
+        "right_foot_down_share": mean["right_foot_down"],
+        "foot_imbalance": float(imbalance.mean()),
         "action_change": mean["action_change"],
         "torque_ratio_max": float(torque_max.max()),
         "torque_above_90_share": mean["torque_above_90"],
