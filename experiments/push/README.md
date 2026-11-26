@@ -101,10 +101,10 @@ has learned to push only where its speed error is below the command itself.
 
 ## Runs
 
-Final checkpoints and `evaluation.json` are in these directories on Hex, relative to the
-training checkout.
+The final checkpoints are available below. The original checkpoints and `evaluation.json`
+are in the listed Hex run directories, relative to the training checkout.
 
-| Task | Hex job | Run directory | Final checkpoint |
-|---|---:|---|---|
-| Simple | 56366 | `logs/laai_push/2026-11-24_17-07-08_simple` | `model_2999.pt` |
-| Shaped | 56367 | `logs/laai_push/2026-11-24_17-33-56_shaped` | `model_2999.pt` |
+| Task | Final checkpoint | Hex job | Hex run directory |
+|---|---|---:|---|
+| Simple | [model_2999.pt](runs/simple/model_2999.pt) | 56366 | `logs/laai_push/2026-11-24_17-07-08_simple` |
+| Shaped | [model_2999.pt](runs/shaped/model_2999.pt) | 56367 | `logs/laai_push/2026-11-24_17-33-56_shaped` |
