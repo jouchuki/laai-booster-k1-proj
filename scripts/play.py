@@ -13,11 +13,14 @@ Linux and macOS (headless help; ordinary Python on both platforms):
 
 For tasks with a velocity command, Up/Down arrows in the native viewer set the forward speed
 command (printed in the terminal); the browser viewer (--viewer viser) has sliders instead.
+Pass --forward-speed MPS to hold a fixed command for the entire playback.
 
 See docs/commands.md for CPU playback and the browser viewer alternative.
 """
 
+import argparse
 import dataclasses
+import math
 import sys
 from pathlib import Path
 
@@ -54,6 +57,7 @@ UniformVelocityCommand.create_gui = _create_gui_zero_safe
 # resampling (sideways speed and turn rate are held at zero). Before the first press the commands
 # resample as in training. The steps are 0 plus 0.05 m/s steps across the task's lin_vel_x range,
 # so the push task's 0.15-0.6 m/s range gives 0, 0.15, 0.2, ... 0.6.
+_forward_speed: float | None = None
 _keyboard = {"speed": None}  # None: commands as in training
 _velocity_terms: list = []  # every velocity command term, recorded on its first compute
 _compute = UniformVelocityCommand.compute
@@ -63,7 +67,7 @@ def _compute_with_keyboard(self, dt, env_ids=None):
     if self not in _velocity_terms:
         _velocity_terms.append(self)
     _compute(self, dt, env_ids)
-    speed = _keyboard["speed"]
+    speed = _forward_speed if _forward_speed is not None else _keyboard["speed"]
     if speed is not None:
         self.vel_command_b[:, 0] = speed
         self.vel_command_b[:, 1:] = 0.0
@@ -81,7 +85,7 @@ def _speed_steps() -> list[float]:
 def _speed_key(key: int) -> None:
     from mjlab.viewer.native.keys import KEY_DOWN, KEY_UP
 
-    if key not in (KEY_UP, KEY_DOWN) or not _velocity_terms:
+    if _forward_speed is not None or key not in (KEY_UP, KEY_DOWN) or not _velocity_terms:
         return
     steps = _speed_steps()
     current = _keyboard["speed"]
@@ -114,6 +118,22 @@ import experiments  # noqa: F401  (registers every experiment's task with mjlab)
 from k1bike.paths import LOGS_DIR
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    parser.add_argument(
+        "--forward-speed",
+        type=float,
+        metavar="MPS",
+        help="Hold a fixed forward-speed command in m/s during playback.",
+    )
+    options, remaining = parser.parse_known_args()
+    _forward_speed = options.forward_speed
+    if _forward_speed is not None:
+        if not math.isfinite(_forward_speed) or _forward_speed < 0.0:
+            parser.error("--forward-speed must be a finite, nonnegative number")
+        print(f"[playback] Fixed forward-speed command: {_forward_speed:g} m/s")
+    if "--help" in remaining or "-h" in remaining:
+        print(parser.format_help())
+    sys.argv[1:] = remaining
     # Logs in logs/<experiment>/ instead of mjlab's default logs/rsl_rl/<experiment>/.
     if not any(arg.startswith("--log-root") for arg in sys.argv[1:]):
         sys.argv += ["--log-root", str(LOGS_DIR)]

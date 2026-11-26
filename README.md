@@ -113,7 +113,7 @@ Both policies run one simulation on CPU in the native MuJoCo viewer.
 # Shaped rewards
 uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Shaped \
   --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
-  --device cpu --num-envs 1 --viewer native
+  --forward-speed 1.0 --device cpu --num-envs 1 --viewer native
 
 # Simple rewards
 uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Simple \
@@ -127,7 +127,7 @@ uv run --group train python scripts/play.py LAAI-K1-Push-Puky-Simple \
 # Shaped rewards
 uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Shaped \
   --checkpoint-file experiments/push/runs/shaped/model_2999.pt \
-  --device cpu --num-envs 1 --viewer native
+  --forward-speed 1.0 --device cpu --num-envs 1 --viewer native
 
 # Simple rewards
 uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Simple \
@@ -135,7 +135,8 @@ uv run --group train mjpython scripts/play.py LAAI-K1-Push-Puky-Simple \
   --device cpu --num-envs 1 --viewer native
 ```
 
-Playback samples forward-speed commands from 0.15 to 0.6 m/s and includes stops.
+Shaped playback holds a 1.0 m/s forward-speed command, above the 0.6 m/s training limit.
+Simple playback samples forward-speed commands from 0.15 to 0.6 m/s and includes stops.
 See the [bike-driving experiment](experiments/push/README.md) for the rewards
 and training runs.
 
