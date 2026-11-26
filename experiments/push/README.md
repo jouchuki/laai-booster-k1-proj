@@ -1,7 +1,7 @@
 # Walk the bike in a straight line: simple versus shaped rewards
 
-Status 2026-11-24: both training tasks are ready and pass local CPU checks. Nothing has been
-trained yet, and nothing has been tested on the robot.
+Both policies completed training and simulation evaluation on Hex on 2026-11-24.
+Robot testing is pending.
 
 The K1 sits on the unsupported Puky (the free bike of [sit_free](../sit_free/README.md)) and
 pushes it along with its feet at a commanded forward speed, on the line it started on. Two
@@ -101,4 +101,10 @@ has learned to push only where its speed error is below the command itself.
 
 ## Runs
 
-None yet. Add one row per run (see [Tracking and comparing runs](../README.md#tracking-and-comparing-runs)).
+Final checkpoints and `evaluation.json` are in these directories on Hex, relative to the
+training checkout.
+
+| Task | Hex job | Run directory | Final checkpoint |
+|---|---:|---|---|
+| Simple | 56366 | `logs/laai_push/2026-11-24_17-07-08_simple` | `model_2999.pt` |
+| Shaped | 56367 | `logs/laai_push/2026-11-24_17-33-56_shaped` | `model_2999.pt` |

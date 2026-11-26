@@ -1,0 +1,33 @@
+{
+  "iterations": 1500,
+  "wall_minutes": 451.91628900766375,
+  "mean_reward": 43.77536239624023,
+  "peak_reward": 43.86561965942383,
+  "episode_length": 500.0,
+  "rewards": {
+    "action_acc_l2": -0.012861877921968698,
+    "action_rate_l2": -0.051597633734345436,
+    "alive": 0.5000019669532776,
+    "arm_effort": -0.01562944585457444,
+    "feet_on_floor": 0.4962745189666748,
+    "joint_acc_l2": -0.002473520999774337,
+    "joint_torques_l2": -0.0010126669821329416,
+    "posture": 0.48240143299102783,
+    "saddle_load": 1.9863392090797425,
+    "trunk_orientation": 0.997136355638504
+  },
+  "terminations": {
+    "fell_off_seat": 0.0,
+    "time_out": 1.286173541545868
+  },
+  "task_metrics": {
+    "action_change": 0.5004582279920577,
+    "feet_on_floor": 0.9925452816486359,
+    "posture_error_deg": 1.6076962065696716,
+    "saddle_load": 0.7276411569118499,
+    "trunk_tilt_deg": 0.5418988877534866,
+    "trunk_tilt_deg_max": 1.7284957408905028
+  },
+  "last": 50,
+  "wandb": "https://forge.coreweave.com/wandb/K1Booster/laai-k1/runs/ckhliij3"
+}
