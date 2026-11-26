@@ -675,6 +675,35 @@ uv run --group train python scripts/train.py LAAI-K1-Sit-Puky-Free-Push --gpu-id
 The job's `evaluation.json` includes `push_sweep`: success at 0.2-2.0 m/s for the policy and
 for zero actions. The run has learned to balance where `beats_zero_action_at_mps` lists a push.
 
+## Train the bike-walking tasks
+
+`LAAI-K1-Push-Puky-Simple` and `LAAI-K1-Push-Puky-Shaped` push the free bike along a straight
+line at a commanded speed, with a minimal and a shaped reward; setup and metrics:
+[experiments/push/README.md](../experiments/push/README.md). Output goes to `logs/laai_push/`.
+
+### Linux GPU cluster: smoke job, then both runs on Hex
+
+From the repository root on the login node. The smoke job (3 iterations and the final
+evaluation) also shows the training speed, for choosing a time limit:
+
+```bash
+mkdir -p logs
+sbatch --job-name=push-smoke --time=00:30:00 cluster/train.slurm LAAI-K1-Push-Puky-Shaped --agent.max-iterations 3 --agent.run-name smoke
+```
+
+After it succeeds, submit both runs (same seed; 3,000 iterations each by default):
+
+```bash
+sbatch --job-name=push-simple cluster/train.slurm LAAI-K1-Push-Puky-Simple --agent.run-name simple-run1
+sbatch --job-name=push-shaped cluster/train.slurm LAAI-K1-Push-Puky-Shaped --agent.run-name shaped-run1
+```
+
+### Linux and macOS: CPU smoke run
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Shaped --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
+```
+
 ## Compare the trained free-bike policies locally
 
 The completed comparison is archived in `experiments/sit_free/runs/`: both runs include

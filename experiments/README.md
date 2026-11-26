@@ -36,7 +36,7 @@ configs are also in W&B; see [Tracking and comparing runs](#tracking-and-compari
 | 2. Bike model | none: a model, see [models/](../models/README.md) | Measured model, provisional physics |
 | 3. Sit on the bike | [sit/](sit/README.md); seated scene in [models/k1_on_bike/](../models/k1_on_bike/README.md) | Fixed-bike `cpu-stage0` is archived as [sit run 1](sit/runs/run1/notes.md), including its iteration-900 actor used by free-bike run 1. Robot holds and free-bike run-2 tests are recorded in the [2026-11-19 lab notes](sit/robot_tests/2026-11-19/notes.md). |
 | 3. Unsupported balance | [sit_free/](sit_free/README.md) | Runs 1 and 2 do not beat zero actions under stronger pushes ([analysis](sit_free/README.md#analysis-2026-11-19)). [Push-curriculum runs 3 and 4](sit_free/runs/push-comparison/README.md) were submitted on 2026-11-20, initialized from run 2 and scratch respectively; final evaluation pending. |
-| 4-5. Push, ride | not created yet | Not started |
+| 4-5. Walk the bike | [push/](push/README.md) | Simple and shaped policies trained on Hex and evaluated in simulation on the unsupported Puky. |
 
 ## Names
 

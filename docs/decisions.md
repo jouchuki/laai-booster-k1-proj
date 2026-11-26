@@ -2,6 +2,21 @@
 
 Newest first. One entry per decision: what, why, what else was considered.
 
+## 2026-11-24: Bike walking trains on the free bike, with a simple and a shaped reward
+
+**Decision:** `experiments/push/` trains the K1 to push the unsupported Puky along its
+starting line at a commanded forward speed (the walk policy's command slot). Two tasks share
+the scene, command, randomization and evaluation and differ only in rewards: 5 terms that
+state the task, or those plus 10 shaping terms. The saddle's collision surface moves per
+episode by up to 2 cm along the bike and 1.5 cm in height.
+
+**Why:** The real bike is not held on a rail, so the plan's supported step (phase 4) was
+skipped. Training both reward sets on one task shows which shaping terms are needed. The
+saddle shift covers the difference between the model and the real saddle and seat position.
+
+**Considered:** A rail that only lets the bike roll forward and lean on a spring (built
+first, then dropped: straightness would come from the rail, not the policy).
+
 ## 2026-11-16: Sit stage 1: a softening lean stand and growing pushes, no forward motion
 
 **Decision:** Phase 3 trains in stages that share all inputs and outputs. Stage 1
