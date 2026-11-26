@@ -712,6 +712,52 @@ sbatch --job-name=push-form cluster/train.slurm LAAI-K1-Push-Puky-Form --agent.r
 uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Shaped --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
 ```
 
+## Sweep the push rewards
+
+Which reward terms, at which weights, the push task needs; stages, gates and ranking:
+[experiments/push/README.md](../experiments/push/README.md#reward-sweep). Every run trains
+`LAAI-K1-Push-Puky-Form` with weights overridden on the command line.
+
+### Linux GPU cluster: one stage on Hex
+
+From the repository root on the login node. List the runs, check them with SLURM, then submit
+(24 GPU jobs for the `groups` stage at 2 seeds):
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py plan groups
+```
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py submit groups --seeds 2 --test-only
+```
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py submit groups --seeds 2
+```
+
+When the jobs finish, rank them (the folder is printed at submission):
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py collect logs/laai_push/sweeps/<sweep>
+```
+
+Then the next stage from the simplest passing set, for example:
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py submit terms --base simple+gait+motors --seeds 2
+```
+
+`--cpu` submits to `cluster/train_cpu.slurm` instead; `--time`, `--num-envs`,
+`--iterations` and `--init-policy-from` apply to every run; `--only a,b` keeps some configs.
+
+### Linux and macOS: local smoke sweep
+
+Trains each run here, one after another (2 iterations, 8 environments, TensorBoard only):
+
+```bash
+uv run --group train python scripts/sweep_push.py submit groups --local --only simple,all --seeds 1 --iterations 2
+```
+
 ## Compare the trained free-bike policies locally
 
 The completed comparison is archived in `experiments/sit_free/runs/`: both runs include

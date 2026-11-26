@@ -23,7 +23,7 @@ class PushRunner(PolicyInitRunner):
         for who in ("policy", "zero_action"):
             for row in report[who]:
                 for name, value in row.items():
-                    if name != "command_mps":
+                    if name != "command_mps" and value is not None:
                         tag = f"Evaluation/{who}/{row['command_mps']:g}mps/{name}"
                         self.logger.writer.add_scalar(tag, value, it)
         if hasattr(self.logger.writer, "save_file"):

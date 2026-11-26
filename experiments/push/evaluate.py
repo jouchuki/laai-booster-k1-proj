@@ -56,8 +56,15 @@ def _run(env, policy, device, num_envs, seed, speed):
             "action_change",
             "torque_above_90",
             "touchdowns",
+            "bike_collision",
+            "trunk_bike_yaw",
+            "knee_out",
+            "foot_out",
         )
     }
+    # Step asymmetry only means something while both feet have a current step.
+    step_totals = {k: torch.zeros(num_envs, device=device) for k in ("air", "force", "phase")}
+    step_count = torch.zeros(num_envs, device=device)
     distance = torch.zeros(num_envs, device=device)
     lateral = torch.zeros(num_envs, device=device)
     heading = torch.zeros(num_envs, device=device)
@@ -85,6 +92,15 @@ def _run(env, policy, device, num_envs, seed, speed):
             totals["action_change"] += on * push.sit.action_change(env)
             totals["torque_above_90"] += on * push.torque_above_90(env)
             totals["touchdowns"] += on * (down & ~was_down).sum(-1)
+            totals["bike_collision"] += on * push.bike_collision_any(env)
+            totals["trunk_bike_yaw"] += on * push.trunk_bike_yaw_deg(env)
+            totals["knee_out"] += on * push.knee_out_cm(env)
+            totals["foot_out"] += on * push.foot_out_cm(env)
+            asym = push.StepTracker.of(env).asymmetry()
+            counted = on * asym["valid"].float()
+            step_count += counted
+            for key, total in step_totals.items():
+                total += counted * asym[key]
             # After the warm-up: settling into the saddle at the start briefly hits a limit.
             peak = torch.maximum(torque_max, push.torque_ratio_max(env))
             torque_max = torch.where(live, peak, torque_max)
@@ -96,6 +112,11 @@ def _run(env, policy, device, num_envs, seed, speed):
             break
     steps = measured.clamp(min=1.0)
     mean = {name: float((total / steps).mean()) for name, total in totals.items()}
+    stepped = step_count > 0
+    step_mean = {
+        key: float((total[stepped] / step_count[stepped]).mean()) if stepped.any() else None
+        for key, total in step_totals.items()
+    }
     return {
         "command_mps": speed,
         "success_fraction": float(success.float().mean()),
@@ -112,6 +133,14 @@ def _run(env, policy, device, num_envs, seed, speed):
         "action_change": mean["action_change"],
         "torque_ratio_max": float(torque_max.max()),
         "torque_above_90_share": mean["torque_above_90"],
+        "bike_collision_share": mean["bike_collision"],
+        "trunk_bike_yaw_deg": mean["trunk_bike_yaw"],
+        "knee_out_cm": mean["knee_out"],
+        "foot_out_cm": mean["foot_out"],
+        # None when no world stepped with both feet (e.g. sitting still, zero actions).
+        "step_air_asymmetry": step_mean["air"],
+        "step_force_asymmetry": step_mean["force"],
+        "step_phase_asymmetry": step_mean["phase"],
     }
 
 
