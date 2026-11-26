@@ -74,7 +74,7 @@ UniformVelocityCommand.compute = _compute_with_keyboard
 
 def _speed_steps() -> list[float]:
     lo, hi = _velocity_terms[0].cfg.ranges.lin_vel_x
-    steps = {0.0} | {round(lo + 0.05 * i, 3) for i in range(int(round((hi - lo) / 0.05)) + 1)}
+    steps = {0.0} | {round(lo + 0.05 * i, 3) for i in range(round((hi - lo) / 0.05) + 1)}
     return sorted(steps)
 
 
