@@ -1,7 +1,7 @@
 """Follow sampled joystick paths on the unsupported Puky."""
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import torch
 from mjlab.envs import ManagerBasedRlEnvCfg, mdp
@@ -12,6 +12,7 @@ from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.tasks.registry import register_mjlab_task
 
+from experiments.joystick.runner import JoystickRunner
 from experiments.joystick.trajectory import (
     EPISODE_SECONDS,
     MAX_STEER_RAD,
@@ -20,8 +21,10 @@ from experiments.joystick.trajectory import (
 )
 from experiments.push import task as push
 from experiments.sit import task as sit
+from experiments.sit_free.runner import PolicyInitRunnerCfg
 
 TASK_ID = "LAAI-K1-Joystick-Puky"
+SHAPED_TASK_ID = "LAAI-K1-Joystick-Puky-Shaped"
 COMMAND = "joystick"
 KNEE_LIMIT_M = 0.01
 
@@ -111,6 +114,36 @@ class JoystickPath(CommandTerm):
         pass
 
 
+@dataclass(kw_only=True)
+class MotionRewardCommandCfg(CommandTermCfg):
+    """Expose the signed speed in the velocity shape expected by the Shaped gait terms."""
+
+    resampling_time_range: tuple[float, float] = (EPISODE_SECONDS + 1, EPISODE_SECONDS + 1)
+
+    def build(self, env):
+        return MotionRewardCommand(self, env)
+
+
+class MotionRewardCommand(CommandTerm):
+    def __init__(self, cfg, env):
+        super().__init__(cfg, env)
+        self._command = torch.zeros(self.num_envs, 3, device=self.device)
+
+    @property
+    def command(self):
+        self._command[:, 0] = self._env.command_manager.get_command(COMMAND)[:, 0]
+        return self._command
+
+    def _resample_command(self, env_ids):
+        pass
+
+    def _update_command(self, env_ids=None):
+        pass
+
+    def _update_metrics(self):
+        pass
+
+
 def tracking(env):
     term = env.command_manager.get_term(COMMAND)
     speed, steer = term.command.unbind(dim=-1)
@@ -135,10 +168,12 @@ def path_error(env):
     return term.path_errors()[2]
 
 
-def joystick_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-    cfg = push.push_env_cfg(play=play)
+def joystick_env_cfg(play: bool = False, *, shaped: bool = False) -> ManagerBasedRlEnvCfg:
+    cfg = push.push_env_cfg(shaped=shaped, play=play)
     cfg.episode_length_s = EPISODE_SECONDS
     cfg.commands = {COMMAND: JoystickPathCfg()}
+    if shaped:
+        cfg.commands[push.COMMAND] = MotionRewardCommandCfg()
     cfg.curriculum.pop("command_vel", None)
     for group in ("actor", "critic"):
         cfg.observations[group].terms["command"] = ObservationTermCfg(
@@ -146,37 +181,54 @@ def joystick_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         )
     cfg.observations["critic"].terms.pop("bike_line")
     control_dt = cfg.decimation * cfg.sim.mujoco.timestep
-    cfg.rewards = {
-        "tracking": RewardTermCfg(func=tracking, weight=2.0),
-        "saddle_load": RewardTermCfg(func=push.saddle_load, weight=1.0, params={"target": 0.78}),
-        "knee_height": RewardTermCfg(
-            func=knee_too_high,
-            weight=-1.0,
-            params={
-                side: SceneEntityCfg(
-                    "robot",
-                    joint_names=(f"{side}_hip_pitch_joint", f"{side}_knee_pitch_joint"),
-                    preserve_order=True,
-                )
-                for side in ("left", "right")
-            },
-        ),
-        "torque_near_limit": RewardTermCfg(
-            func=push.torque_near_limit, weight=-1.0, params={"soft": push.TORQUE_SOFT_LIMIT}
-        ),
-        "failure": push.simple_rewards(control_dt)["failure"],
-    }
+    rewards = cfg.rewards if shaped else {}
+    rewards.pop("track_bike_speed", None)
+    rewards.pop("on_line", None)
+    rewards.update(
+        {
+            "tracking": RewardTermCfg(func=tracking, weight=2.0),
+            "saddle_load": RewardTermCfg(
+                func=push.saddle_load, weight=1.0, params={"target": 0.78}
+            ),
+            "knee_height": RewardTermCfg(
+                func=knee_too_high,
+                weight=-1.0,
+                params={
+                    side: SceneEntityCfg(
+                        "robot",
+                        joint_names=(f"{side}_hip_pitch_joint", f"{side}_knee_pitch_joint"),
+                        preserve_order=True,
+                    )
+                    for side in ("left", "right")
+                },
+            ),
+            "torque_near_limit": RewardTermCfg(
+                func=push.torque_near_limit, weight=-1.0, params={"soft": push.TORQUE_SOFT_LIMIT}
+            ),
+            "failure": push.simple_rewards(control_dt)["failure"],
+        }
+    )
+    cfg.rewards = rewards
     for name in ("speed_error_m_s", "bike_distance_m", "lateral_deviation_m", "heading_error_deg"):
         cfg.metrics.pop(name)
     cfg.metrics["path_error_m"] = MetricsTermCfg(func=path_error)
     return cfg
 
 
-runner_cfg = sit.k1_sit_ppo_runner_cfg()
-runner_cfg.experiment_name = "laai_joystick"
-register_mjlab_task(
-    task_id=TASK_ID,
-    env_cfg=joystick_env_cfg(),
-    play_env_cfg=joystick_env_cfg(play=True),
-    rl_cfg=runner_cfg,
-)
+def joystick_runner_cfg(shaped: bool) -> PolicyInitRunnerCfg:
+    base = sit.k1_sit_ppo_runner_cfg()
+    cfg = PolicyInitRunnerCfg(**{f.name: getattr(base, f.name) for f in fields(base)})
+    cfg.experiment_name = "laai_joystick"
+    if shaped:
+        cfg.max_iterations = 5000
+    return cfg
+
+
+for _task_id, _shaped in ((TASK_ID, False), (SHAPED_TASK_ID, True)):
+    register_mjlab_task(
+        task_id=_task_id,
+        env_cfg=joystick_env_cfg(shaped=_shaped),
+        play_env_cfg=joystick_env_cfg(play=True, shaped=_shaped),
+        rl_cfg=joystick_runner_cfg(_shaped),
+        runner_cls=JoystickRunner,
+    )

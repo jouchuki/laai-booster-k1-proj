@@ -738,6 +738,36 @@ sbatch --job-name=joystick-puky --time=03:00:00 cluster/train.slurm LAAI-K1-Joys
   --agent.run-name joystick-puky-v1
 ```
 
+### Joystick Shaped training and evaluation
+
+**Linux GPU cluster (Hex login node)**, from the prepared repository root. Request
+one generic GPU in the student partition. The node exclusions below skip the
+GTX 1070 nodes in Hex's current configuration. The 5,000-iteration run writes
+`evaluation.json` alongside its final checkpoint and logs the metrics in W&B.
+
+```bash
+mkdir -p logs
+sbatch --partition=batch-gpu --gres=gpu:1 --exclude=node03,node04 \
+  --cpus-per-task=4 --mem=16G --time=03:00:00 --job-name=vlad-joystick-shaped-5k-v1 \
+  cluster/train.slurm LAAI-K1-Joystick-Puky-Shaped --env.scene.num-envs 1024 \
+  --agent.max-iterations 5000 --agent.seed 42 --agent.logger wandb \
+  --agent.run-name vlad-joystick-shaped-5k-v1
+```
+
+**Linux and macOS**, from the repository root, evaluate a downloaded joystick checkpoint
+against the same held-out tracks. Replace `CHECKPOINT.pt` with its path.
+
+```bash
+uv run --group train python -m experiments.joystick.evaluate --checkpoint CHECKPOINT.pt
+```
+
+**Linux host**, from the repository root, open the live 4×4 MuJoCo demo.
+Pass `--task LAAI-K1-Joystick-Puky-Shaped` for the Shaped task.
+
+```bash
+uv run --group train python scripts/play_joystick_grid.py --checkpoint CHECKPOINT.pt
+```
+
 ## Compare the trained free-bike policies locally
 
 The completed comparison is archived in `experiments/sit_free/runs/`: both runs include

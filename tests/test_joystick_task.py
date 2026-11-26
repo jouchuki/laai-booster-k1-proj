@@ -117,3 +117,47 @@ def test_joystick_task_steps_with_two_commands_and_scoped_reset():
         assert term.command[1, 1] < 0
     finally:
         env.close()
+
+
+def test_shaped_joystick_uses_push_shaping_for_both_directions():
+    from mjlab.envs import ManagerBasedRlEnv
+
+    from experiments.joystick.task import COMMAND, joystick_env_cfg
+    from experiments.push import task as push
+
+    cfg = joystick_env_cfg(play=True, shaped=True)
+    cfg.seed = 11
+    cfg.scene.num_envs = 2
+    expected = set(push.shaped_rewards(0.02)) - {"track_bike_speed", "on_line"}
+    assert set(cfg.rewards) == expected | {"tracking", "knee_height"}
+    assert cfg.rewards["saddle_load"].params["target"] == 0.78
+    assert cfg.rewards["knee_height"].weight == -1.0
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    try:
+        obs, _ = env.reset()
+        path = env.command_manager.get_term(COMMAND)
+        path.feedforward[:, :, 0] = torch.tensor([0.3, -0.3])[:, None]
+        path._update_command()
+        torch.testing.assert_close(
+            env.command_manager.get_command(push.COMMAND),
+            torch.tensor([[0.3, 0.0, 0.0], [-0.3, 0.0, 0.0]]),
+        )
+        assert obs["actor"].shape == (2, 680)
+        for _ in range(3):
+            _, reward, _, _, _ = env.step(torch.zeros(2, 20))
+            assert torch.isfinite(reward).all()
+    finally:
+        env.close()
+
+
+def test_completion_rejects_an_idle_bike_on_an_out_and_back_track():
+    from experiments.joystick.evaluate import completed_segments
+
+    planned = torch.tensor([[1.0, 1.0, 0.0], [1.0, 1.0, 0.0]])
+    progress = torch.tensor([[0.0, 0.0, 0.0], [0.9, 0.8, 0.0]])
+    reached = torch.ones_like(planned, dtype=torch.bool)
+    error = torch.tensor([[1.0, 0.0, 0.0], [0.1, 0.1, 0.1]])
+    assert completed_segments(planned, progress, reached, error).all(dim=1).tolist() == [
+        False,
+        True,
+    ]
