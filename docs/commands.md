@@ -707,6 +707,37 @@ sbatch --job-name=push-shaped cluster/train.slurm LAAI-K1-Push-Puky-Shaped --age
 uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Shaped --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
 ```
 
+## Preview and train joystick paths
+
+The [joystick task](../experiments/joystick/README.md) uses the same sampler for
+MuJoCo commands and its standalone HTML preview.
+
+**Linux and macOS**, from the repository root. Open the generated HTML in a browser.
+Pass `--seed 12` to sample a different set.
+
+```bash
+uv run --group train python -m experiments.joystick.preview /tmp/puky-joystick-preview.html
+```
+
+**Linux and macOS**, from the repository root, for one headless CPU PPO iteration.
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Joystick-Puky \
+  --gpu-ids None --env.scene.num-envs 4 --agent.max-iterations 1 \
+  --agent.logger tensorboard
+```
+
+**Linux GPU cluster (Hex login node)**, from the prepared repository root.
+The run uses the joystick task's five rewards and saves checkpoints under
+`logs/laai_joystick/`.
+
+```bash
+mkdir -p logs
+sbatch --job-name=joystick-puky --time=03:00:00 cluster/train.slurm LAAI-K1-Joystick-Puky \
+  --agent.max-iterations 3000 --agent.seed 42 --agent.logger tensorboard \
+  --agent.run-name joystick-puky-v1
+```
+
 ## Compare the trained free-bike policies locally
 
 The completed comparison is archived in `experiments/sit_free/runs/`: both runs include

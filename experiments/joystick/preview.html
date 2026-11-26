@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puky joystick paths</title>
+<style>
+  :root{color-scheme:light;--paper:#f3f5ef;--panel:#fff;--ink:#152721;--muted:#52645d;--edge:#d7e1d9;--accent:#086858;--steer:#8d4017}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+  main{max-width:1100px;margin:auto;padding:36px 24px}
+  header{margin-bottom:22px}
+  h1,h2,p{margin:0}
+  h1{font-size:clamp(27px,4vw,43px);line-height:1.1;letter-spacing:-.045em}
+  header p,.footnote{color:var(--muted);margin-top:8px}
+  .tools,.timeline,.legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .tools{margin-bottom:14px}
+  button,select{font:inherit;border:1px solid var(--edge);border-radius:8px;background:white;color:var(--ink);padding:7px 12px}
+  button{cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:white;min-width:78px}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .grid{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(242px,1fr);gap:14px}
+  article{background:var(--panel);border:1px solid var(--edge);border-radius:15px;padding:17px;min-width:0}
+  h2{font-size:16px;margin-bottom:10px}
+  canvas{width:100%;display:block}
+  #map{height:370px;background:#f8faf7;border-radius:8px}
+  #stick{height:154px}
+  #signals{height:190px}
+  .legend{color:var(--muted);margin-top:9px;font-size:13px}
+  .key{display:inline-block;width:18px;border-top:3px solid var(--accent);vertical-align:middle;margin-right:5px}
+  .key.remaining{border-color:#95a99f;border-top-style:dashed}
+  .timeline{margin-top:14px}
+  input[type=range]{flex:1;min-width:135px;accent-color:var(--accent)}
+  .numbers{margin:6px 0 0}
+  .numbers>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-top:1px solid var(--edge);padding:8px 0}
+  dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .signals{grid-column:1/-1}
+  .footnote{font-size:13px}
+  #clock{font-variant-numeric:tabular-nums;min-width:93px;text-align:right}
+  @media(max-width:690px){main{padding:24px 14px}.grid{grid-template-columns:1fr}#map{height:315px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Puky joystick paths</h1>
+    <p>Scrub a sampled episode to see the stick request, the two actor inputs, and the corresponding bike path.</p>
+  </header>
+  <div class="tools">
+    <label for="episode">Trajectory</label>
+    <select id="episode"></select>
+    <button id="next" type="button">Next sample</button>
+    <button class="primary" id="play" type="button">Play</button>
+  </div>
+  <div class="grid">
+    <article>
+      <h2>Reference path</h2>
+      <canvas id="map" role="img" aria-label="Top-down reference path and bike position. The bike starts facing up."></canvas>
+      <div class="legend"><span><i class="key"></i>Traveled</span><span><i class="key remaining"></i>Remaining</span><span>Orange wheel shows steering</span></div>
+      <div class="timeline">
+        <label for="time">Time</label>
+        <input id="time" type="range" min="0" step="1" value="0">
+        <output id="clock" for="time"></output>
+      </div>
+    </article>
+    <article>
+      <h2>Joystick request</h2>
+      <canvas id="stick" role="img" aria-label="Stick distance sets cruising speed. The front half moves forward and the rear half reverses."></canvas>
+      <dl class="numbers">
+        <div><dt>Requested direction</dt><dd id="bearing"></dd></div>
+        <div><dt>Requested cruise speed</dt><dd id="cruise"></dd></div>
+      </dl>
+      <h2 style="margin-top:16px">Actor inputs at this step</h2>
+      <dl class="numbers">
+        <div><dt>Target speed</dt><dd id="speed"></dd></div>
+        <div><dt>Target handlebar angle</dt><dd id="steer"></dd></div>
+      </dl>
+    </article>
+    <article class="signals">
+      <h2>Command timeline</h2>
+      <canvas id="signals" role="img" aria-label="Target speed and handlebar angle over time, with the selected time marked."></canvas>
+      <p class="footnote">The planner ramps the commands at segment boundaries. Simulation can adjust the steering target to correct drift from this reference.</p>
+    </article>
+  </div>
+</main>
+<script id="data" type="application/json">__TRAJECTORIES__</script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const plan = JSON.parse($("data").textContent);
+const select = $("episode");
+const slider = $("time");
+const colors = {ink:"#152721", muted:"#52645d", grid:"#dbe7df", path:"#086858", rest:"#95a99f", steer:"#8d4017"};
+let episode = 0, step = 0, running = false, start = 0, origin = 0;
+
+plan.episodes.forEach(({label}, index) => select.add(new Option(label, index)));
+const degrees = (rad) => rad * 180 / Math.PI;
+const current = () => plan.episodes[episode].rows;
+const text = (id, value) => { $(id).textContent = value; };
+
+function surface(id) {
+  const canvas = $(id), width = canvas.clientWidth, height = canvas.clientHeight;
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  const ctx = canvas.getContext("2d");
+  ctx.scale(ratio, ratio);
+  ctx.font = "12px system-ui";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  return {ctx, width, height};
+}
+
+function line(ctx, points, color, width = 1, dash = []) {
+  if (points.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(...points[0]);
+  for (const point of points.slice(1)) ctx.lineTo(...point);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function dot(ctx, x, y, radius, color) {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawMap(rows, row) {
+  const {ctx, width, height} = surface("map");
+  if (width < 80 || height < 80) return;
+  const xs = rows.map((p) => -p[1]), ys = rows.map((p) => -p[0]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const scale = Math.min((width - 72) / Math.max(maxX - minX, 1), (height - 72) / Math.max(maxY - minY, 1));
+  const offsetX = width / 2 - scale * (minX + maxX) / 2;
+  const offsetY = height / 2 - scale * (minY + maxY) / 2;
+  const project = ([x, y]) => [offsetX - y * scale, offsetY - x * scale];
+  for (let x = offsetX % scale; x < width; x += scale) line(ctx, [[x, 0], [x, height]], colors.grid);
+  for (let y = offsetY % scale; y < height; y += scale) line(ctx, [[0, y], [width, y]], colors.grid);
+  const points = rows.map(project);
+  line(ctx, points, colors.rest, 2.4, [5, 6]);
+  line(ctx, points.slice(0, step + 1), colors.path, 3.6);
+  dot(ctx, ...points[0], 5, colors.ink);
+  dot(ctx, ...points.at(-1), 4, colors.rest);
+  const [bx, by] = project(row);
+  const facing = (angle, distance, x = bx, y = by) => [x - Math.sin(angle) * distance, y - Math.cos(angle) * distance];
+  const front = facing(row[2], 22);
+  line(ctx, [[bx, by], front], colors.ink, 4);
+  line(ctx, [facing(row[2] + row[4], -6, ...front), facing(row[2] + row[4], 8, ...front)], colors.steer, 4);
+  dot(ctx, bx, by, 5, colors.path);
+  ctx.fillStyle = colors.muted;
+  line(ctx, [[15, height - 18], [15 + scale, height - 18]], colors.muted, 2);
+  ctx.fillText("1 m", 20, height - 24);
+}
+
+function drawStick(right, up) {
+  const {ctx, width, height} = surface("stick"), x = width / 2, y = height / 2, radius = 55;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+  ctx.fillStyle = "#f2f8f4";
+  ctx.fill();
+  ctx.strokeStyle = colors.rest;
+  ctx.stroke();
+  line(ctx, [[x - radius, y], [x + radius, y]], colors.grid);
+  line(ctx, [[x, y - radius], [x, y + radius]], colors.grid);
+  const marker = [x + radius * right, y - radius * up];
+  line(ctx, [[x, y], marker], colors.path, 2.5);
+  dot(ctx, ...marker, 6, colors.path);
+  ctx.textAlign = "center";
+  ctx.fillStyle = colors.muted;
+  ctx.fillText("Ahead", x, y - radius - 7);
+  ctx.fillText("Reverse", x, y + radius + 15);
+}
+
+function drawSignals(rows) {
+  const {ctx, width, height} = surface("signals");
+  if (width < 110 || height < 150) return;
+  const left = 76, right = width - 18, bottom = height - 23;
+  const timeX = (i) => left + (right - left) * i / (rows.length - 1);
+  const tracks = [
+    {name:"Speed", unit:"m/s", color:colors.path, index:3, min:-plan.maxSpeed, max:plan.maxSpeed, top:9, span:53, ticks:[plan.maxSpeed.toFixed(2), (-plan.maxSpeed).toFixed(2)]},
+    {name:"Steer", unit:"deg", color:colors.steer, index:4, min:-35, max:35, top:89, span:54, ticks:["+35","−35"]},
+  ];
+  for (const track of tracks) {
+    const y = (value) => track.top + track.span * (track.max - value) / (track.max - track.min);
+    ctx.fillStyle = track.color;
+    ctx.fillText(track.name, 2, track.top + 15);
+    ctx.fillText(track.unit, 2, track.top + 30);
+    [track.max, track.min].forEach((v, i) => {
+      line(ctx, [[left, y(v)], [right, y(v)]], colors.grid);
+      ctx.fillStyle = colors.muted;
+      ctx.fillText(track.ticks[i], left - 33, y(v) + 9);
+    });
+    if (track.min < 0) line(ctx, [[left, y(0)], [right, y(0)]], colors.grid);
+    const points = rows.map((row, i) => [timeX(i), y(track.index === 4 ? degrees(row[4]) : row[3])]);
+    line(ctx, points, track.color, 2.4);
+    dot(ctx, ...points[step], 4, track.color);
+  }
+  line(ctx, [[timeX(step), 0], [timeX(step), bottom]], colors.ink, 1, [3, 4]);
+  let seconds = 0;
+  for (const duration of [0, ...plan.segments]) {
+    seconds += duration;
+    const x = timeX(Math.round(seconds / plan.dt));
+    ctx.fillStyle = colors.muted;
+    ctx.textAlign = seconds === plan.duration ? "right" : "center";
+    ctx.fillText(seconds + " s", x, bottom + 12);
+  }
+}
+
+function render() {
+  const rows = current(), row = rows[step];
+  const [, , , speed, steer, right, up] = row;
+  const radius = Math.hypot(right, up);
+  const direction = up < 0 ? -1 : 1;
+  const bearing = degrees(Math.atan2(right, Math.abs(up)));
+  const motion = direction < 0 ? "Reverse" : "Forward";
+  slider.value = step;
+  text("clock", (step * plan.dt).toFixed(1) + " / " + plan.duration + " s");
+  text("bearing", radius < .001 ? "Stop" : Math.abs(bearing) < 0.05 ? motion + " straight" :
+    motion + " " + Math.abs(bearing).toFixed(0) + "° " + (bearing > 0 ? "right" : "left"));
+  text("cruise", (direction * radius * plan.maxSpeed).toFixed(2) + " m/s");
+  text("speed", speed.toFixed(2) + " m/s");
+  text("steer", Math.abs(steer) < 0.0009 ? "0°" : Math.abs(degrees(steer)).toFixed(1) + "° " + (steer > 0 ? "left" : "right"));
+  drawMap(rows, row);
+  drawStick(right, up);
+  drawSignals(rows);
+}
+
+function pause() {
+  running = false;
+  text("play", "Play");
+}
+
+function choose(index) {
+  pause();
+  episode = index;
+  select.value = episode;
+  step = 0;
+  slider.max = current().length - 1;
+  render();
+}
+
+function animate(now) {
+  if (!running) return;
+  const next = Math.min(current().length - 1, origin + Math.floor((now - start) / (1000 * plan.dt)));
+  if (next !== step) {
+    step = next;
+    render();
+  }
+  if (step === current().length - 1) pause();
+  if (running) requestAnimationFrame(animate);
+}
+
+select.addEventListener("change", () => choose(Number(select.value)));
+$("next").addEventListener("click", () => choose((episode + 1) % plan.episodes.length));
+slider.addEventListener("input", () => {
+  pause();
+  step = Number(slider.value);
+  render();
+});
+$("play").addEventListener("click", () => {
+  if (running) { pause(); return; }
+  if (step === current().length - 1) step = 0;
+  running = true;
+  origin = step;
+  start = performance.now();
+  text("play", "Pause");
+  requestAnimationFrame(animate);
+});
+new ResizeObserver(render).observe($("map"));
+choose(0);
+</script>
+</body>
+</html>
