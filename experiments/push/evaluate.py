@@ -5,13 +5,19 @@ policy and for a zero-action baseline (the robot holding the seated pose, which 
 move the bike). Measurements start after `WARMUP_S`, so the start from rest is not counted.
 The numbers are physical quantities, independent of the reward, so the simple and the shaped
 policy can be compared row by row.
+
+The Steer task adds turning cases (`EVAL_TURNS`: speed and turn rate), all on a 2 m radius
+(experiments/push/task.py, MAX_CURVATURE). Their rows report the yaw rate against the command
+and the heading against the commanded one; the straight line does not apply to them.
 """
 
 import torch
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.utils.lab_api.math import wrap_to_pi
 from tensordict import TensorDict
 
 EVAL_SPEEDS_MPS = (0.0, 0.2, 0.4)
+EVAL_TURNS = ((0.2, 0.1), (0.2, -0.1), (0.4, 0.2), (0.4, -0.2))  # (m/s, rad/s), left positive
 EVAL_SECONDS = 10.0
 WARMUP_S = 2.0
 
@@ -32,13 +38,15 @@ def _make_env(device, num_envs, seed):
 
 
 @torch.inference_mode()
-def _run(env, policy, device, num_envs, seed, speed):
-    """One episode per world at one commanded speed; `policy` None means zero actions."""
+def _run(env, policy, device, num_envs, seed, speed, turn=0.0):
+    """One episode per world at one commanded speed and turn rate; `policy` None means zero
+    actions."""
     from experiments.push import task as push
 
     command = env.command_manager.get_term(push.COMMAND).cfg
     command.rel_standing_envs = 0.0
     command.ranges.lin_vel_x = (speed, speed)
+    command.ranges.ang_vel_z = (turn, turn)
     obs, _ = env.reset(seed=seed)
     zero = torch.zeros(num_envs, env.action_manager.total_action_dim, device=device)
     complete = torch.zeros(num_envs, dtype=torch.bool, device=device)
@@ -50,6 +58,8 @@ def _run(env, policy, device, num_envs, seed, speed):
         for name in (
             "speed",
             "speed_error",
+            "yaw_rate",
+            "yaw_rate_error",
             "saddle_load",
             "both_feet_off",
             "foot_slip",
@@ -68,6 +78,7 @@ def _run(env, policy, device, num_envs, seed, speed):
     distance = torch.zeros(num_envs, device=device)
     lateral = torch.zeros(num_envs, device=device)
     heading = torch.zeros(num_envs, device=device)
+    drift = torch.zeros(num_envs, device=device)  # heading against the commanded one (deg)
     bike_falls = torch.zeros_like(complete)
     torque_max = torch.zeros(num_envs, device=device)
     warmup_steps = round(WARMUP_S / env.step_dt)
@@ -86,6 +97,8 @@ def _run(env, policy, device, num_envs, seed, speed):
             measured += on
             totals["speed"] += on * push.bike_speed(env)
             totals["speed_error"] += on * push.speed_error(env)
+            totals["yaw_rate"] += on * push.bike_yaw_rate(env)
+            totals["yaw_rate_error"] += on * (turn - push.bike_yaw_rate(env)).abs()
             totals["saddle_load"] += on * push.saddle_vertical_load_fraction(env)
             totals["both_feet_off"] += on * push.both_feet_off(env)
             totals["foot_slip"] += on * push.foot_slip_speed(env)
@@ -107,6 +120,9 @@ def _run(env, policy, device, num_envs, seed, speed):
         distance = torch.where(live, push.bike_distance(env), distance)
         lateral = torch.where(live, push.lateral_deviation(env), lateral)
         heading = torch.where(live, push.heading_error_deg(env), heading)
+        target = turn * (step + 1) * env.step_dt  # every world starts heading along x
+        off = wrap_to_pi(env.scene["bike"].data.heading_w - target).abs()
+        drift = torch.where(live, torch.rad2deg(off), drift)
         was_down = down
         if complete.all():
             break
@@ -117,15 +133,24 @@ def _run(env, policy, device, num_envs, seed, speed):
         key: float((total[stepped] / step_count[stepped]).mean()) if stepped.any() else None
         for key, total in step_totals.items()
     }
+    straight = turn == 0.0  # the line only means something when going straight
+
+    def on_line(value):
+        return float(value.mean()) if straight else None
+
     return {
         "command_mps": speed,
+        "command_yaw_rate_rad_s": turn,
         "success_fraction": float(success.float().mean()),
         "mean_speed_mps": mean["speed"],
         "speed_error_mps": mean["speed_error"],
+        "mean_yaw_rate_rad_s": mean["yaw_rate"],
+        "yaw_rate_error_rad_s": mean["yaw_rate_error"],
+        "heading_drift_deg": float(drift.mean()),
         "bike_fall_fraction": float(bike_falls.float().mean()),
-        "distance_m": float(distance.mean()),
-        "lateral_deviation_m": float(lateral.mean()),
-        "heading_error_deg": float(heading.mean()),
+        "distance_m": on_line(distance),
+        "lateral_deviation_m": on_line(lateral),
+        "heading_error_deg": on_line(heading),
         "saddle_load": mean["saddle_load"],
         "both_feet_off_share": mean["both_feet_off"],
         "foot_slip_mps": mean["foot_slip"],
@@ -144,16 +169,23 @@ def _run(env, policy, device, num_envs, seed, speed):
     }
 
 
-def evaluate_policy(policy, device, *, speeds=EVAL_SPEEDS_MPS, num_envs=32, seed=12345):
-    """Results per commanded speed, for `policy` and for zero actions."""
+def evaluate_policy(policy, device, *, speeds=EVAL_SPEEDS_MPS, turns=(), num_envs=32, seed=12345):
+    """Results per commanded speed (straight), then per (speed, turn rate) in `turns`, for
+    `policy` and for zero actions."""
+    from experiments.push.task import MAX_CURVATURE
+
+    cases = [(v, 0.0) for v in speeds] + [(v, w) for v, w in turns]
+    for v, w in cases:
+        if abs(w) > MAX_CURVATURE * abs(v) + 1e-9:
+            raise ValueError(f"turn rate {w} rad/s at {v} m/s is tighter than the task's cap")
     env = _make_env(device, num_envs, seed)
     try:
         return {
             "seed": seed,
             "episodes_per_speed": num_envs,
             "episode_seconds": EVAL_SECONDS,
-            "policy": [_run(env, policy, device, num_envs, seed, v) for v in speeds],
-            "zero_action": [_run(env, None, device, num_envs, seed, v) for v in speeds],
+            "policy": [_run(env, policy, device, num_envs, seed, v, w) for v, w in cases],
+            "zero_action": [_run(env, None, device, num_envs, seed, v, w) for v, w in cases],
         }
     finally:
         env.close()

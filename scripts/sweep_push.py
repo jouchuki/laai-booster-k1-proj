@@ -5,12 +5,14 @@ Linux GPU cluster, repository root on the Hex login node (submits one job per ru
     uv run --no-sync --group train python scripts/sweep_push.py submit groups --seeds 2 --test-only
     uv run --no-sync --group train python scripts/sweep_push.py submit groups --seeds 2
     uv run --no-sync --group train python scripts/sweep_push.py submit terms --base simple+gait+motors
+    uv run --no-sync --group train python scripts/sweep_push.py submit groups --task LAAI-K1-Push-Puky-Steer
     uv run --no-sync --group train python scripts/sweep_push.py collect logs/laai_push/sweeps/<sweep>
 
 Linux and macOS, repository root (each run trained here, one after another; for smoke tests):
     uv run --group train python scripts/sweep_push.py submit groups --local --only simple,all --iterations 2
 
-Every run is LAAI-K1-Push-Puky-Form with reward weights overridden on the command line.
+Every run is --task (default LAAI-K1-Push-Puky-Form; or LAAI-K1-Push-Puky-Steer, which also
+turns) with reward weights overridden on the command line.
 The sweep's manifest (runs, commands, job ids, git revision) and its ranked results go to
 logs/laai_push/sweeps/<sweep>/; each run logs as usual to logs/laai_push/<date>_<run-name>/,
 and to W&B group <sweep>.
@@ -36,17 +38,17 @@ EXPERIMENT_DIR = LOGS_DIR / "laai_push"
 SWEEPS_DIR = EXPERIMENT_DIR / "sweeps"
 
 
-def form_defaults() -> dict[str, float]:
-    from experiments.push import task as push
+def task_defaults(task: str) -> dict[str, float]:
+    """The task's reward weights, the ones the sweep switches off or rescales."""
+    from mjlab.tasks.registry import load_env_cfg
 
-    rewards = push.push_env_cfg(shaped=True, form=True).rewards
-    return {name: term.weight for name, term in rewards.items()}
+    import experiments.push.task  # noqa: F401  (registers the push tasks)
+
+    return {name: term.weight for name, term in load_env_cfg(task).rewards.items()}
 
 
-def train_args(config, defaults, *, seed, iterations, run_name, init_policy_from=None):
-    from experiments.push.task import FORM_TASK_ID
-
-    args = [FORM_TASK_ID, *sweep.overrides(config, defaults)]
+def train_args(config, defaults, *, task, seed, iterations, run_name, init_policy_from=None):
+    args = [task, *sweep.overrides(config, defaults)]
     args += ["--agent.max-iterations", str(iterations), "--agent.seed", str(seed)]
     args += ["--agent.run-name", run_name]
     if init_policy_from:
@@ -55,7 +57,7 @@ def train_args(config, defaults, *, seed, iterations, run_name, init_policy_from
 
 
 def plan(args) -> tuple[str, list[dict]]:
-    configs = sweep.make_stage(args.stage, args.base)
+    configs = sweep.make_stage(args.stage, args.base, args.task)
     if args.only:
         wanted = set(args.only.split(","))
         unknown = wanted - {c.name for c in configs}
@@ -63,8 +65,9 @@ def plan(args) -> tuple[str, list[dict]]:
             sys.exit(f"--only: no such configs in this stage: {sorted(unknown)}")
         configs = [c for c in configs if c.name in wanted]
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    name = f"sweep-{args.stage}-{stamp}"
-    defaults = form_defaults()
+    steer = "-steer" if args.task == sweep.STEER_TASK_ID else ""
+    name = f"sweep{steer}-{args.stage}-{stamp}"
+    defaults = task_defaults(args.task)
     runs = []
     for config in configs:
         for seed in range(args.seed, args.seed + args.seeds):
@@ -79,6 +82,7 @@ def plan(args) -> tuple[str, list[dict]]:
                     "train_args": train_args(
                         config,
                         defaults,
+                        task=args.task,
                         seed=seed,
                         iterations=args.iterations,
                         run_name=run_name,
@@ -147,7 +151,7 @@ def cmd_submit(args) -> None:
         "sweep": name,
         "stage": args.stage,
         "base": args.base if args.stage != "groups" else None,
-        "task": "LAAI-K1-Push-Puky-Form",
+        "task": args.task,
         "iterations": args.iterations,
         "git_revision": revision,
         "uncommitted_changes": dirty,
@@ -213,6 +217,12 @@ def main(argv=None) -> None:
             'or "all-form-arm_effort" (sets: core, task, simple, all, '
             + ", ".join(sweep.GROUPS)
             + "; or term names)",
+        )
+        p.add_argument(
+            "--task",
+            choices=sorted(sweep.TASK_TERMS),
+            default=sweep.FORM_TASK_ID,
+            help=f"task to train (default {sweep.FORM_TASK_ID})",
         )
         p.add_argument("--only", help="comma-separated config names to keep")
         p.add_argument("--seeds", type=int, default=2, help="seeds per config (default 2)")

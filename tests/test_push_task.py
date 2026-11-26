@@ -1,4 +1,5 @@
-"""The push tasks: the free bike, a forward-speed command, and two reward sets."""
+"""The push tasks: the free bike, a forward-speed command (plus a turn rate in the Steer task),
+and the reward sets."""
 
 import math
 
@@ -57,6 +58,32 @@ def test_both_tasks_differ_only_in_their_rewards():
         assert load_runner_cls(task_id) is PushRunner
     watching = push.push_env_cfg(play=True)
     assert not watching.curriculum and "saddle_position" not in watching.events
+
+
+def test_steer_task_swaps_the_line_for_the_turn_rate():
+    from experiments.push.runner import PushSteerRunner
+
+    form, steer = push.push_env_cfg(shaped=True, form=True), push.push_env_cfg(steer=True)
+    assert set(steer.rewards) == set(form.rewards) - {"on_line"} | {"track_bike_turn_rate"}
+    for name, term in steer.rewards.items():
+        if name in form.rewards:
+            assert form.rewards[name].weight == term.weight, name
+    critic = steer.observations["critic"].terms
+    assert "bike_heading" in critic and "bike_line" not in critic
+    assert steer.observations["actor"].terms.keys() == form.observations["actor"].terms.keys()
+    assert "lateral_deviation_m" not in steer.metrics
+    assert {"commanded_heading_error_deg", "turn_rate_error_rad_s"} <= set(steer.metrics)
+    command = steer.commands[push.COMMAND]
+    assert isinstance(command, push.BikeTurnCommandCfg)
+    assert command.ranges.ang_vel_z == push.STEER_STAGES[0]["ang_vel_z"]
+    assert command.ranges.lin_vel_y == (0.0, 0.0)
+    stages = steer.curriculum["command_vel"].params["velocity_stages"]
+    assert stages == push.STEER_STAGES
+    assert [s["lin_vel_x"] for s in stages] == [s["lin_vel_x"] for s in push.SPEED_STAGES]
+    play = push.push_env_cfg(play=True, steer=True).commands[push.COMMAND]
+    assert play.ranges.ang_vel_z == push.STEER_STAGES[-1]["ang_vel_z"]
+    assert load_runner_cls(push.STEER_TASK_ID) is PushSteerRunner
+    assert load_rl_cfg(push.STEER_TASK_ID).experiment_name == "laai_push"
 
 
 def test_command_is_forward_speed_only():
@@ -166,14 +193,81 @@ def test_evaluation_reports_each_speed_for_policy_and_zero_actions():
     def zero(obs):
         return torch.zeros(obs.batch_size[0], 20)
 
-    report = evaluate_policy(zero, "cpu", speeds=(0.0, 0.2), num_envs=2)
-    assert [row["command_mps"] for row in report["policy"]] == [0.0, 0.2]
+    report = evaluate_policy(zero, "cpu", speeds=(0.0, 0.2), turns=((0.2, 0.1),), num_envs=2)
+    assert [row["command_mps"] for row in report["policy"]] == [0.0, 0.2, 0.2]
+    assert [row["command_yaw_rate_rad_s"] for row in report["policy"]] == [0.0, 0.0, 0.1]
     assert report["policy"] == report["zero_action"], "a zero policy is the baseline itself"
-    still, moving = report["zero_action"]
+    still, moving, turning = report["zero_action"]
+    # Zero actions do not turn the bike either: it falls behind the commanded heading.
+    assert turning["lateral_deviation_m"] is None and moving["lateral_deviation_m"] is not None
+    assert abs(turning["mean_yaw_rate_rad_s"]) < 0.01
+    assert turning["yaw_rate_error_rad_s"] == pytest.approx(0.1, abs=0.01)
+    assert turning["heading_drift_deg"] == pytest.approx(math.degrees(0.1 * 10.0), abs=3.0)
+    assert moving["heading_drift_deg"] < 3.0
+    with pytest.raises(ValueError):
+        evaluate_policy(zero, "cpu", speeds=(), turns=((0.2, 0.2),), num_envs=2)
     assert still["success_fraction"] == moving["success_fraction"] == 1.0
     assert still["speed_error_mps"] < 0.02
     assert moving["speed_error_mps"] == pytest.approx(0.2, abs=0.02), "the baseline stays put"
     assert moving["torque_ratio_max"] < 0.9
+
+
+@pytest.fixture(scope="module")
+def steer_env():
+    cfg = push.push_env_cfg(steer=True)
+    cfg.scene.num_envs = 64
+    cfg.seed = 5
+    cfg.events.pop("push_robot")
+    cfg.events.pop("saddle_position")
+    cfg.commands[push.COMMAND].ranges.ang_vel_z = (-1.0, 1.0)  # wider than the cap allows
+    env = ManagerBasedRlEnv(cfg, device="cpu")
+    yield env
+    env.close()
+
+
+def test_turn_command_is_capped_by_the_speed(steer_env):
+    env = steer_env
+    env.reset()
+    command = env.command_manager.get_term(push.COMMAND)
+    command._resample_command(torch.arange(env.num_envs))
+    speed, turn = command.vel_command_b[:, 0], command.vel_command_b[:, 2]
+    assert (turn.abs() <= push.MAX_CURVATURE * speed.abs() + 1e-6).all()
+    assert (turn > 0).any() and (turn < 0).any()
+    assert command.vel_command_b[:, 1].abs().max() == 0.0
+
+
+def test_turn_reward_and_commanded_heading(steer_env):
+    env = steer_env
+    env.reset()
+    term = env.reward_manager.get_term_cfg("track_bike_turn_rate")
+    command = env.command_manager.get_term(push.COMMAND)
+    command.vel_command_b[:] = 0.0
+    command.vel_command_b[:, 0] = 0.3
+    command.vel_command_b[:, 2] = 0.15
+    rewards = {}
+    for rate in (0.0, 0.15, 0.3):
+        term.func.reset()
+        term.func.filtered[:] = rate  # as after turning at this rate for a while
+        velocity = torch.zeros(env.num_envs, 6)
+        velocity[:, 5] = rate
+        env.scene["bike"].write_root_link_velocity_to_sim(velocity)
+        env.sim.forward()
+        rewards[rate] = term.func(env, **term.params)
+    assert torch.allclose(rewards[0.15], torch.ones(env.num_envs), atol=1e-3)
+    assert (rewards[0.0] < 0.15).all() and (rewards[0.3] < 0.15).all()
+    # The commanded heading integrates the command; a bike that does not turn falls behind it.
+    heading = push.CommandedHeading.of(env, update=False)
+    heading.reset()
+    for k in range(50):
+        env.common_step_counter += 1  # one control step per update, without stepping physics
+        push.CommandedHeading.of(env)
+    assert torch.allclose(heading.target, torch.full((env.num_envs,), 50 * env.step_dt * 0.15))
+    error = push.bike_heading_obs(env)[:, 0]
+    start = env.scene["bike"].data.heading_w
+    assert torch.allclose(error, start - heading.target, atol=1e-4)
+    term.func.reset()
+    assert (heading.target == 0).all()
+    env.reset()
 
 
 @pytest.fixture(scope="module")

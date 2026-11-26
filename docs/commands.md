@@ -682,7 +682,8 @@ for zero actions. The run has learned to balance where `beats_zero_action_at_mps
 
 `LAAI-K1-Push-Puky-Simple`, `LAAI-K1-Push-Puky-Shaped` and `LAAI-K1-Push-Puky-Form` push the
 free bike along a straight line at a commanded speed, with a minimal, a shaped, and a shaped
-plus riding-form reward; setup and metrics:
+plus riding-form reward. `LAAI-K1-Push-Puky-Steer` uses the riding-form rewards but also
+follows a commanded turn rate, like the walk policy's joystick. Setup and metrics:
 [experiments/push/README.md](../experiments/push/README.md). Output goes to `logs/laai_push/`.
 
 ### Linux GPU cluster: smoke job, then both runs on Hex
@@ -709,17 +710,30 @@ symmetry):
 sbatch --job-name=push-form cluster/train.slurm LAAI-K1-Push-Puky-Form --agent.run-name form-run1
 ```
 
+The steering task (forward speed and turn rate; its evaluation adds turning cases):
+
+```bash
+sbatch --job-name=push-steer cluster/train.slurm LAAI-K1-Push-Puky-Steer --agent.run-name steer-run1
+```
+
 ### Linux and macOS: CPU smoke run
 
 ```bash
 uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Shaped --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
 ```
 
+The steering task:
+
+```bash
+uv run --group train python scripts/train.py LAAI-K1-Push-Puky-Steer --gpu-ids None --env.scene.num-envs 8 --agent.max-iterations 2 --agent.logger tensorboard
+```
+
 ## Sweep the push rewards
 
 Which reward terms, at which weights, the push task needs; stages, gates and ranking:
 [experiments/push/README.md](../experiments/push/README.md#reward-sweep). Every run trains
-`LAAI-K1-Push-Puky-Form` with weights overridden on the command line.
+`LAAI-K1-Push-Puky-Form` (or, with `--task LAAI-K1-Push-Puky-Steer`, the steering task) with
+weights overridden on the command line.
 
 ### Linux GPU cluster: one stage on Hex
 
@@ -750,6 +764,16 @@ Then the next stage from the simplest passing set, for example:
 uv run --no-sync --group train python scripts/sweep_push.py submit terms --base simple+gait+motors --seeds 2
 ```
 
+The same stages for the steering task (`plan`, `submit` and its options all take `--task`):
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py submit groups --task LAAI-K1-Push-Puky-Steer --seeds 2 --test-only
+```
+
+```bash
+uv run --no-sync --group train python scripts/sweep_push.py submit groups --task LAAI-K1-Push-Puky-Steer --seeds 2
+```
+
 `--cpu` submits to `cluster/train_cpu.slurm` instead; `--time`, `--num-envs`,
 `--iterations` and `--init-policy-from` apply to every run; `--only a,b` keeps some configs.
 
@@ -759,6 +783,12 @@ Trains each run here, one after another (2 iterations, 8 environments, TensorBoa
 
 ```bash
 uv run --group train python scripts/sweep_push.py submit groups --local --only simple,all --seeds 1 --iterations 2
+```
+
+The steering task:
+
+```bash
+uv run --group train python scripts/sweep_push.py submit groups --task LAAI-K1-Push-Puky-Steer --local --only simple --seeds 1 --iterations 2
 ```
 
 ## Compare the trained free-bike policies locally

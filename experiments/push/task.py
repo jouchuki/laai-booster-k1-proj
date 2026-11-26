@@ -18,13 +18,21 @@ Three tasks share everything except their rewards, to compare a minimal reward w
 
 Their returns are not comparable (different reward sums); compare the logged metrics and the
 final evaluation (experiments/push/evaluate.py), which are identical for all three.
+
+A fourth task steers, like the walk policy following a joystick:
+
+  * LAAI-K1-Push-Puky-Steer: the Form rewards, but the command also carries a turn rate, and
+    the straight-line term is replaced by tracking that turn rate on the bike's yaw rate.
+    The turn rate is capped at MAX_CURVATURE times the commanded speed: the bike only turns
+    while it rolls, and the arms (hands welded to the grips) turn the bar about 17 deg at
+    most before nearing the torque limit (see experiments/push/README.md).
 """
 
 from __future__ import annotations
 
 import dataclasses
 import math
-from dataclasses import fields
+from dataclasses import dataclass, fields
 
 import torch
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -40,9 +48,10 @@ from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.registry import register_mjlab_task
 from mjlab.tasks.velocity import mdp as velocity_mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
-from mjlab.utils.lab_api.math import matrix_from_quat, quat_apply_inverse
+from mjlab.tasks.velocity.mdp.velocity_command import UniformVelocityCommand
+from mjlab.utils.lab_api.math import matrix_from_quat, quat_apply_inverse, wrap_to_pi
 
-from experiments.push.runner import PushRunner
+from experiments.push.runner import PushRunner, PushSteerRunner
 from experiments.sit import task as sit
 from experiments.sit_free import task as free
 from experiments.sit_free.runner import PolicyInitRunnerCfg
@@ -52,6 +61,7 @@ from k1bike.robots.k1 import DEPLOY_JOINTS, EFFORT, FOOT_SITES, POLICY_JOINT_REG
 SIMPLE_TASK_ID = "LAAI-K1-Push-Puky-Simple"
 SHAPED_TASK_ID = "LAAI-K1-Push-Puky-Shaped"
 FORM_TASK_ID = "LAAI-K1-Push-Puky-Form"
+STEER_TASK_ID = "LAAI-K1-Push-Puky-Steer"
 COMMAND = "twist"  # the walk task's command name, so mjlab's velocity terms work unchanged
 
 # --- Saddle randomization (per episode) --------------------------------------------------------
@@ -72,6 +82,21 @@ SPEED_STD = 0.15  # m/s: standing still on a 0.3 m/s command earns 2% of the tra
 SPEED_FILTER_S = 0.5  # each push-off surges and fades; track the speed averaged over this time
 MOVING = 0.05  # m/s: commands above this count as "moving" in the shaped rewards
 TORQUE_SOFT_LIMIT = 0.8  # share of a joint's torque limit that costs nothing
+
+# --- The turn-rate command (the Steer task) ----------------------------------------------------
+# A rolling bike turns at about speed * tan(steer * cos 18 deg) / 0.5 m (wheelbase 0.5 m, steering
+# axis 18 deg from vertical). The arms turn the bar about 17 deg before a shoulder nears its torque
+# limit, so the turn rate is capped at this curvature (1/m) times the commanded speed: a 2 m
+# radius, about 15 deg of steering. Sitting still means no turning either.
+MAX_CURVATURE = 0.5
+# Turn rates start at +-0.15 rad/s (the cap at 0.3 m/s, the first stage's top speed) and widen
+# with the speed at iteration 1500, as the walk task's command does.
+STEER_STAGES = [
+    {**SPEED_STAGES[0], "ang_vel_z": (-0.15, 0.15)},
+    {**SPEED_STAGES[1], "ang_vel_z": (-0.3, 0.3)},
+]
+TURN_STD = 0.1  # rad/s: not turning on a 0.15 rad/s command earns 11% of the tracking reward
+TURN_FILTER_S = 0.5  # as SPEED_FILTER_S: each push-off also rocks the bike's heading
 
 # --- Riding form (the Form task) ---------------------------------------------------------------
 # Legs: how far each knee and foot is outward of its hip, across the bike (m; positive is away
@@ -122,6 +147,63 @@ def speed_command(env) -> torch.Tensor:
     return env.command_manager.get_command(COMMAND)[:, 0]
 
 
+def turn_command(env) -> torch.Tensor:
+    """The commanded turn rate (rad/s, positive to the left); always zero in the straight tasks."""
+    return env.command_manager.get_command(COMMAND)[:, 2]
+
+
+def bike_yaw_rate(env) -> torch.Tensor:
+    """The bike's turn rate about its own vertical axis (rad/s, positive to the left)."""
+    return env.scene["bike"].data.root_link_ang_vel_b[:, 2]
+
+
+# --- The turn-rate command and heading (the Steer task) ----------------------------------------
+class BikeTurnCommand(UniformVelocityCommand):
+    """mjlab's velocity command, with the turn rate capped at max_curvature x |speed|."""
+
+    def _resample_command(self, env_ids: torch.Tensor) -> None:
+        super()._resample_command(env_ids)
+        cap = self.cfg.max_curvature * self.vel_command_b[env_ids, 0].abs()
+        self.vel_command_b[env_ids, 2] = torch.maximum(
+            torch.minimum(self.vel_command_b[env_ids, 2], cap), -cap
+        )
+
+
+@dataclass(kw_only=True)
+class BikeTurnCommandCfg(UniformVelocityCommandCfg):
+    max_curvature: float = MAX_CURVATURE
+
+    def build(self, env) -> BikeTurnCommand:
+        return BikeTurnCommand(self, env)
+
+
+class CommandedHeading:
+    """The heading the commands lead to (their turn rate integrated since the episode began),
+    against the bike's. Updated once per control step, however many terms ask."""
+
+    def __init__(self, env):
+        self.step = -1
+        self.target = torch.zeros(env.num_envs, device=env.device)
+
+    @staticmethod
+    def of(env, update: bool = True) -> CommandedHeading:
+        tracker = getattr(env, "_laai_heading", None)
+        if tracker is None:
+            tracker = env._laai_heading = CommandedHeading(env)
+        if update and env.common_step_counter != tracker.step:
+            tracker.step = env.common_step_counter
+            tracker.target += env.step_dt * turn_command(env)
+        return tracker
+
+    def reset(self, env_ids=None) -> None:
+        self.target[slice(None) if env_ids is None else env_ids] = 0.0
+
+    def error(self, env) -> torch.Tensor:
+        """Bike heading minus the commanded one, in [-pi, pi] (rad). Every episode starts
+        heading along the world's x axis, as the straight tasks' line does."""
+        return wrap_to_pi(env.scene["bike"].data.heading_w - self.target)
+
+
 # --- Rewards -----------------------------------------------------------------------------------
 class track_bike_speed:
     """exp(-((command - bike speed) / std)^2), on the speed averaged over about `tau` s."""
@@ -135,6 +217,31 @@ class track_bike_speed:
     def __call__(self, env, std: float, tau: float) -> torch.Tensor:
         self.filtered += min(1.0, env.step_dt / tau) * (bike_speed(env) - self.filtered)
         return torch.exp(-torch.square((speed_command(env) - self.filtered) / std))
+
+
+class track_bike_turn_rate:
+    """exp(-((command - bike yaw rate) / std)^2), on the yaw rate averaged over about `tau` s.
+
+    Also resets the commanded heading (CommandedHeading) that the critic and metrics read.
+    """
+
+    def __init__(self, cfg: RewardTermCfg, env):
+        self.env = env
+        self.filtered = torch.zeros(env.num_envs, device=env.device)
+
+    def reset(self, env_ids=None) -> None:
+        self.filtered[slice(None) if env_ids is None else env_ids] = 0.0
+        CommandedHeading.of(self.env, update=False).reset(env_ids)
+
+    def __call__(self, env, std: float, tau: float) -> torch.Tensor:
+        CommandedHeading.of(env)
+        self.filtered += min(1.0, env.step_dt / tau) * (bike_yaw_rate(env) - self.filtered)
+        return torch.exp(-torch.square((turn_command(env) - self.filtered) / std))
+
+
+def bike_heading_obs(env) -> torch.Tensor:
+    """Critic only (Steer task): bike heading minus the commanded heading (rad)."""
+    return CommandedHeading.of(env).error(env).unsqueeze(-1)
 
 
 def on_line(env, std_m: float, std_rad: float) -> torch.Tensor:
@@ -436,6 +543,14 @@ def speed_error(env) -> torch.Tensor:
     return (speed_command(env) - bike_speed(env)).abs()
 
 
+def turn_rate_error(env) -> torch.Tensor:
+    return (turn_command(env) - bike_yaw_rate(env)).abs()
+
+
+def commanded_heading_error_deg(env) -> torch.Tensor:
+    return torch.rad2deg(CommandedHeading.of(env).error(env).abs())
+
+
 def foot_slip_speed(env) -> torch.Tensor:
     """Mean horizontal speed of the feet that are on the floor (m/s)."""
     robot = env.scene["robot"]
@@ -564,6 +679,16 @@ def form_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
     }
 
 
+def steer_rewards(control_dt: float) -> dict[str, RewardTermCfg]:
+    """The Form rewards with the straight line swapped for the commanded turn rate."""
+    rewards = form_rewards(control_dt)
+    del rewards["on_line"]
+    rewards["track_bike_turn_rate"] = RewardTermCfg(
+        func=track_bike_turn_rate, weight=1.0, params={"std": TURN_STD, "tau": TURN_FILTER_S}
+    )
+    return rewards
+
+
 def trunk_bike_yaw_deg(env) -> torch.Tensor:
     return torch.rad2deg(trunk_yaw_pitch_to_bike(env)[0].abs())
 
@@ -593,8 +718,10 @@ def bike_collision_sensor() -> ContactSensorCfg:
 
 
 def push_env_cfg(
-    shaped: bool = False, play: bool = False, form: bool = False
+    shaped: bool = False, play: bool = False, form: bool = False, steer: bool = False
 ) -> ManagerBasedRlEnvCfg:
+    """The push task; `steer` (the Steer task) adds the turn rate to the command and the Form
+    rewards, swapping the straight line for it (`shaped` and `form` are then implied)."""
     # The free bike, its fall limits (bike 20 deg, trunk 35 deg) and the critic's bike state.
     cfg = free.free_sit_env_cfg(play=play)
     # Air time per foot, for the stepping reward and the step count.
@@ -605,9 +732,11 @@ def push_env_cfg(
     if not play:
         cfg.episode_length_s = 20.0  # a few speed changes per episode
 
-    final_range = SPEED_STAGES[-1]["lin_vel_x"]
+    stages = STEER_STAGES if steer else [{**s, "ang_vel_z": (0.0, 0.0)} for s in SPEED_STAGES]
+    stage = stages[-1] if play else stages[0]
+    command_cls = BikeTurnCommandCfg if steer else UniformVelocityCommandCfg
     cfg.commands = {
-        COMMAND: UniformVelocityCommandCfg(
+        COMMAND: command_cls(
             entity_name="robot",
             resampling_time_range=(3.0, 8.0),
             rel_standing_envs=STANDING_SHARE,
@@ -615,9 +744,7 @@ def push_env_cfg(
             rel_heading_envs=0.0,
             debug_vis=True,
             ranges=UniformVelocityCommandCfg.Ranges(
-                lin_vel_x=final_range if play else SPEED_STAGES[0]["lin_vel_x"],
-                lin_vel_y=(0.0, 0.0),
-                ang_vel_z=(0.0, 0.0),
+                lin_vel_x=stage["lin_vel_x"], lin_vel_y=(0.0, 0.0), ang_vel_z=stage["ang_vel_z"]
             ),
         )
     }
@@ -626,7 +753,10 @@ def push_env_cfg(
     )
     cfg.observations["actor"].terms["command"] = command_obs
     cfg.observations["critic"].terms["command"] = dataclasses.replace(command_obs)
-    cfg.observations["critic"].terms["bike_line"] = ObservationTermCfg(func=bike_line_obs)
+    if steer:
+        cfg.observations["critic"].terms["bike_heading"] = ObservationTermCfg(func=bike_heading_obs)
+    else:
+        cfg.observations["critic"].terms["bike_line"] = ObservationTermCfg(func=bike_line_obs)
 
     if not play:
         # One shift for the whole saddle (shared_random), new in every episode.
@@ -644,22 +774,35 @@ def push_env_cfg(
             },
         )
     control_dt = cfg.decimation * cfg.sim.mujoco.timestep
-    if form:
+    if steer:
+        cfg.rewards = steer_rewards(control_dt)
+    elif form:
         cfg.rewards = form_rewards(control_dt)
     else:
         cfg.rewards = shaped_rewards(control_dt) if shaped else simple_rewards(control_dt)
     if not play:
         cfg.curriculum["command_vel"] = CurriculumTermCfg(
             func=velocity_mdp.commands_vel,
-            params={"command_name": COMMAND, "velocity_stages": SPEED_STAGES},
+            params={
+                "command_name": COMMAND,
+                "velocity_stages": STEER_STAGES if steer else SPEED_STAGES,
+            },
         )
+    if steer:  # no straight line: heading against the commanded one instead
+        course = {"commanded_heading_error_deg": MetricsTermCfg(func=commanded_heading_error_deg)}
+    else:
+        course = {
+            "bike_distance_m": MetricsTermCfg(func=bike_distance, reduce="last"),
+            "lateral_deviation_m": MetricsTermCfg(func=lateral_deviation),
+            "heading_error_deg": MetricsTermCfg(func=heading_error_deg),
+        }
     cfg.metrics.update(
         {
             "bike_speed_m_s": MetricsTermCfg(func=bike_speed),
             "speed_error_m_s": MetricsTermCfg(func=speed_error),
-            "bike_distance_m": MetricsTermCfg(func=bike_distance, reduce="last"),
-            "lateral_deviation_m": MetricsTermCfg(func=lateral_deviation),
-            "heading_error_deg": MetricsTermCfg(func=heading_error_deg),
+            "bike_yaw_rate_rad_s": MetricsTermCfg(func=bike_yaw_rate),
+            "turn_rate_error_rad_s": MetricsTermCfg(func=turn_rate_error),
+            **course,
             "both_feet_off": MetricsTermCfg(func=both_feet_off),
             "foot_slip_m_s": MetricsTermCfg(func=foot_slip_speed),
             "torque_ratio_max": MetricsTermCfg(func=torque_ratio_max, reduce="max"),
@@ -706,3 +849,10 @@ for _task_id, _shaped, _form in (
         rl_cfg=push_runner_cfg(),
         runner_cls=PushRunner,
     )
+register_mjlab_task(
+    task_id=STEER_TASK_ID,
+    env_cfg=push_env_cfg(steer=True),
+    play_env_cfg=push_env_cfg(play=True, steer=True),
+    rl_cfg=push_runner_cfg(),
+    runner_cls=PushSteerRunner,
+)
